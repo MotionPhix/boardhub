@@ -7,10 +7,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\MediaLibrary\HasMedia;
+use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Contract extends Model
+class Contract extends Model implements HasMedia
 {
-  use HasFactory, SoftDeletes;
+  use HasFactory, SoftDeletes, InteractsWithMedia;
 
   protected $fillable = [
     'client_id',
@@ -38,6 +40,16 @@ class Contract extends Model
   public function client(): BelongsTo
   {
     return $this->belongsTo(Client::class);
+  }
+
+  public function registerMediaCollections(): void
+  {
+    $this->addMediaCollection('contract_documents')
+      ->useDisk('public');
+
+    $this->addMediaCollection('signed_contracts')
+      ->singleFile()
+      ->useDisk('public');
   }
 
   protected static function boot()
