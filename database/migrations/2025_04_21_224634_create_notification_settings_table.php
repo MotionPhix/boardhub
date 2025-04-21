@@ -15,7 +15,7 @@ return new class extends Migration {
       $table->foreignId('user_id')->constrained()->onDelete('cascade');
       $table->boolean('email_notifications')->default(true);
       $table->boolean('database_notifications')->default(true);
-      $table->json('notification_thresholds')->default(json_encode([30, 14, 7, 3, 1]));
+      $table->json('notification_thresholds')->nullable();
       $table->timestamps();
     });
   }
