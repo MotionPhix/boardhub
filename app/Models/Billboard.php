@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,6 +16,7 @@ class Billboard extends Model implements HasMedia
   use HasFactory;
   use InteractsWithMedia;
   use SoftDeletes;
+  use HasUuid;
 
   protected $fillable = [
     'name',

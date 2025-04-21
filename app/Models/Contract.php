@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,7 +13,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Contract extends Model implements HasMedia
 {
-  use HasFactory, SoftDeletes, InteractsWithMedia;
+  use HasFactory, SoftDeletes, InteractsWithMedia, HasUuid;
 
   protected $fillable = [
     'client_id',
