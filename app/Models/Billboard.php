@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -18,7 +18,7 @@ class Billboard extends Model implements HasMedia
 
   protected $fillable = [
     'name',
-    'location',
+    'location_id',
     'size',
     'type',
     'price',
@@ -36,13 +36,31 @@ class Billboard extends Model implements HasMedia
     'price' => 'decimal:2',
   ];
 
-  public function contracts(): HasMany
+  public function contracts(): BelongsToMany
   {
-    return $this->hasMany(Contract::class);
+    return $this->belongsToMany(Contract::class)
+      ->withPivot(['price', 'start_date', 'end_date', 'status', 'notes'])
+      ->withTimestamps();
   }
 
   public function location(): BelongsTo
   {
     return $this->belongsTo(Location::class);
+  }
+
+  public function getCurrentContractAttribute()
+  {
+    return $this->contracts()
+      ->wherePivot('start_date', '<=', now())
+      ->wherePivot('end_date', '>=', now())
+      ->wherePivot('status', 'active')
+      ->first();
+  }
+
+  public function getIsAvailableAttribute(): bool
+  {
+    return !$this->current_contract &&
+      $this->status === 'Available' &&
+      (!$this->available_until || $this->available_until->isFuture());
   }
 }

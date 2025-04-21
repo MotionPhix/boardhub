@@ -13,18 +13,15 @@ return new class extends Migration {
     Schema::create('contracts', function (Blueprint $table) {
       $table->id();
       $table->uuid('uuid')->unique()->nullable();
-      $table->foreignId('billboard_id')->constrained()->onDelete('cascade');
-      $table->string('client_name');
-      $table->string('client_contact');
-      $table->string('client_email');
-      $table->date('start_date');
-      $table->date('end_date');
-      $table->decimal('contract_value', 10, 2);
-      $table->enum('status', ['Active', 'Pending', 'Expired', 'Cancelled']);
+      $table->foreignId('client_id')->constrained()->onDelete('cascade');
+      $table->string('contract_number')->unique();  // Added for better contract identification
+      $table->timestamp('start_date');
+      $table->timestamp('end_date');
+      $table->decimal('total_amount', 10, 2);  // Changed from price to total_amount
+      $table->string('status');
       $table->text('notes')->nullable();
       $table->timestamps();
       $table->softDeletes();
-      $table->timestamps();
     });
   }
 

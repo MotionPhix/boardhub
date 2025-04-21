@@ -14,21 +14,18 @@ return new class extends Migration {
       $table->id();
       $table->uuid('uuid')->unique()->nullable();
       $table->string('name');
-      $table->string('location');
-      $table->decimal('price', 10, 2);
+      $table->foreignId('location_id')->constrained()->onDelete('cascade');
       $table->string('size');
-      $table->enum('type', ['Static', 'Digital', 'Mobile']);
-      $table->enum('status', ['Available', 'Occupied', 'Maintenance']);
-      $table->date('contract_start_date')->nullable();
-      $table->date('contract_end_date')->nullable();
+      $table->string('type');
+      $table->decimal('price', 10, 2);
+      $table->string('status');
       $table->text('description')->nullable();
-      $table->json('photos')->nullable();
-      $table->json('specifications')->nullable();
       $table->decimal('latitude', 10, 8)->nullable();
       $table->decimal('longitude', 10, 8)->nullable();
+      $table->timestamp('available_from')->nullable();
+      $table->timestamp('available_until')->nullable();
       $table->timestamps();
       $table->softDeletes();
-      $table->timestamps();
     });
   }
 
