@@ -1,55 +1,84 @@
 <div class="rounded-lg border border-gray-300 p-4">
   <div
+    wire:ignore
     x-data="{
             lat: {{ $getRecord()?->latitude ?? -13.9626 }},
             lng: {{ $getRecord()?->longitude ?? 33.7741 }},
             zoom: 13,
+            map: null,
+            marker: null,
             initMap() {
-                const map = L.map($refs.map).setView([this.lat, this.lng], this.zoom);
+                // Initialize the map
+                this.map = L.map($refs.map).setView([this.lat, this.lng], this.zoom);
 
+                // Add tile layer
                 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
                     attribution: '© OpenStreetMap contributors'
-                }).addTo(map);
+                }).addTo(this.map);
 
-                const marker = L.marker([this.lat, this.lng], {
+                // Add marker
+                this.marker = L.marker([this.lat, this.lng], {
                     draggable: true
-                }).addTo(map);
+                }).addTo(this.map);
 
-                marker.on('dragend', function(e) {
+                // Handle marker drag
+                this.marker.on('dragend', (e) => {
                     const position = e.target.getLatLng();
-                    document.querySelector('[name="latitude"]').value = position.lat.toFixed(6);
-  document.querySelector('[name="longitude"]').value = position.lng.toFixed(6);
+                    const latInput = document.querySelector('[name="latitude"]');
+  const lngInput = document.querySelector('[name="longitude"]');
+  if (latInput && lngInput) {
+  latInput.value = position.lat.toFixed(6);
+  lngInput.value = position.lng.toFixed(6);
+  // Trigger change event for Filament to detect the change
+  latInput.dispatchEvent(new Event('change'));
+  lngInput.dispatchEvent(new Event('change'));
+  }
   });
 
-  // Update marker position when inputs change
+  // Watch for input changes
   const latInput = document.querySelector('[name="latitude"]');
   const lngInput = document.querySelector('[name="longitude"]');
 
+  if (latInput && lngInput) {
   const updateMarker = () => {
   const lat = parseFloat(latInput.value);
   const lng = parseFloat(lngInput.value);
   if (!isNaN(lat) && !isNaN(lng)) {
-  marker.setLatLng([lat, lng]);
-  map.setView([lat, lng]);
+  this.marker.setLatLng([lat, lng]);
+  this.map.setView([lat, lng]);
   }
   };
 
   latInput.addEventListener('change', updateMarker);
   lngInput.addEventListener('change', updateMarker);
+  }
 
   // Add search control
   const searchControl = L.Control.geocoder({
   defaultMarkGeocode: false
-  }).addTo(map);
+  }).addTo(this.map);
 
-  searchControl.on('markgeocode', function(e) {
-  const { center, name } = e.geocode;
-  marker.setLatLng(center);
-  map.setView(center, 16);
+  searchControl.on('markgeocode', (e) => {
+  const { center } = e.geocode;
+  this.marker.setLatLng(center);
+  this.map.setView(center, 16);
+
+  const latInput = document.querySelector('[name="latitude"]');
+  const lngInput = document.querySelector('[name="longitude"]');
+  if (latInput && lngInput) {
   latInput.value = center.lat.toFixed(6);
   lngInput.value = center.lng.toFixed(6);
+  // Trigger change event for Filament to detect the change
+  latInput.dispatchEvent(new Event('change'));
+  lngInput.dispatchEvent(new Event('change'));
+  }
   });
+
+  // Fix map display issues
+  setTimeout(() => {
+  this.map.invalidateSize();
+  }, 250);
   }
   }"
   x-init="initMap()"
@@ -76,6 +105,9 @@
     }
     .leaflet-control-geocoder-alternatives li:hover {
       @apply bg-gray-100;
+    }
+    .leaflet-control-attribution {
+      @apply text-xs;
     }
   </style>
 @endPushOnce
