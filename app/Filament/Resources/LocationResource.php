@@ -12,7 +12,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Illuminate\Support\Str;
 
 class LocationResource extends Resource
 {
@@ -23,6 +23,8 @@ class LocationResource extends Resource
   protected static ?string $navigationGroup = 'Management';
 
   protected static ?int $navigationSort = 2;
+
+  protected static ?string $recordTitleAttribute = 'name';
 
   public static function form(Form $form): Form
   {
@@ -37,21 +39,20 @@ class LocationResource extends Resource
                   ->maxLength(255)
                   ->live(onBlur: true)
                   ->afterStateUpdated(function (string $operation, $state, Forms\Set $set) {
-                    if ($operation !== 'create') {
-                      return;
+                    if ($operation === 'create') {
+                      $set('slug', Str::slug($state));
                     }
-
-                    $set('slug', str()->slug($state));
                   }),
 
                 Forms\Components\TextInput::make('slug')
                   ->disabled()
                   ->dehydrated()
-                  ->unique(Location::class, 'slug', ignoreRecord: true),
+                  ->required()
+                  ->unique(Location::class, 'slug', ignoreRecord: true)
+                  ->helperText('This is automatically generated from the name.'),
 
                 Forms\Components\MarkdownEditor::make('description')
-                  ->columnSpanFull()
-                  ->maxLength(65535),
+                  ->columnSpanFull(),
               ])
               ->columns(2),
 
@@ -68,7 +69,7 @@ class LocationResource extends Resource
                 Forms\Components\Select::make('country')
                   ->required()
                   ->searchable()
-                  ->options(config('countries')), // You'll need to create this config
+                  ->options(self::getCountryOptions()),
 
                 Forms\Components\TextInput::make('postal_code')
                   ->required()
@@ -88,6 +89,7 @@ class LocationResource extends Resource
                       ->step(0.000001)
                       ->prefix('Lat:')
                       ->inputMode('decimal'),
+
                     Forms\Components\TextInput::make('longitude')
                       ->required()
                       ->numeric()
@@ -101,39 +103,57 @@ class LocationResource extends Resource
                 Forms\Components\View::make('filament.forms.components.map')
                   ->columnSpanFull(),
               ]),
-
-            Forms\Components\Group::make()
-              ->schema([
-                Forms\Components\Section::make('Status')
-                  ->schema([
-                    Forms\Components\Toggle::make('is_active')
-                      ->label('Active')
-                      ->helperText('Inactive locations will not be available for new billboards')
-                      ->default(true),
-
-                    Forms\Components\Placeholder::make('created_at')
-                      ->label('Created')
-                      ->content(fn(?Location $record): string => $record?->created_at?->diffForHumans() ?? '-'),
-
-                    Forms\Components\Placeholder::make('updated_at')
-                      ->label('Last modified')
-                      ->content(fn(?Location $record): string => $record?->updated_at?->diffForHumans() ?? '-'),
-                  ]),
-
-                Forms\Components\Section::make('Statistics')
-                  ->schema([
-                    Forms\Components\Placeholder::make('billboards_count')
-                      ->label('Total Billboards')
-                      ->content(fn(?Location $record): string => $record?->billboards_count ?? '0'),
-
-                    Forms\Components\Placeholder::make('active_billboards_count')
-                      ->label('Active Billboards')
-                      ->content(fn(?Location $record): string => $record?->active_billboards_count ?? '0'),
-                  ]),
-              ])
-              ->columnSpan(['lg' => 1]),
           ])
-          ->columns(3);
+          ->columnSpan(['lg' => 2]),
+
+        Forms\Components\Group::make()
+          ->schema([
+            Forms\Components\Section::make('Status')
+              ->schema([
+                Forms\Components\Toggle::make('is_active')
+                  ->label('Active')
+                  ->helperText('Inactive locations will not be available for new billboards')
+                  ->default(true),
+
+                Forms\Components\Placeholder::make('billboards_count')
+                  ->label('Total Billboards')
+                  ->content(function (?Location $record): string {
+                    if (! $record) {
+                      return '0';
+                    }
+
+                    return (string) $record->billboards()->count();
+                  }),
+
+                Forms\Components\Placeholder::make('active_billboards')
+                  ->label('Active Billboards')
+                  ->content(function (?Location $record): string {
+                    if (! $record) {
+                      return '0';
+                    }
+
+                    return (string) $record->billboards()
+                      ->whereHas('contracts', function ($query) {
+                        $query->where('billboard_contract.booking_status', 'in_use');
+                      })->count();
+                  }),
+
+                Forms\Components\Placeholder::make('created_at')
+                  ->label('Created')
+                  ->content(fn (?Location $record): string =>
+                    $record?->created_at?->diffForHumans() ?? '-'),
+
+                Forms\Components\Placeholder::make('updated_at')
+                  ->label('Last modified')
+                  ->content(fn (?Location $record): string =>
+                    $record?->updated_at?->diffForHumans() ?? '-'),
+              ])
+              ->hidden(fn (?Location $record) => ! $record)
+              ->visibleOn(['edit', 'view']),
+          ])
+          ->columnSpan(['lg' => 1]),
+      ])
+      ->columns(3);
   }
 
   public static function table(Table $table): Table
@@ -164,12 +184,12 @@ class LocationResource extends Resource
               $query->where('billboard_contract.booking_status', 'in_use');
             });
           })
-          ->color(fn(string $state): string => $state > 0 ? 'success' : 'gray')
+          ->color(fn (string $state): string =>
+          $state > 0 ? 'success' : 'gray')
           ->sortable(),
-        Tables\Columns\TextColumn::make('created_at')
-          ->dateTime()
-          ->sortable()
-          ->toggleable(isToggledHiddenByDefault: true),
+        Tables\Columns\IconColumn::make('is_active')
+          ->boolean()
+          ->sortable(),
       ])
       ->filters([
         Tables\Filters\SelectFilter::make('country')
@@ -177,21 +197,27 @@ class LocationResource extends Resource
           ->searchable(),
         Tables\Filters\Filter::make('has_billboards')
           ->label('Has Billboards')
-          ->query(fn(Builder $query): Builder => $query->has('billboards')),
+          ->query(fn (Builder $query): Builder =>
+          $query->has('billboards')),
         Tables\Filters\Filter::make('has_active_billboards')
           ->label('Has Active Billboards')
-          ->query(fn(Builder $query): Builder => $query->whereHas('billboards', function ($query) {
+          ->query(fn (Builder $query): Builder =>
+          $query->whereHas('billboards', function ($query) {
             $query->whereHas('contracts', function ($query) {
               $query->where('billboard_contract.booking_status', 'in_use');
             });
           })),
+        Tables\Filters\TernaryFilter::make('is_active')
+          ->label('Active Status')
+          ->nullable(),
       ])
       ->actions([
         Tables\Actions\ViewAction::make(),
         Tables\Actions\EditAction::make(),
         Tables\Actions\Action::make('map')
           ->icon('heroicon-o-map')
-          ->url(fn(Location $record): string => "https://www.openstreetmap.org/?mlat={$record->latitude}&mlon={$record->longitude}&zoom=15")
+          ->url(fn (Location $record): string =>
+          "https://www.openstreetmap.org/?mlat={$record->latitude}&mlon={$record->longitude}&zoom=15")
           ->openUrlInNewTab(),
       ])
       ->bulkActions([
@@ -229,6 +255,7 @@ class LocationResource extends Resource
   {
     return [
       'MW' => 'Malawi',
+      'ZW' => 'Zambia'
       // Add more countries as needed
     ];
   }
