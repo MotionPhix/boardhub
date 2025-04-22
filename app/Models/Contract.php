@@ -40,7 +40,7 @@ class Contract extends Model implements HasMedia
   public function billboards(): BelongsToMany
   {
     return $this->belongsToMany(Billboard::class)
-      ->withPivot(['price', 'start_date', 'end_date', 'booking_status', 'notes'])
+      ->withPivot(['price', 'booking_status', 'notes'])
       ->withTimestamps();
   }
 

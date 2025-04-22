@@ -31,8 +31,6 @@ class Billboard extends Model implements HasMedia
   ];
 
   protected $casts = [
-    'available_from' => 'datetime',
-    'available_until' => 'datetime',
     'price' => 'decimal:2',
   ];
 
@@ -44,7 +42,7 @@ class Billboard extends Model implements HasMedia
   public function contracts(): BelongsToMany
   {
     return $this->belongsToMany(Contract::class)
-      ->withPivot(['price', 'start_date', 'end_date', 'booking_status', 'notes'])
+      ->withPivot(['price', 'booking_status', 'notes'])
       ->withTimestamps();
   }
 
