@@ -13,12 +13,21 @@ class Location extends Model
 
   protected $fillable = [
     'name',
+    'slug',
+    'description',
     'city',
     'state',
     'country',
     'postal_code',
     'latitude',
     'longitude',
+    'is_active',
+  ];
+
+  protected $casts = [
+    'latitude' => 'decimal:8',
+    'longitude' => 'decimal:8',
+    'is_active' => 'boolean',
   ];
 
   public function billboards(): HasMany
