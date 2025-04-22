@@ -15,11 +15,11 @@ return new class extends Migration {
       $table->foreignId('billboard_id')->constrained()->onDelete('cascade');
       $table->foreignId('contract_id')->constrained()->onDelete('cascade');
       $table->decimal('price', 10, 2);  // Individual billboard price in this contract
-      $table->timestamp('start_date')->nullable();  // Optional override of contract dates
-      $table->timestamp('end_date')->nullable();    // Optional override of contract dates
-      $table->string('status')->default('active');
+      $table->string('booking_status')->default('active');
       $table->text('notes')->nullable();
       $table->timestamps();
+
+      $table->unique(['billboard_id', 'contract_id']);
     });
   }
 

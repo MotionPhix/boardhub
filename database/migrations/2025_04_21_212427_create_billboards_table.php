@@ -18,12 +18,10 @@ return new class extends Migration {
       $table->string('size');
       $table->string('type');
       $table->decimal('price', 10, 2);
-      $table->string('status');
+      $table->string('physical_status');
       $table->text('description')->nullable();
       $table->decimal('latitude', 10, 8)->nullable();
       $table->decimal('longitude', 10, 8)->nullable();
-      $table->timestamp('available_from')->nullable();
-      $table->timestamp('available_until')->nullable();
       $table->timestamps();
       $table->softDeletes();
     });

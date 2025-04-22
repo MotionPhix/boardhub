@@ -24,7 +24,7 @@ class Billboard extends Model implements HasMedia
     'size',
     'type',
     'price',
-    'status',
+    'physical_status',
     'description',
     'latitude',
     'longitude',
@@ -36,16 +36,30 @@ class Billboard extends Model implements HasMedia
     'price' => 'decimal:2',
   ];
 
+  // Define possible physical statuses as constants
+  const PHYSICAL_STATUS_OPERATIONAL = 'operational';
+  const PHYSICAL_STATUS_MAINTENANCE = 'maintenance';
+  const PHYSICAL_STATUS_DAMAGED = 'damaged';
+
   public function contracts(): BelongsToMany
   {
     return $this->belongsToMany(Contract::class)
-      ->withPivot(['price', 'start_date', 'end_date', 'status', 'notes'])
+      ->withPivot(['price', 'start_date', 'end_date', 'booking_status', 'notes'])
       ->withTimestamps();
   }
 
   public function location(): BelongsTo
   {
     return $this->belongsTo(Location::class);
+  }
+
+  public static function getPhysicalStatuses(): array
+  {
+    return [
+      self::PHYSICAL_STATUS_OPERATIONAL => 'Operational',
+      self::PHYSICAL_STATUS_MAINTENANCE => 'Under Maintenance',
+      self::PHYSICAL_STATUS_DAMAGED => 'Damaged',
+    ];
   }
 
   public function getCurrentContractAttribute()
@@ -57,10 +71,12 @@ class Billboard extends Model implements HasMedia
       ->first();
   }
 
-  public function getIsAvailableAttribute(): bool
+  public function getAvailabilityStatusAttribute(): string
   {
-    return !$this->current_contract &&
-      $this->status === 'Available' &&
-      (!$this->available_until || $this->available_until->isFuture());
+    if ($this->physical_status !== self::PHYSICAL_STATUS_OPERATIONAL) {
+      return $this->physical_status;
+    }
+
+    return $this->current_contract ? 'occupied' : 'available';
   }
 }

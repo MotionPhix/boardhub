@@ -21,7 +21,7 @@ class Contract extends Model implements HasMedia
     'start_date',
     'end_date',
     'total_amount',
-    'status',
+    'agreement_status',
     'notes',
   ];
 
@@ -31,10 +31,16 @@ class Contract extends Model implements HasMedia
     'total_amount' => 'decimal:2',
   ];
 
+  // Define possible agreement statuses as constants
+  const AGREEMENT_STATUS_DRAFT = 'draft';
+  const AGREEMENT_STATUS_ACTIVE = 'active';
+  const AGREEMENT_STATUS_COMPLETED = 'completed';
+  const AGREEMENT_STATUS_CANCELLED = 'cancelled';
+
   public function billboards(): BelongsToMany
   {
     return $this->belongsToMany(Billboard::class)
-      ->withPivot(['price', 'start_date', 'end_date', 'status', 'notes'])
+      ->withPivot(['price', 'start_date', 'end_date', 'booking_status', 'notes'])
       ->withTimestamps();
   }
 
@@ -51,6 +57,16 @@ class Contract extends Model implements HasMedia
     $this->addMediaCollection('signed_contracts')
       ->singleFile()
       ->useDisk('public');
+  }
+
+  public static function getAgreementStatuses(): array
+  {
+    return [
+      self::AGREEMENT_STATUS_DRAFT => 'Draft',
+      self::AGREEMENT_STATUS_ACTIVE => 'Active',
+      self::AGREEMENT_STATUS_COMPLETED => 'Completed',
+      self::AGREEMENT_STATUS_CANCELLED => 'Cancelled',
+    ];
   }
 
   protected static function boot()
