@@ -3,7 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\BillboardResource\Pages;
-use App\Filament\Resources\BillboardResource\RelationManagers;
+use App\Filament\Resources\BillboardResource\RelationManagers\ContractsRelationManager;
 use App\Models\Billboard;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -11,7 +11,10 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Infolists;
+use Filament\Infolists\Infolist;
+use Filament\Support\Enums\FontWeight;
+use Illuminate\Database\Eloquent\Collection;
 
 class BillboardResource extends Resource
 {
@@ -19,106 +22,277 @@ class BillboardResource extends Resource
 
   protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
+  protected static ?string $navigationGroup = 'Inventory';
+
+  protected static ?int $navigationSort = 1;
+
   public static function form(Form $form): Form
   {
     return $form
       ->schema([
-        Forms\Components\TextInput::make('uuid')
-          ->label('UUID')
-          ->maxLength(36),
-        Forms\Components\TextInput::make('name')
-          ->required()
-          ->maxLength(255),
-        Forms\Components\Select::make('location_id')
-          ->relationship('location', 'name')
-          ->required(),
-        Forms\Components\TextInput::make('size')
-          ->required()
-          ->maxLength(255),
-        Forms\Components\TextInput::make('type')
-          ->required()
-          ->maxLength(255),
-        Forms\Components\TextInput::make('price')
-          ->required()
-          ->numeric()
-          ->prefix('$'),
-        Forms\Components\TextInput::make('status')
-          ->required()
-          ->maxLength(255),
-        Forms\Components\Textarea::make('description')
-          ->columnSpanFull(),
-        Forms\Components\TextInput::make('latitude')
-          ->numeric(),
-        Forms\Components\TextInput::make('longitude')
-          ->numeric(),
-        Forms\Components\DateTimePicker::make('available_from'),
-        Forms\Components\DateTimePicker::make('available_until'),
-      ]);
+        Forms\Components\Group::make()
+          ->schema([
+            Forms\Components\Section::make('Basic Information')
+              ->schema([
+                Forms\Components\TextInput::make('name')
+                  ->required()
+                  ->maxLength(255),
+                Forms\Components\Select::make('location_id')
+                  ->relationship('location', 'name')
+                  ->required()
+                  ->searchable()
+                  ->preload()
+                  ->createOptionForm([
+                    Forms\Components\TextInput::make('name')
+                      ->required()
+                      ->maxLength(255),
+                    Forms\Components\TextInput::make('city')
+                      ->required()
+                      ->maxLength(255),
+                    Forms\Components\TextInput::make('state')
+                      ->required()
+                      ->maxLength(255),
+                    Forms\Components\TextInput::make('country')
+                      ->required()
+                      ->maxLength(255),
+                    Forms\Components\TextInput::make('postal_code')
+                      ->required()
+                      ->maxLength(255),
+                    Forms\Components\Grid::make(2)
+                      ->schema([
+                        Forms\Components\TextInput::make('latitude')
+                          ->numeric()
+                          ->required(),
+                        Forms\Components\TextInput::make('longitude')
+                          ->numeric()
+                          ->required(),
+                      ]),
+                  ]),
+                Forms\Components\Select::make('type')
+                  ->options([
+                    'static' => 'Static',
+                    'digital' => 'Digital',
+                    'mobile' => 'Mobile',
+                  ])
+                  ->required(),
+                Forms\Components\TextInput::make('size')
+                  ->required()
+                  ->helperText('Format: width x height (e.g., 48 x 14)'),
+                Forms\Components\TextInput::make('price')
+                  ->numeric()
+                  ->prefix('MK')
+                  ->required(),
+                Forms\Components\Select::make('status')
+                  ->options([
+                    'Available' => 'Available',
+                    'Occupied' => 'Occupied',
+                    'Maintenance' => 'Maintenance',
+                  ])
+                  ->required()
+                  ->default('Available')
+                  ->helperText('Note: Status should be manually updated when under maintenance'),
+              ])
+              ->columns(2),
+
+            Forms\Components\Section::make('Location Details')
+              ->schema([
+                Forms\Components\Grid::make(2)
+                  ->schema([
+                    Forms\Components\TextInput::make('latitude')
+                      ->numeric()
+                      ->helperText('Specific billboard location if different from general location'),
+                    Forms\Components\TextInput::make('longitude')
+                      ->numeric(),
+                  ]),
+                Forms\Components\Textarea::make('description')
+                  ->rows(3)
+                  ->columnSpanFull(),
+              ]),
+
+            /*Forms\Components\Section::make('Availability')
+              ->schema([
+                Forms\Components\Grid::make(2)
+                  ->schema([
+                    Forms\Components\DateTimePicker::make('available_from')
+                      ->native(false),
+                    Forms\Components\DateTimePicker::make('available_until')
+                      ->native(false),
+                  ]),
+              ]),*/
+          ])
+          ->columnSpan(['lg' => 2]),
+
+        Forms\Components\Group::make()
+          ->schema([
+            Forms\Components\Section::make('Images')
+              ->schema([
+                Forms\Components\SpatieMediaLibraryFileUpload::make('images')
+                  ->collection('billboard-images')
+                  ->multiple()
+                  ->maxFiles(5)
+                  ->image()
+                  ->imageEditor()
+                  ->columnSpanFull()
+                  ->helperText('Upload up to 5 images. First image will be used as the main image.'),
+              ])
+              ->collapsible(),
+          ])
+          ->columnSpan(['lg' => 1]),
+      ])
+      ->columns(3);
   }
 
   public static function table(Table $table): Table
   {
     return $table
       ->columns([
-        Tables\Columns\TextColumn::make('uuid')
-          ->label('UUID')
-          ->searchable(),
+        Tables\Columns\SpatieMediaLibraryImageColumn::make('main-image')
+          ->collection('billboard-images')
+          ->conversion('thumb')
+          ->circular(false)
+          ->label('Image'),
         Tables\Columns\TextColumn::make('name')
-          ->searchable(),
-        Tables\Columns\TextColumn::make('location.name')
-          ->numeric()
+          ->searchable()
           ->sortable(),
-        Tables\Columns\TextColumn::make('size')
-          ->searchable(),
+        Tables\Columns\TextColumn::make('location.name')
+          ->searchable()
+          ->sortable(),
         Tables\Columns\TextColumn::make('type')
+          ->badge()
+          ->color(fn(string $state): string => match ($state) {
+            'static' => 'gray',
+            'digital' => 'success',
+            'mobile' => 'warning',
+          }),
+        Tables\Columns\TextColumn::make('size')
           ->searchable(),
         Tables\Columns\TextColumn::make('price')
           ->money()
           ->sortable(),
         Tables\Columns\TextColumn::make('status')
-          ->searchable(),
-        Tables\Columns\TextColumn::make('latitude')
-          ->numeric()
-          ->sortable(),
-        Tables\Columns\TextColumn::make('longitude')
-          ->numeric()
-          ->sortable(),
-        Tables\Columns\TextColumn::make('available_from')
-          ->dateTime()
-          ->sortable(),
-        Tables\Columns\TextColumn::make('available_until')
-          ->dateTime()
-          ->sortable(),
-        Tables\Columns\TextColumn::make('created_at')
-          ->dateTime()
-          ->sortable()
-          ->toggleable(isToggledHiddenByDefault: true),
-        Tables\Columns\TextColumn::make('updated_at')
-          ->dateTime()
-          ->sortable()
-          ->toggleable(isToggledHiddenByDefault: true),
-        Tables\Columns\TextColumn::make('deleted_at')
-          ->dateTime()
-          ->sortable()
-          ->toggleable(isToggledHiddenByDefault: true),
+          ->badge()
+          ->color(fn(string $state): string => match ($state) {
+            'Available' => 'success',
+            'Occupied' => 'warning',
+            'Maintenance' => 'danger',
+          })->description(fn(Billboard $record) => $record->current_contract
+            ? "Occupied until " . $record->current_contract->end_date->format('M d, Y')
+            : ($record->next_available_date
+              ? "Next available: " . $record->next_available_date
+              : "Currently available"
+            )
+          ),
+        Tables\Columns\TextColumn::make('contracts_count')
+          ->counts('contracts')
+          ->label('Contracts'),
       ])
       ->filters([
-        //
+        Tables\Filters\SelectFilter::make('location')
+          ->relationship('location', 'name')
+          ->searchable()
+          ->preload(),
+        Tables\Filters\SelectFilter::make('type')
+          ->options([
+            'static' => 'Static',
+            'digital' => 'Digital',
+            'mobile' => 'Mobile',
+          ]),
+        Tables\Filters\SelectFilter::make('status')
+          ->options([
+            'Available' => 'Available',
+            'Occupied' => 'Occupied',
+            'Maintenance' => 'Maintenance',
+          ]),
       ])
       ->actions([
+        Tables\Actions\ViewAction::make(),
         Tables\Actions\EditAction::make(),
       ])
       ->bulkActions([
         Tables\Actions\BulkActionGroup::make([
           Tables\Actions\DeleteBulkAction::make(),
+          Tables\Actions\BulkAction::make('updateStatus')
+            ->label('Update Status')
+            ->icon('heroicon-o-arrow-path')
+            ->requiresConfirmation()
+            ->form([
+              Forms\Components\Select::make('status')
+                ->label('New Status')
+                ->options([
+                  'Available' => 'Available',
+                  'Occupied' => 'Occupied',
+                  'Maintenance' => 'Maintenance',
+                ])
+                ->required(),
+            ])
+            ->action(function (array $data, Collection $records) {
+              $records->each->update(['status' => $data['status']]);
+            }),
         ]),
+      ]);
+  }
+
+  public static function infolist(Infolist $infolist): Infolist
+  {
+    return $infolist
+      ->schema([
+        Infolists\Components\Section::make('Billboard Information')
+          ->schema([
+            Infolists\Components\Split::make([
+              Infolists\Components\Grid::make(2)
+                ->schema([
+                  Infolists\Components\TextEntry::make('name')
+                    ->weight(FontWeight::Bold),
+                  Infolists\Components\TextEntry::make('location.name')
+                    ->label('Location'),
+                  Infolists\Components\TextEntry::make('type')
+                    ->badge(),
+                  Infolists\Components\TextEntry::make('size'),
+                  Infolists\Components\TextEntry::make('price')
+                    ->money(),
+                  Infolists\Components\TextEntry::make('status')
+                    ->badge()
+                    ->color(fn(string $state): string => match ($state) {
+                      'Available' => 'success',
+                      'Occupied' => 'warning',
+                      'Maintenance' => 'danger',
+                    }),
+                ]),
+              Infolists\Components\SpatieMediaLibraryImageEntry::make('images')
+                ->collection('billboard-images')
+                ->conversion('thumb')
+                ->label('Images')
+                ->columns(2),
+            ])->from('lg'),
+          ]),
+
+        Infolists\Components\Section::make('Location Details')
+          ->schema([
+            Infolists\Components\Grid::make(3)
+              ->schema([
+                Infolists\Components\TextEntry::make('location.city')
+                  ->label('City'),
+                Infolists\Components\TextEntry::make('location.state')
+                  ->label('State'),
+                Infolists\Components\TextEntry::make('location.country')
+                  ->label('Country'),
+              ]),
+            Infolists\Components\Grid::make(2)
+              ->schema([
+                Infolists\Components\TextEntry::make('latitude'),
+                Infolists\Components\TextEntry::make('longitude'),
+              ]),
+            Infolists\Components\TextEntry::make('description')
+              ->columnSpanFull(),
+          ])
+          ->collapsible(),
       ]);
   }
 
   public static function getRelations(): array
   {
     return [
-      //
+      ContractsRelationManager::class,
     ];
   }
 
@@ -127,7 +301,13 @@ class BillboardResource extends Resource
     return [
       'index' => Pages\ListBillboards::route('/'),
       'create' => Pages\CreateBillboard::route('/create'),
+      'view' => Pages\ViewBillboard::route('/{record}'),
       'edit' => Pages\EditBillboard::route('/{record}/edit'),
     ];
+  }
+
+  public static function getNavigationBadge(): ?string
+  {
+    return static::getModel()::where('status', 'Available')->count() . ' available';
   }
 }
