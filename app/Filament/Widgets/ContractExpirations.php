@@ -2,14 +2,14 @@
 
 namespace App\Filament\Widgets;
 
-use App\Enums\BookingStatus;
 use App\Models\Contract;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Widgets\TableWidget;
 use Filament\Widgets\TableWidget as BaseWidget;
 use Illuminate\Database\Eloquent\Builder;
 
-class ContractExpirations extends BaseWidget
+class ContractExpirations extends TableWidget
 {
   protected static ?int $sort = 3;
 
@@ -17,12 +17,14 @@ class ContractExpirations extends BaseWidget
 
   protected static ?string $heading = 'Active Contract Status';
 
-  protected function getTableQuery(): Builder
+  public function getTableQuery(): Builder
   {
     return Contract::query()
       ->where('agreement_status', 'active')
       ->whereHas('billboards', function ($query) {
-        $query->wherePivot('booking_status', BookingStatus::IN_USE->value);
+        $query->whereHas('contracts', function ($subQuery) {
+          $subQuery->where('billboard_contract.booking_status', 'in_use');
+        });
       })
       ->orderBy('created_at', 'desc');
   }
@@ -36,7 +38,8 @@ class ContractExpirations extends BaseWidget
         Tables\Columns\TextColumn::make('contract_number')
           ->searchable(),
         Tables\Columns\TextColumn::make('total_amount')
-          ->money(),
+          ->money()
+          ->sortable(),
         Tables\Columns\TextColumn::make('billboards_count')
           ->counts('billboards')
           ->label('Billboards'),
@@ -46,26 +49,28 @@ class ContractExpirations extends BaseWidget
           ->description(fn (Contract $record) =>
             'Active for ' . $record->created_at->diffForHumans(null, true)
           ),
-        Tables\Columns\TextColumn::make('last_updated')
-          ->state(function (Contract $record) {
-            $lastBooking = $record->billboards()
-              ->orderByPivot('updated_at', 'desc')
-              ->first();
-
-            return $lastBooking?->pivot->updated_at;
-          })
+        Tables\Columns\TextColumn::make('end_date')
           ->dateTime()
           ->sortable()
-          ->description(fn (Contract $record) => 'Last booking update'),
+          ->description(fn (Contract $record) =>
+            'Expires in ' . now()->diffForHumans($record->end_date, true)
+          ),
       ])
       ->filters([
         Tables\Filters\SelectFilter::make('booking_status')
-          ->options(collect(BookingStatus::cases())->pluck('value', 'value'))
+          ->options([
+            'in_use' => 'In Use',
+            'pending' => 'Pending',
+            'completed' => 'Completed',
+            'cancelled' => 'Cancelled',
+          ])
           ->query(function (Builder $query, array $data) {
             if (!$data['value']) return $query;
 
             return $query->whereHas('billboards', function ($query) use ($data) {
-              $query->wherePivot('booking_status', $data['value']);
+              $query->whereHas('contracts', function ($subQuery) use ($data) {
+                $subQuery->where('billboard_contract.booking_status', $data['value']);
+              });
             });
           }),
       ])

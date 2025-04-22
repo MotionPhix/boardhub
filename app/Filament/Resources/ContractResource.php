@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Enums\BookingStatus;
 use App\Filament\Resources\ContractResource\Pages;
-use App\Filament\Resources\ContractResource\RelationManagers;
+use App\Filament\Resources\ContractResource\RelationManagers\BillboardsRelationManager;
 use App\Models\Contract;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -33,7 +33,7 @@ class ContractResource extends Resource
             Forms\Components\Section::make('Contract Details')
               ->schema([
                 Forms\Components\TextInput::make('contract_number')
-                  ->default(fn () => 'CNT-' . date('Y') . '-' . str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT))
+                  ->default(fn() => 'CNT-' . date('Y') . '-' . str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT))
                   ->disabled()
                   ->dehydrated()
                   ->required(),
@@ -125,7 +125,7 @@ class ContractResource extends Resource
                   ->maxFiles(1)
                   ->acceptedFileTypes(['application/pdf'])
                   ->columnSpanFull()
-                  ->visible(fn (Forms\Get $get) => $get('agreement_status') === 'active'),
+                  ->visible(fn(Forms\Get $get) => $get('agreement_status') === 'active'),
               ])
               ->collapsible(),
           ])
@@ -177,7 +177,7 @@ class ContractResource extends Resource
             if (!$data['value']) return $query;
 
             return $query->whereHas('billboards', function ($query) use ($data) {
-              $query->wherePivot('booking_status', $data['value']);
+              $query->where('billboard_contract.booking_status', $data['value']);
             });
           }),
       ])
@@ -187,8 +187,8 @@ class ContractResource extends Resource
         Tables\Actions\Action::make('download_contract')
           ->icon('heroicon-o-document-arrow-down')
           ->label('Download')
-          ->visible(fn (Contract $record) => $record->hasMedia('signed_contracts'))
-          ->action(fn (Contract $record) => redirect($record->getFirstMediaUrl('signed_contracts'))),
+          ->visible(fn(Contract $record) => $record->hasMedia('signed_contracts'))
+          ->action(fn(Contract $record) => redirect($record->getFirstMediaUrl('signed_contracts'))),
       ])
       ->bulkActions([
         Tables\Actions\BulkActionGroup::make([

@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\ClientResource\Pages;
 use App\Filament\Resources\ClientResource\RelationManagers;
+use App\Filament\Resources\ClientResource\RelationManagers\BillboardsRelationManager;
 use App\Filament\Resources\ClientResource\RelationManagers\ContractsRelationManager;
 use App\Models\Client;
 use Filament\Forms;

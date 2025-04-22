@@ -18,7 +18,7 @@ return new class extends Migration {
       $table->timestamp('start_date');
       $table->timestamp('end_date');
       $table->decimal('total_amount', 10, 2);  // Changed from price to total_amount
-      $table->string('status');
+      $table->string('agreement_status');
       $table->text('notes')->nullable();
       $table->timestamps();
       $table->softDeletes();

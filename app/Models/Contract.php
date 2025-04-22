@@ -39,7 +39,8 @@ class Contract extends Model implements HasMedia
 
   public function billboards(): BelongsToMany
   {
-    return $this->belongsToMany(Billboard::class)
+    return $this->belongsToMany(Billboard::class, 'billboard_contract')
+      ->using(BillboardContract::class)
       ->withPivot(['price', 'booking_status', 'notes'])
       ->withTimestamps();
   }
@@ -74,7 +75,6 @@ class Contract extends Model implements HasMedia
     parent::boot();
 
     static::creating(function ($contract) {
-      // Generate a unique contract number if not set
       if (!$contract->contract_number) {
         $contract->contract_number = 'CNT-' . date('Y') . '-' . str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT);
       }

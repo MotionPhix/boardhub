@@ -29,7 +29,7 @@ class ListContracts extends ListRecords
         ->modifyQueryUsing(fn (Builder $query) => $query
           ->where('agreement_status', 'active')
           ->whereHas('billboards', function ($query) {
-            $query->wherePivot('booking_status', 'in_use');
+            $query->where('billboard_contract.booking_status', 'in_use');
           })),
       'draft' => Tab::make('Draft')
         ->badge($this->getContractCount('draft'))
@@ -51,11 +51,21 @@ class ListContracts extends ListRecords
       $query->where('agreement_status', $status);
       if ($status === 'active') {
         $query->whereHas('billboards', function ($query) {
-          $query->wherePivot('booking_status', 'in_use');
+          $query->where('billboard_contract.booking_status', 'in_use');
         });
       }
     }
 
     return $query->count();
+  }
+
+  protected function getDefaultTableSortColumn(): ?string
+  {
+    return 'created_at';
+  }
+
+  protected function getDefaultTableSortDirection(): ?string
+  {
+    return 'desc';
   }
 }

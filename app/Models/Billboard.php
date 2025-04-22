@@ -41,7 +41,8 @@ class Billboard extends Model implements HasMedia
 
   public function contracts(): BelongsToMany
   {
-    return $this->belongsToMany(Contract::class)
+    return $this->belongsToMany(Contract::class, 'billboard_contract')
+      ->using(BillboardContract::class)
       ->withPivot(['price', 'booking_status', 'notes'])
       ->withTimestamps();
   }
@@ -63,9 +64,7 @@ class Billboard extends Model implements HasMedia
   public function getCurrentContractAttribute()
   {
     return $this->contracts()
-      ->wherePivot('start_date', '<=', now())
-      ->wherePivot('end_date', '>=', now())
-      ->wherePivot('status', 'active')
+      ->wherePivot('booking_status', 'in_use')
       ->first();
   }
 
