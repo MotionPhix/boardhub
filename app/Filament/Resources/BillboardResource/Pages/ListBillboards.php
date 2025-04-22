@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\BillboardResource\Pages;
 
 use App\Filament\Resources\BillboardResource;
+use App\Models\Billboard;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 use Filament\Resources\Pages\ListRecords\Tab;
@@ -36,22 +37,37 @@ class ListBillboards extends ListRecords
     return [
       'all' => Tab::make('All Billboards')
         ->badge($this->getModel()::count()),
+
+      'operational' => Tab::make('Operational')
+        ->modifyQueryUsing(fn (Builder $query) => $query
+          ->where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL))
+        ->badge($this->getModel()::where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL)->count())
+        ->badgeColor('success'),
+
       'available' => Tab::make('Available')
         ->modifyQueryUsing(fn (Builder $query) => $query
-          ->where('status', 'Available')
-          ->where(function ($query) {
-            $query->whereNull('available_until')
-              ->orWhere('available_until', '>', now());
+          ->where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL)
+          ->whereDoesntHave('contracts', function ($query) {
+            $query->whereDate('start_date', '<=', now())
+              ->whereDate('end_date', '>=', now());
           }))
-        ->badge($this->getModel()::where('status', 'Available')->count())
+        ->badge($this->getModel()::where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL)
+          ->whereDoesntHave('contracts', function ($query) {
+            $query->whereDate('start_date', '<=', now())
+              ->whereDate('end_date', '>=', now());
+          })->count())
         ->badgeColor('success'),
-      'occupied' => Tab::make('Occupied')
-        ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'Occupied'))
-        ->badge($this->getModel()::where('status', 'Occupied')->count())
+
+      'maintenance' => Tab::make('Under Maintenance')
+        ->modifyQueryUsing(fn (Builder $query) => $query
+          ->where('physical_status', Billboard::PHYSICAL_STATUS_MAINTENANCE))
+        ->badge($this->getModel()::where('physical_status', Billboard::PHYSICAL_STATUS_MAINTENANCE)->count())
         ->badgeColor('warning'),
-      'maintenance' => Tab::make('In Maintenance')
-        ->modifyQueryUsing(fn (Builder $query) => $query->where('status', 'Maintenance'))
-        ->badge($this->getModel()::where('status', 'Maintenance')->count())
+
+      'damaged' => Tab::make('Damaged')
+        ->modifyQueryUsing(fn (Builder $query) => $query
+          ->where('physical_status', Billboard::PHYSICAL_STATUS_DAMAGED))
+        ->badge($this->getModel()::where('physical_status', Billboard::PHYSICAL_STATUS_DAMAGED)->count())
         ->badgeColor('danger'),
     ];
   }

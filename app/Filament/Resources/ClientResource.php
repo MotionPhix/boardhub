@@ -52,8 +52,8 @@ class ClientResource extends Resource
 
             Forms\Components\Tabs\Tab::make('Documents')
               ->schema([
-                Forms\Components\SpatieMediaLibraryFileUpload::make('documents')
-                  ->collection('documents')
+                Forms\Components\SpatieMediaLibraryFileUpload::make('client_documents')
+                  ->collection('client_documents')
                   ->multiple()
                   ->acceptedFileTypes(['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
                   ->maxSize(5120)
@@ -82,13 +82,17 @@ class ClientResource extends Resource
         Tables\Columns\TextColumn::make('active_contracts_count')
           ->label('Active Contracts')
           ->counts('contracts', fn (Builder $query) => $query
-            ->where('status', 'active')
-            ->where('end_date', '>=', now())
-          )
+            ->where('agreement_status', 'active')
+            ->whereHas('billboards', function ($query) {
+              $query->wherePivot('booking_status', 'in_use');
+            }))
           ->sortable(),
         Tables\Columns\TextColumn::make('total_contracts_value')
           ->label('Total Contract Value')
           ->money()
+          ->state(fn ($record) => $record->contracts()
+            ->where('agreement_status', 'active')
+            ->sum('total_amount'))
           ->sortable(),
         Tables\Columns\TextColumn::make('created_at')
           ->dateTime()
@@ -99,8 +103,10 @@ class ClientResource extends Resource
         Tables\Filters\Filter::make('active_contracts')
           ->query(fn (Builder $query): Builder => $query
             ->whereHas('contracts', function ($query) {
-              $query->where('status', 'active')
-                ->where('end_date', '>=', now());
+              $query->where('agreement_status', 'active')
+                ->whereHas('billboards', function ($query) {
+                  $query->wherePivot('booking_status', 'in_use');
+                });
             }))
           ->label('Has Active Contracts')
           ->toggle(),

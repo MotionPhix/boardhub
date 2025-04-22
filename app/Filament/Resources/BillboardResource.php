@@ -82,15 +82,11 @@ class BillboardResource extends Resource
                   ->numeric()
                   ->prefix('MK')
                   ->required(),
-                Forms\Components\Select::make('status')
-                  ->options([
-                    'Available' => 'Available',
-                    'Occupied' => 'Occupied',
-                    'Maintenance' => 'Maintenance',
-                  ])
+                Forms\Components\Select::make('physical_status')
+                  ->options(Billboard::getPhysicalStatuses())
                   ->required()
-                  ->default('Available')
-                  ->helperText('Note: Status should be manually updated when under maintenance'),
+                  ->default(Billboard::PHYSICAL_STATUS_OPERATIONAL)
+                  ->helperText('The current physical condition of the billboard'),
               ])
               ->columns(2),
 
@@ -108,17 +104,6 @@ class BillboardResource extends Resource
                   ->rows(3)
                   ->columnSpanFull(),
               ]),
-
-            /*Forms\Components\Section::make('Availability')
-              ->schema([
-                Forms\Components\Grid::make(2)
-                  ->schema([
-                    Forms\Components\DateTimePicker::make('available_from')
-                      ->native(false),
-                    Forms\Components\DateTimePicker::make('available_until')
-                      ->native(false),
-                  ]),
-              ]),*/
           ])
           ->columnSpan(['lg' => 2]),
 
@@ -159,7 +144,7 @@ class BillboardResource extends Resource
           ->sortable(),
         Tables\Columns\TextColumn::make('type')
           ->badge()
-          ->color(fn(string $state): string => match ($state) {
+          ->color(fn (string $state): string => match ($state) {
             'static' => 'gray',
             'digital' => 'success',
             'mobile' => 'warning',
@@ -169,19 +154,22 @@ class BillboardResource extends Resource
         Tables\Columns\TextColumn::make('price')
           ->money()
           ->sortable(),
-        Tables\Columns\TextColumn::make('status')
+        Tables\Columns\TextColumn::make('physical_status')
           ->badge()
-          ->color(fn(string $state): string => match ($state) {
-            'Available' => 'success',
-            'Occupied' => 'warning',
-            'Maintenance' => 'danger',
-          })->description(fn(Billboard $record) => $record->current_contract
-            ? "Occupied until " . $record->current_contract->end_date->format('M d, Y')
-            : ($record->next_available_date
-              ? "Next available: " . $record->next_available_date
-              : "Currently available"
-            )
-          ),
+          ->color(fn (string $state): string => match ($state) {
+            Billboard::PHYSICAL_STATUS_OPERATIONAL => 'success',
+            Billboard::PHYSICAL_STATUS_MAINTENANCE => 'warning',
+            Billboard::PHYSICAL_STATUS_DAMAGED => 'danger',
+            default => 'gray',
+          })
+          ->formatStateUsing(fn (string $state) => Billboard::getPhysicalStatuses()[$state]),
+        Tables\Columns\TextColumn::make('availability_status')
+          ->badge()
+          ->color(fn (string $state): string => match ($state) {
+            'available' => 'success',
+            'occupied' => 'warning',
+            default => 'danger',
+          }),
         Tables\Columns\TextColumn::make('contracts_count')
           ->counts('contracts')
           ->label('Contracts'),
@@ -197,12 +185,17 @@ class BillboardResource extends Resource
             'digital' => 'Digital',
             'mobile' => 'Mobile',
           ]),
-        Tables\Filters\SelectFilter::make('status')
-          ->options([
-            'Available' => 'Available',
-            'Occupied' => 'Occupied',
-            'Maintenance' => 'Maintenance',
-          ]),
+        Tables\Filters\SelectFilter::make('physical_status')
+          ->options(Billboard::getPhysicalStatuses()),
+        Tables\Filters\Filter::make('available')
+          ->query(fn (Builder $query): Builder => $query
+            ->where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL)
+            ->whereDoesntHave('contracts', function ($query) {
+              $query->whereDate('start_date', '<=', now())
+                ->whereDate('end_date', '>=', now());
+            }))
+          ->label('Show Available Only')
+          ->toggle(),
       ])
       ->actions([
         Tables\Actions\ViewAction::make(),
@@ -212,21 +205,17 @@ class BillboardResource extends Resource
         Tables\Actions\BulkActionGroup::make([
           Tables\Actions\DeleteBulkAction::make(),
           Tables\Actions\BulkAction::make('updateStatus')
-            ->label('Update Status')
+            ->label('Update Physical Status')
             ->icon('heroicon-o-arrow-path')
             ->requiresConfirmation()
             ->form([
-              Forms\Components\Select::make('status')
-                ->label('New Status')
-                ->options([
-                  'Available' => 'Available',
-                  'Occupied' => 'Occupied',
-                  'Maintenance' => 'Maintenance',
-                ])
+              Forms\Components\Select::make('physical_status')
+                ->label('New Physical Status')
+                ->options(Billboard::getPhysicalStatuses())
                 ->required(),
             ])
             ->action(function (array $data, Collection $records) {
-              $records->each->update(['status' => $data['status']]);
+              $records->each->update(['physical_status' => $data['physical_status']]);
             }),
         ]),
       ]);
@@ -250,12 +239,21 @@ class BillboardResource extends Resource
                   Infolists\Components\TextEntry::make('size'),
                   Infolists\Components\TextEntry::make('price')
                     ->money(),
-                  Infolists\Components\TextEntry::make('status')
+                  Infolists\Components\TextEntry::make('physical_status')
                     ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                      'Available' => 'success',
-                      'Occupied' => 'warning',
-                      'Maintenance' => 'danger',
+                    ->color(fn (string $state): string => match ($state) {
+                      Billboard::PHYSICAL_STATUS_OPERATIONAL => 'success',
+                      Billboard::PHYSICAL_STATUS_MAINTENANCE => 'warning',
+                      Billboard::PHYSICAL_STATUS_DAMAGED => 'danger',
+                      default => 'gray',
+                    })
+                    ->formatStateUsing(fn (string $state) => Billboard::getPhysicalStatuses()[$state]),
+                  Infolists\Components\TextEntry::make('availability_status')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                      'available' => 'success',
+                      'occupied' => 'warning',
+                      default => 'danger',
                     }),
                 ]),
               Infolists\Components\SpatieMediaLibraryImageEntry::make('images')
@@ -308,6 +306,11 @@ class BillboardResource extends Resource
 
   public static function getNavigationBadge(): ?string
   {
-    return static::getModel()::where('status', 'Available')->count() . ' available';
+    return static::getModel()::where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL)
+        ->whereDoesntHave('contracts', function ($query) {
+          $query->whereDate('start_date', '<=', now())
+            ->whereDate('end_date', '>=', now());
+        })
+        ->count() . ' available';
   }
 }

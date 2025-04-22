@@ -3,72 +3,109 @@
 namespace App\Filament\Resources\BillboardResource\Widgets;
 
 use App\Models\Billboard;
+use App\Models\Contract;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
+use Illuminate\Support\Facades\DB;
 
 class BillboardOverview extends BaseWidget
 {
   protected function getStats(): array
   {
-    $totalRevenue = Billboard::query()
-      ->withSum(['contracts' => fn ($query) => $query->where('contracts.status', 'active')], 'total_amount')
-      ->get()
-      ->sum('contracts_sum_total_amount');
-
-    $occupancyRate = $this->calculateOverallOccupancyRate();
+    $billboardStats = $this->getBillboardStats();
+    $revenueStats = $this->getRevenueStats();
+    $occupancyRate = $this->calculateOccupancyRate();
 
     return [
-      Stat::make('Total Billboards', Billboard::count())
-        ->description('Across all locations')
+      Stat::make('Total Billboards', $billboardStats['total'])
+        ->description('By Physical Status')
         ->descriptionIcon('heroicon-m-rectangle-stack')
         ->chart([
-          Billboard::where('status', 'Available')->count(),
-          Billboard::where('status', 'Occupied')->count(),
-          Billboard::where('status', 'Maintenance')->count(),
+          $billboardStats['operational'],
+          $billboardStats['maintenance'],
+          $billboardStats['damaged'],
         ])
         ->color('primary'),
 
-      Stat::make('Overall Revenue', '$' . number_format($totalRevenue, 2))
-        ->description('From active contracts')
-        ->descriptionIcon('heroicon-m-currency-dollar')
-        ->color('success'),
+      Stat::make('Current Revenue', 'MK ' . number_format($revenueStats['current_month'], 2))
+        ->description($revenueStats['trend'] . '% from last month')
+        ->descriptionIcon($revenueStats['trend'] > 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
+        ->color($revenueStats['trend'] > 0 ? 'success' : 'danger'),
 
-      Stat::make('Average Occupancy', number_format($occupancyRate, 1) . '%')
-        ->description('Last 12 months')
+      Stat::make('Occupancy Rate', number_format($occupancyRate, 1) . '%')
+        ->description('Of operational billboards')
         ->descriptionIcon('heroicon-m-chart-bar')
-        ->color($occupancyRate > 75 ? 'success' : ($occupancyRate > 50 ? 'warning' : 'danger')),
+        ->color($this->getOccupancyRateColor($occupancyRate)),
     ];
   }
 
-  protected function calculateOverallOccupancyRate(): float
+  protected function getBillboardStats(): array
   {
-    $billboards = Billboard::with(['contracts' => function ($query) {
-      $query->where('contracts.status', 'active')
-        ->where(function ($query) {
-          $startDate = now()->subYear();
-          $endDate = now();
-          $query->whereBetween('contracts.start_date', [$startDate, $endDate])
-            ->orWhereBetween('contracts.end_date', [$startDate, $endDate])
-            ->orWhere(function ($query) use ($startDate, $endDate) {
-              $query->where('contracts.start_date', '<=', $startDate)
-                ->where('contracts.end_date', '>=', $endDate);
-            });
-        });
-    }])->get();
+    $stats = Billboard::query()
+      ->selectRaw('COUNT(*) as total')
+      ->selectRaw("COUNT(CASE WHEN physical_status = ? THEN 1 END) as operational", [Billboard::PHYSICAL_STATUS_OPERATIONAL])
+      ->selectRaw("COUNT(CASE WHEN physical_status = ? THEN 1 END) as maintenance", [Billboard::PHYSICAL_STATUS_MAINTENANCE])
+      ->selectRaw("COUNT(CASE WHEN physical_status = ? THEN 1 END) as damaged", [Billboard::PHYSICAL_STATUS_DAMAGED])
+      ->first();
 
-    $totalBillboardDays = $billboards->count() * 365;
-    $totalOccupiedDays = 0;
+    return [
+      'total' => $stats->total,
+      'operational' => $stats->operational,
+      'maintenance' => $stats->maintenance,
+      'damaged' => $stats->damaged,
+    ];
+  }
 
-    foreach ($billboards as $billboard) {
-      foreach ($billboard->contracts as $contract) {
-        $startDate = $contract->start_date->max(now()->subYear());
-        $endDate = $contract->end_date->min(now());
-        $totalOccupiedDays += $startDate->diffInDays($endDate);
-      }
+  protected function getRevenueStats(): array
+  {
+    $currentMonth = now()->startOfMonth();
+    $lastMonth = now()->subMonth()->startOfMonth();
+
+    $currentMonthRevenue = Contract::whereHas('billboards', function ($query) use ($currentMonth) {
+      $query->whereDate('start_date', '<=', now())
+        ->whereDate('end_date', '>=', now());
+    })->sum('total_amount');
+
+    $lastMonthRevenue = Contract::whereHas('billboards', function ($query) use ($lastMonth) {
+      $query->whereDate('start_date', '<=', $lastMonth->endOfMonth())
+        ->whereDate('end_date', '>=', $lastMonth);
+    })->sum('total_amount');
+
+    $trend = $lastMonthRevenue > 0
+      ? (($currentMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100
+      : 100;
+
+    return [
+      'current_month' => $currentMonthRevenue,
+      'last_month' => $lastMonthRevenue,
+      'trend' => round($trend, 1),
+    ];
+  }
+
+  protected function calculateOccupancyRate(): float
+  {
+    $operationalBillboards = Billboard::where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL)->count();
+
+    if ($operationalBillboards === 0) {
+      return 0;
     }
 
-    return $totalBillboardDays > 0
-      ? ($totalOccupiedDays / $totalBillboardDays) * 100
-      : 0;
+    $occupiedBillboards = Billboard::where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL)
+      ->whereHas('contracts', function ($query) {
+        $query->whereDate('start_date', '<=', now())
+          ->whereDate('end_date', '>=', now());
+      })
+      ->count();
+
+    return ($occupiedBillboards / $operationalBillboards) * 100;
+  }
+
+  protected function getOccupancyRateColor(float $rate): string
+  {
+    return match(true) {
+      $rate >= 80 => 'success',
+      $rate >= 50 => 'warning',
+      default => 'danger',
+    };
   }
 }

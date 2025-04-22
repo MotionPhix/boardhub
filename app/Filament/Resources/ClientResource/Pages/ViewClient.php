@@ -54,13 +54,17 @@ class ViewClient extends ViewRecord
                 TextEntry::make('active_contracts_count')
                   ->label('Active Contracts')
                   ->state(fn ($record) => $record->contracts()
-                    ->where('status', 'active')
-                    ->where('end_date', '>=', now())
+                    ->where('agreement_status', 'active')
+                    ->whereHas('billboards', function ($query) {
+                      $query->wherePivot('booking_status', 'in_use');
+                    })
                     ->count()),
                 TextEntry::make('total_contracts_value')
                   ->label('Total Contract Value')
                   ->money()
-                  ->state(fn ($record) => $record->contracts()->sum('total_amount')),
+                  ->state(fn ($record) => $record->contracts()
+                    ->where('agreement_status', 'active')
+                    ->sum('total_amount')),
               ]),
           ]),
 
@@ -89,16 +93,10 @@ class ViewClient extends ViewRecord
               ->schema([
                 TextEntry::make('contract_number')
                   ->label('Contract #'),
-                TextEntry::make('start_date')
-                  ->label('Start Date')
-                  ->dateTime(),
-                TextEntry::make('end_date')
-                  ->label('End Date')
-                  ->dateTime(),
                 TextEntry::make('total_amount')
                   ->label('Amount')
                   ->money(),
-                TextEntry::make('status')
+                TextEntry::make('agreement_status')
                   ->badge()
                   ->color(fn (string $state): string => match ($state) {
                     'active' => 'success',
@@ -106,9 +104,12 @@ class ViewClient extends ViewRecord
                     'completed' => 'gray',
                     'cancelled' => 'danger',
                   }),
+                TextEntry::make('billboards_count')
+                  ->label('Billboards')
+                  ->state(fn ($record) => $record->billboards()->count()),
               ])
               ->limit(5)
-              ->columns(5),
+              ->columns(4),
           ])
           ->collapsible(),
       ]);
