@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Enums\BookingStatus;
 use App\Filament\Resources\ContractResource\Pages;
-use App\Filament\Resources\ContractResource\RelationManagers\BillboardsRelationManager;
+use App\Filament\Resources\ContractResource\RelationManagers\LoginActivitiesRelationManager;
 use App\Models\Contract;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -231,7 +231,7 @@ class ContractResource extends Resource
   public static function getRelations(): array
   {
     return [
-      BillboardsRelationManager::class,
+      LoginActivitiesRelationManager::class,
     ];
   }
 

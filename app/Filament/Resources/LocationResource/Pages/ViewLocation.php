@@ -14,6 +14,19 @@ class ViewLocation extends ViewRecord
 {
   protected static string $resource = LocationResource::class;
 
+  public $location;
+
+  public function mount($record): void
+  {
+    parent::mount($record);
+
+    // Initialize the location data
+    $this->location = [
+      'lat' => $this->record->latitude,
+      'lng' => $this->record->longitude,
+    ];
+  }
+
   protected function getHeaderActions(): array
   {
     return [
@@ -46,8 +59,8 @@ class ViewLocation extends ViewRecord
               ->columnSpanFull()
               // Basic Configuration
               ->defaultLocation(
-                latitude: fn ($record) => $record->latitude ?? -13.9626,
-                longitude: fn ($record) => $record->longitude ?? 33.7741
+                latitude: $record->latitude ?? -13.9626,
+                longitude: $record->longitude ?? 33.7741
               )
               ->draggable(false)
               ->zoom(15)
