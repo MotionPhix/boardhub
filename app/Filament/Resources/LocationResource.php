@@ -92,7 +92,8 @@ class LocationResource extends Resource
                       ->step(0.000001)
                       ->minValue(-90)
                       ->maxValue(90)
-                      ->default(-13.9626),
+                      ->default(-13.9626)
+                      ->reactive(),
 
                     Forms\Components\TextInput::make('longitude')
                       ->required()
@@ -100,7 +101,8 @@ class LocationResource extends Resource
                       ->step(0.000001)
                       ->minValue(-180)
                       ->maxValue(180)
-                      ->default(33.7741),
+                      ->default(33.7741)
+                      ->reactive(),
                   ])
                   ->columns(2),
 

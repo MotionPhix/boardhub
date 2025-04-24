@@ -7,6 +7,21 @@
             zoom: 13,
             map: null,
             marker: null,
+            searchControl: null,
+
+            updateInputs(lat, lng) {
+                const latInput = document.querySelector('[name=\'latitude\']');
+                const lngInput = document.querySelector('[name=\'longitude\']');
+
+                if (latInput && lngInput) {
+                    latInput.value = lat.toFixed(6);
+                    lngInput.value = lng.toFixed(6);
+
+                    latInput.dispatchEvent(new Event('change'));
+                    lngInput.dispatchEvent(new Event('change'));
+                }
+            },
+
             initMap() {
                 // Initialize the map
                 this.map = L.map($refs.map).setView([this.lat, this.lng], this.zoom);
@@ -25,69 +40,57 @@
                 // Handle marker drag
                 this.marker.on('dragend', (e) => {
                     const position = e.target.getLatLng();
-                    const latInput = document.querySelector('[name="latitude"]');
-  const lngInput = document.querySelector('[name="longitude"]');
-  if (latInput && lngInput) {
-  latInput.value = position.lat.toFixed(6);
-  lngInput.value = position.lng.toFixed(6);
-  // Trigger change event for Filament to detect the change
-  latInput.dispatchEvent(new Event('change'));
-  lngInput.dispatchEvent(new Event('change'));
-  }
-  });
+                    this.updateInputs(position.lat, position.lng);
+                });
 
-  // Watch for input changes
-  const latInput = document.querySelector('[name="latitude"]');
-  const lngInput = document.querySelector('[name="longitude"]');
+                // Watch for input changes
+                const latInput = document.querySelector('[name=\'latitude\']');
+                const lngInput = document.querySelector('[name=\'longitude\']');
 
-  if (latInput && lngInput) {
-  const updateMarker = () => {
-  const lat = parseFloat(latInput.value);
-  const lng = parseFloat(lngInput.value);
-  if (!isNaN(lat) && !isNaN(lng)) {
-  this.marker.setLatLng([lat, lng]);
-  this.map.setView([lat, lng]);
-  }
-  };
+                if (latInput && lngInput) {
+                    const updateMarker = () => {
+                        const lat = parseFloat(latInput.value);
+                        const lng = parseFloat(lngInput.value);
 
-  latInput.addEventListener('change', updateMarker);
-  lngInput.addEventListener('change', updateMarker);
-  }
+                        if (!isNaN(lat) && !isNaN(lng)) {
+                            this.marker.setLatLng([lat, lng]);
+                            this.map.setView([lat, lng]);
+                        }
+                    };
 
-  // Add search control
-  const searchControl = L.Control.geocoder({
-  defaultMarkGeocode: false
-  }).addTo(this.map);
+                    latInput.addEventListener('change', updateMarker);
+                    lngInput.addEventListener('change', updateMarker);
+                }
 
-  searchControl.on('markgeocode', (e) => {
-  const { center } = e.geocode;
-  this.marker.setLatLng(center);
-  this.map.setView(center, 16);
+                // Add search control
+                if (typeof L.Control.Geocoder === 'function') {
+                    this.searchControl = L.Control.Geocoder.nominatim({
+                        defaultMarkGeocode: false
+                    });
 
-  const latInput = document.querySelector('[name="latitude"]');
-  const lngInput = document.querySelector('[name="longitude"]');
-  if (latInput && lngInput) {
-  latInput.value = center.lat.toFixed(6);
-  lngInput.value = center.lng.toFixed(6);
-  // Trigger change event for Filament to detect the change
-  latInput.dispatchEvent(new Event('change'));
-  lngInput.dispatchEvent(new Event('change'));
-  }
-  });
+                    this.searchControl.addTo(this.map);
 
-  // Fix map display issues
-  setTimeout(() => {
-  this.map.invalidateSize();
-  }, 250);
-  }
-  }"
-  x-init="initMap()"
+                    this.searchControl.on('markgeocode', (e) => {
+                        const { center } = e.geocode;
+                        this.marker.setLatLng(center);
+                        this.map.setView(center, 16);
+                        this.updateInputs(center.lat, center.lng);
+                    });
+                }
+
+                // Fix map display issues
+                setTimeout(() => {
+                    this.map.invalidateSize();
+                }, 250);
+            }
+        }"
+    x-init="initMap"
   >
-  <div
-    x-ref="map"
-    class="h-[400px] w-full rounded-lg"
-  ></div>
-</div>
+    <div
+      x-ref="map"
+      class="h-[400px] w-full rounded-lg"
+    ></div>
+  </div>
 </div>
 
 @pushOnce('styles')
