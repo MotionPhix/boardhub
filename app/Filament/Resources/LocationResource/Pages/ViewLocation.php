@@ -3,6 +3,7 @@
 namespace App\Filament\Resources\LocationResource\Pages;
 
 use App\Filament\Resources\LocationResource;
+use Dotswan\MapPicker\Fields\Map;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists;
@@ -44,6 +45,21 @@ class ViewLocation extends ViewRecord
 
             Infolists\Components\TextEntry::make('postal_code')
               ->label('Postal Code'),
+
+            Map::make('location')
+              ->label('Location')
+              ->columnSpanFull()
+              ->defaultLocation(
+                latitude: fn ($record) => $record->latitude ?? -13.9626,
+                longitude: fn ($record) => $record->longitude ?? 33.7741
+              )
+              ->draggable(false)
+              ->clickable(false)
+              ->zoom(15)
+              ->showMarker(true)
+              ->markerColor('#3b82f6')
+              ->showFullscreenControl(true)
+              ->showZoomControl(true),
           ])
           ->columnSpan(['lg' => 2]),
 

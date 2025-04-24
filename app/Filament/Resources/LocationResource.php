@@ -6,6 +6,7 @@ use App\Filament\Resources\LocationResource\Pages;
 use App\Filament\Resources\LocationResource\RelationManagers;
 use App\Filament\Resources\LocationResource\RelationManagers\BillboardsRelationManager;
 use App\Models\Location;
+use Dotswan\MapPicker\Fields\Map;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -40,7 +41,7 @@ class LocationResource extends Resource
                   ->live(onBlur: true)
                   ->afterStateUpdated(function (string $operation, $state, Forms\Set $set) {
                     if ($operation === 'create') {
-                      $set('slug', \Str::slug($state));
+                      $set('slug', Str::slug($state));
                     }
                   }),
 
@@ -84,6 +85,45 @@ class LocationResource extends Resource
 
             Forms\Components\Section::make('Geographic Coordinates')
               ->schema([
+                Map::make('location')
+                  ->label('Location')
+                  ->columnSpanFull()
+                  // Basic Configuration
+                  ->defaultLocation(latitude: -13.9626, longitude: 33.7741)
+                  ->draggable(true)
+                  ->clickable(true)
+                  ->zoom(13)
+                  ->minZoom(0)
+                  ->maxZoom(18)
+                  ->detectRetina(true)
+
+                  // Marker Configuration
+                  ->showMarker(true)
+                  ->markerColor('#3b82f6')
+
+                  // Controls
+                  ->showFullscreenControl(true)
+                  ->showZoomControl(true)
+
+                  // Location Features
+                  ->showMyLocationButton(true)
+
+                  // State Management
+                  ->afterStateUpdated(function (Forms\Set $set, ?array $state): void {
+                    if ($state) {
+                      $set('latitude', $state['lat']);
+                      $set('longitude', $state['lng']);
+                    }
+                  })
+                  ->afterStateHydrated(function ($state, $record, Forms\Set $set): void {
+                    if ($record) {
+                      $set('location', [
+                        'lat' => $record->latitude,
+                        'lng' => $record->longitude,
+                      ]);
+                    }
+                  }),
+
                 Forms\Components\Grid::make()
                   ->schema([
                     Forms\Components\TextInput::make('latitude')
@@ -105,9 +145,6 @@ class LocationResource extends Resource
                       ->reactive(),
                   ])
                   ->columns(2),
-
-                Forms\Components\View::make('filament.forms.components.map')
-                  ->columnSpanFull(),
               ]),
           ])
           ->columnSpan(['lg' => 2]),
