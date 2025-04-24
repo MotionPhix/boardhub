@@ -3,12 +3,12 @@
 namespace App\Filament\Resources\LocationResource\Pages;
 
 use App\Filament\Resources\LocationResource;
-use Dotswan\MapPicker\Fields\Map;
 use Filament\Actions;
 use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Support\Enums\FontWeight;
+use Dotswan\MapPicker\Infolists\MapEntry;
 
 class ViewLocation extends ViewRecord
 {
@@ -19,10 +19,6 @@ class ViewLocation extends ViewRecord
     return [
       Actions\EditAction::make()
         ->icon('heroicon-m-pencil-square'),
-      Actions\Action::make('view_map')
-        ->icon('heroicon-m-map')
-        ->url(fn () => "https://www.openstreetmap.org/?mlat={$this->record->latitude}&mlon={$this->record->longitude}&zoom=15")
-        ->openUrlInNewTab(),
     ];
   }
 
@@ -46,20 +42,38 @@ class ViewLocation extends ViewRecord
             Infolists\Components\TextEntry::make('postal_code')
               ->label('Postal Code'),
 
-            Map::make('location')
-              ->label('Location')
+            MapEntry::make('location')
               ->columnSpanFull()
+              // Basic Configuration
               ->defaultLocation(
                 latitude: fn ($record) => $record->latitude ?? -13.9626,
                 longitude: fn ($record) => $record->longitude ?? 33.7741
               )
               ->draggable(false)
-              ->clickable(false)
               ->zoom(15)
+              ->minZoom(0)
+              ->maxZoom(18)
+              ->detectRetina(true)
+
+              // Marker Configuration
               ->showMarker(true)
               ->markerColor('#3b82f6')
+
+              // Controls
               ->showFullscreenControl(true)
-              ->showZoomControl(true),
+              ->showZoomControl(true)
+
+              // Styling
+              ->extraStyles([
+                'min-height: 400px',
+                'border-radius: 0.75rem'
+              ])
+
+              // State Management
+              ->state(fn ($record) => [
+                'lat' => $record->latitude,
+                'lng' => $record->longitude
+              ]),
           ])
           ->columnSpan(['lg' => 2]),
 
@@ -91,19 +105,6 @@ class ViewLocation extends ViewRecord
               ->color('danger'),
           ])
           ->columnSpan(['lg' => 1]),
-
-        Infolists\Components\Section::make('Map Location')
-          ->schema([
-            Infolists\Components\Grid::make(2)
-              ->schema([
-                Infolists\Components\TextEntry::make('latitude')
-                  ->numeric(6),
-                Infolists\Components\TextEntry::make('longitude')
-                  ->numeric(6),
-              ]),
-            Infolists\Components\View::make('filament.infolists.components.location-map'),
-          ])
-          ->columnSpan('full'),
 
         Infolists\Components\Section::make('Billboards')
           ->schema([
