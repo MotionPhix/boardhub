@@ -6,7 +6,6 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -18,6 +17,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Leandrocfe\FilamentApexCharts\FilamentApexChartsPlugin;
+use App\Filament\Pages\Dashboard;
 
 class AuthPanelProvider extends PanelProvider
 {
@@ -34,11 +34,14 @@ class AuthPanelProvider extends PanelProvider
       ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
       ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
       ->pages([
-        Pages\Dashboard::class,
+        Dashboard::class, // Using our custom Dashboard class instead of the default one
       ])
       ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
       ->widgets([
         Widgets\AccountWidget::class,
+      ])
+      ->plugins([
+        FilamentApexChartsPlugin::make() // Register the ApexCharts plugin
       ])
       ->middleware([
         EncryptCookies::class,
@@ -53,8 +56,6 @@ class AuthPanelProvider extends PanelProvider
       ])
       ->authMiddleware([
         Authenticate::class,
-      ])->plugins([
-        FilamentApexChartsPlugin::make()
       ]);
   }
 }

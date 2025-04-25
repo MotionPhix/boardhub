@@ -2,6 +2,12 @@
 
 namespace App\Filament\Pages;
 
+use App\Filament\Widgets\BillboardOccupancyChart;
+use App\Filament\Widgets\BillboardsMap;
+use App\Filament\Widgets\LatestContracts;
+use App\Filament\Widgets\PopularLocations;
+use App\Filament\Widgets\RevenueChart;
+use App\Filament\Widgets\StatsOverview;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
 use Filament\Forms\Components\DatePicker;
@@ -27,18 +33,18 @@ class Dashboard extends BaseDashboard
   protected function getHeaderWidgets(): array
   {
     return [
-      DashboardWidgets\StatsOverview::class,
-      DashboardWidgets\BillboardsMap::class,
+      StatsOverview::class,
+      BillboardsMap::class,
     ];
   }
 
   protected function getContentWidgets(): array
   {
     return [
-      DashboardWidgets\LatestContracts::class,
-      DashboardWidgets\RevenueChart::class,
-      DashboardWidgets\BillboardOccupancyChart::class,
-      DashboardWidgets\PopularLocations::class,
+      LatestContracts::class,
+      RevenueChart::class,
+      BillboardOccupancyChart::class,
+      PopularLocations::class,
     ];
   }
 
