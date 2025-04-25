@@ -32,17 +32,11 @@ class Dashboard extends BaseDashboard
     ];
   }
 
-  protected function getHeaderWidgets(): array
+  public function getWidgets(): array
   {
     return [
       StatsOverview::class,
       BillboardsMap::class,
-    ];
-  }
-
-  protected function getContentWidgets(): array
-  {
-    return [
       LatestContracts::class,
       RevenueChart::class,
       BillboardOccupancyChart::class,
@@ -56,11 +50,11 @@ class Dashboard extends BaseDashboard
       ->schema([
         DateRangePicker::make('dateRange')
           ->label('Date Range')
-          ->displayFormat('D MMM Y') // Day, Month Year format
-          ->timezone('Africa/Blantyre') // Set your timezone
+          ->displayFormat('D MMM Y')
+          ->timezone('Africa/Blantyre')
           ->live()
           ->afterStateUpdated(function () {
-            $this->refreshWidget();
+            $this->refreshWidgets();
           })
           ->default([
             'from' => now()->startOfMonth()->format('Y-m-d'),
@@ -79,7 +73,7 @@ class Dashboard extends BaseDashboard
           ->preload()
           ->live()
           ->afterStateUpdated(function () {
-            $this->refreshWidget();
+            $this->refreshWidgets();
           }),
       ])
       ->columns([
@@ -99,14 +93,12 @@ class Dashboard extends BaseDashboard
     ];
   }
 
-  protected function refreshWidget(): void
+  protected function refreshWidgets(): void
   {
     $this->resetPage();
 
-    // Refresh specific widgets that depend on the filters
-    $this->refreshWidget(StatsOverview::class);
-    $this->refreshWidget(RevenueChart::class);
-    $this->refreshWidget(BillboardOccupancyChart::class);
-    $this->refreshWidget(PopularLocations::class);
+    foreach ($this->getWidgets() as $widget) {
+      $this->refreshWidget($widget);
+    }
   }
 }

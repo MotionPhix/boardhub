@@ -11,7 +11,7 @@ class RevenueChart extends ApexChartWidget
   /**
    * Chart Id
    *
-   * @var string
+   * @var string|null
    */
   protected static ?string $chartId = 'revenueChart';
 
@@ -21,6 +21,10 @@ class RevenueChart extends ApexChartWidget
    * @var string|null
    */
   protected static ?string $heading = 'Revenue Trends';
+
+  protected int | string | array $columnSpan = 'full';
+
+  protected static ?int $sort = 4;
 
   /**
    * Chart options (series, labels, types, size, animations...)
@@ -115,6 +119,7 @@ class RevenueChart extends ApexChartWidget
         ],
       ],
       'tooltip' => [
+        'enabled' => true,
         'y' => [
           'formatter' => 'function (value) {
                         return "MK " + value.toLocaleString()
@@ -122,5 +127,21 @@ class RevenueChart extends ApexChartWidget
         ],
       ],
     ];
+  }
+
+  protected static function getComponentPath(): string
+  {
+    return 'filament.widgets.revenue-chart';
+  }
+
+  /**
+   * Polling Interval
+   * null, 1, 5, 10, 30 seconds or 1 minute
+   *
+   * @return string|null
+   */
+  protected function getPollingInterval(): ?string
+  {
+    return null;
   }
 }

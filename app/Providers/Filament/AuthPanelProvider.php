@@ -9,7 +9,6 @@ use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
-use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -33,15 +32,13 @@ class AuthPanelProvider extends PanelProvider
       ])
       ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
       ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
-      ->pages([
-        Dashboard::class, // Using our custom Dashboard class instead of the default one
-      ])
       ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
-      ->widgets([
-        // Widgets\AccountWidget::class,
+      ->pages([
+        Dashboard::class,
       ])
+      // Remove the discoverWidgets and widgets methods since they're handled in Dashboard
       ->plugins([
-        FilamentApexChartsPlugin::make() // Register the ApexCharts plugin
+        FilamentApexChartsPlugin::make()
       ])
       ->middleware([
         EncryptCookies::class,
