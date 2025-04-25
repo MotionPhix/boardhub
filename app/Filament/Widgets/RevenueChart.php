@@ -3,18 +3,35 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Contract;
-use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Carbon;
+use Carbon\Carbon;
+use Leandrocfe\FilamentApexCharts\Widgets\ApexChartWidget;
 
-class RevenueChart extends ChartWidget
+class RevenueChart extends ApexChartWidget
 {
-  protected static ?string $heading = 'Revenue Over Time';
+  /**
+   * Chart Id
+   *
+   * @var string
+   */
+  protected static ?string $chartId = 'revenueChart';
 
-  protected static ?int $sort = 4;
+  /**
+   * Widget Title
+   *
+   * @var string|null
+   */
+  protected static ?string $heading = 'Revenue Trends';
 
-  protected function getData(): array
+  /**
+   * Chart options (series, labels, types, size, animations...)
+   * https://apexcharts.com/docs/options
+   *
+   * @return array
+   */
+  protected function getOptions(): array
   {
-    $data = Contract::where('agreement_status', 'active')
+    $data = Contract::query()
+      ->where('agreement_status', 'active')
       ->whereBetween('start_date', [
         Carbon::now()->startOfYear(),
         Carbon::now()->endOfYear(),
@@ -24,27 +41,86 @@ class RevenueChart extends ChartWidget
       ->orderBy('month')
       ->get();
 
-    $months = collect(range(1, 12))->map(function ($month) use ($data) {
+    $revenues = collect();
+    $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Fill in all months with 0 if no data
+    for ($month = 1; $month <= 12; $month++) {
       $monthData = $data->firstWhere('month', $month);
-      return $monthData ? $monthData->total : 0;
-    });
+      $revenues->push($monthData ? round($monthData->total, 2) : 0);
+    }
 
     return [
-      'datasets' => [
-        [
-          'label' => 'Revenue',
-          'data' => $months->toArray(),
-          'fill' => 'start',
-          'backgroundColor' => 'rgba(59, 130, 246, 0.1)',
-          'borderColor' => 'rgb(59, 130, 246)',
+      'chart' => [
+        'type' => 'area',
+        'height' => 300,
+        'toolbar' => [
+          'show' => true,
+        ],
+        'animations' => [
+          'enabled' => true,
+          'easing' => 'easeinout',
         ],
       ],
-      'labels' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+      'series' => [
+        [
+          'name' => 'Revenue',
+          'data' => $revenues->toArray(),
+        ],
+      ],
+      'xaxis' => [
+        'categories' => $months,
+        'labels' => [
+          'style' => [
+            'fontFamily' => 'inherit',
+            'fontWeight' => 600,
+          ],
+        ],
+      ],
+      'yaxis' => [
+        'labels' => [
+          'style' => [
+            'fontFamily' => 'inherit',
+          ],
+          'formatter' => 'function (value) {
+                        return "MK " + value.toLocaleString()
+                    }',
+        ],
+      ],
+      'stroke' => [
+        'curve' => 'smooth',
+        'width' => 2,
+      ],
+      'fill' => [
+        'type' => 'gradient',
+        'gradient' => [
+          'shade' => 'dark',
+          'type' => 'vertical',
+          'shadeIntensity' => 0.5,
+          'opacityFrom' => 0.7,
+          'opacityTo' => 0.2,
+        ],
+      ],
+      'colors' => ['#0ea5e9'],
+      'dataLabels' => [
+        'enabled' => false,
+      ],
+      'grid' => [
+        'borderColor' => '#f3f4f6',
+        'strokeDashArray' => 4,
+        'xaxis' => [
+          'lines' => [
+            'show' => true,
+          ],
+        ],
+      ],
+      'tooltip' => [
+        'y' => [
+          'formatter' => 'function (value) {
+                        return "MK " + value.toLocaleString()
+                    }',
+        ],
+      ],
     ];
-  }
-
-  protected function getType(): string
-  {
-    return 'line';
   }
 }
