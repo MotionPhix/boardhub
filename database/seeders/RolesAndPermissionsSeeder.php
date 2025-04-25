@@ -71,13 +71,25 @@ class RolesAndPermissionsSeeder extends Seeder
       'reject_contract' => 'Reject contracts',
     ];
 
+    // Create permissions for quotes
+    $quotePermissions = [
+      'view_any_quote' => 'Access quote listing',
+      'view_quote' => 'View quote details',
+      'create_quote' => 'Create new quotes',
+      'update_quote' => 'Update quotes',
+      'delete_quote' => 'Delete quotes',
+      'approve_quote' => 'Approve quotes',
+      'reject_quote' => 'Reject quotes',
+    ];
+
     // Create permissions
     $allPermissions = array_merge(
       $userPermissions,
       $rolePermissions,
       $billboardPermissions,
       $locationPermissions,
-      $contractPermissions
+      $contractPermissions,
+      $quotePermissions
     );
 
     foreach ($allPermissions as $permission => $description) {
@@ -92,9 +104,8 @@ class RolesAndPermissionsSeeder extends Seeder
       'super_admin' => 'Full access to all features',
       'admin' => 'Administrative access with some restrictions',
       'manager' => 'Manage billboards and contracts',
-      'sales' => 'Handle sales and contracts',
-      'agent' => 'View and create contracts',
-      'user' => 'Basic user access',
+      'agent' => 'Handle sales and contracts',
+      'viewer' => 'View-only access',
     ];
 
     foreach ($roles as $role => $description) {
@@ -111,10 +122,16 @@ class RolesAndPermissionsSeeder extends Seeder
 
         case 'admin':
           $newRole->givePermissionTo(array_merge(
-            array_keys($userPermissions),
             array_keys($billboardPermissions),
             array_keys($locationPermissions),
-            array_keys($contractPermissions)
+            array_keys($contractPermissions),
+            array_keys($quotePermissions),
+            [
+              'view_any_user',
+              'view_user',
+              'create_user',
+              'update_user',
+            ]
           ));
           break;
 
@@ -125,19 +142,7 @@ class RolesAndPermissionsSeeder extends Seeder
             ...array_keys($billboardPermissions),
             ...array_keys($locationPermissions),
             ...array_keys($contractPermissions),
-          ]);
-          break;
-
-        case 'sales':
-          $newRole->givePermissionTo([
-            'view_any_billboard',
-            'view_billboard',
-            'view_any_location',
-            'view_location',
-            'view_any_contract',
-            'view_contract',
-            'create_contract',
-            'update_contract',
+            ...array_keys($quotePermissions),
           ]);
           break;
 
@@ -150,10 +155,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'view_any_contract',
             'view_contract',
             'create_contract',
+            'view_any_quote',
+            'view_quote',
+            'create_quote',
+            'update_quote',
           ]);
           break;
 
-        case 'user':
+        case 'viewer':
           $newRole->givePermissionTo([
             'view_any_billboard',
             'view_billboard',
@@ -172,9 +181,38 @@ class RolesAndPermissionsSeeder extends Seeder
       'email_verified_at' => now(),
       'is_admin' => true,
       'is_active' => true,
-      'created_at' => '2025-04-24 14:37:14',
+      'created_at' => '2025-04-25 11:42:15',
     ]);
 
     $user->assignRole('super_admin');
+
+    // Create an example user for each role
+    $defaultUsers = [
+      'admin' => [
+        'name' => 'Admin User',
+        'email' => 'admin@example.com',
+      ],
+      'manager' => [
+        'name' => 'Manager User',
+        'email' => 'manager@example.com',
+      ],
+      'agent' => [
+        'name' => 'Agent User',
+        'email' => 'agent@example.com',
+      ],
+    ];
+
+    foreach ($defaultUsers as $role => $userData) {
+      $user = User::create([
+        'name' => $userData['name'],
+        'email' => $userData['email'],
+        'password' => Hash::make('password'),
+        'email_verified_at' => now(),
+        'is_active' => true,
+        'created_at' => '2025-04-25 11:42:15',
+      ]);
+
+      $user->assignRole($role);
+    }
   }
 }
