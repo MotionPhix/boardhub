@@ -8,11 +8,12 @@ use App\Filament\Widgets\LatestContracts;
 use App\Filament\Widgets\PopularLocations;
 use App\Filament\Widgets\RevenueChart;
 use App\Filament\Widgets\StatsOverview;
+use App\Models\Location;
 use Filament\Pages\Dashboard as BaseDashboard;
 use Filament\Pages\Dashboard\Concerns\HasFiltersForm;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Form;
+use Malzariey\FilamentDaterangepickerFilter\Fields\DateRangePicker;
 
 class Dashboard extends BaseDashboard
 {
@@ -27,6 +28,7 @@ class Dashboard extends BaseDashboard
         'from' => now()->startOfMonth()->format('Y-m-d'),
         'to' => now()->endOfMonth()->format('Y-m-d'),
       ],
+      'location' => null,
     ];
   }
 
@@ -52,9 +54,14 @@ class Dashboard extends BaseDashboard
   {
     return $form
       ->schema([
-        DatePicker::make('dateRange')
+        DateRangePicker::make('dateRange')
           ->label('Date Range')
-          ->range()
+          ->displayFormat('D MMM Y') // Day, Month Year format
+          ->timezone('Africa/Blantyre') // Set your timezone
+          ->live()
+          ->afterStateUpdated(function () {
+            $this->refreshWidget();
+          })
           ->default([
             'from' => now()->startOfMonth()->format('Y-m-d'),
             'to' => now()->endOfMonth()->format('Y-m-d'),
@@ -62,11 +69,44 @@ class Dashboard extends BaseDashboard
 
         Select::make('location')
           ->label('Filter by Location')
-          ->relationship('locations', 'name')
+          ->multiple()
+          ->options(
+            Location::query()
+              ->where('is_active', true)
+              ->pluck('name', 'id')
+          )
           ->searchable()
           ->preload()
-          ->multiple(),
+          ->live()
+          ->afterStateUpdated(function () {
+            $this->refreshWidget();
+          }),
       ])
-      ->columns(2);
+      ->columns([
+        'default' => 1,
+        'sm' => 2,
+      ]);
+  }
+
+  protected function refreshFormData(): array
+  {
+    return [
+      'dateRange' => [
+        'from' => $this->data['dateRange']['from'] ?? now()->startOfMonth()->format('Y-m-d'),
+        'to' => $this->data['dateRange']['to'] ?? now()->endOfMonth()->format('Y-m-d'),
+      ],
+      'location' => $this->data['location'] ?? null,
+    ];
+  }
+
+  protected function refreshWidget(): void
+  {
+    $this->resetPage();
+
+    // Refresh specific widgets that depend on the filters
+    $this->refreshWidget(StatsOverview::class);
+    $this->refreshWidget(RevenueChart::class);
+    $this->refreshWidget(BillboardOccupancyChart::class);
+    $this->refreshWidget(PopularLocations::class);
   }
 }
