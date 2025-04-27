@@ -2,135 +2,158 @@
 
 namespace App\Console\Commands;
 
-use App\Enums\BookingStatus;
 use App\Models\Contract;
 use App\Models\User;
-use App\Notifications\ContractExpirationNotification;
+use App\Notifications\ContractExpiryNotification;
+use Carbon\Carbon;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Log;
 
 class CheckExpiringContracts extends Command
 {
-  protected $signature = 'contracts:check-expiring {--days=30 : Days to look ahead for expiring contracts} {--notify : Send notifications}';
-  protected $description = 'Check for contracts that may need attention or renewal';
+  protected $signature = 'contracts:check-expiry
+        {--days=* : Days before expiry to check (default: 30,14,7,3,1)}
+        {--notify : Send notifications to users}
+        {--force : Force check regardless of last run time}';
 
-  /**
-   * @var array Thresholds for notification in days
-   */
-  protected $thresholds = [30, 14, 7, 3, 1];
+  protected $description = 'Check for contracts nearing expiry and optionally send notifications';
+
+  protected array $defaultDays = [30, 14, 7, 3, 1];
 
   public function handle()
   {
-    $lookAheadDays = $this->option('days');
+    $this->info('Starting contract expiry check...');
+
+    $daysToCheck = $this->getDaysToCheck();
     $shouldNotify = $this->option('notify');
+    $force = $this->option('force');
 
-    $this->info("Checking contracts for the next {$lookAheadDays} days...");
-
-    // Get active contracts with their booking durations
-    $contracts = Contract::query()
-      ->where('agreement_status', 'active')
-      ->with(['client', 'billboards', 'media'])
-      ->whereHas('billboards', function ($query) {
-        $query->wherePivot('booking_status', BookingStatus::IN_USE->value);
-      })
-      ->get();
-
-    if ($contracts->isEmpty()) {
-      $this->info('No active contracts found.');
-      return self::SUCCESS;
-    }
-
-    $contractsNeedingAttention = [];
-    $now = now();
-
-    foreach ($contracts as $contract) {
-      // Get the most recent billboard booking
-      $longestBooking = $contract->billboards()
-        ->orderByPivot('updated_at', 'desc')
-        ->first();
-
-      if (!$longestBooking) {
-        continue;
-      }
-
-      $lastUpdate = $longestBooking->pivot->updated_at;
-      $daysActive = $lastUpdate->diffInDays($now);
-
-      // Check if contract needs attention based on duration active
-      if ($daysActive >= 30) {
-        $contractsNeedingAttention[] = [
-          'contract' => $contract,
-          'days_active' => $daysActive,
-          'threshold' => $this->getNotificationThreshold($daysActive),
-        ];
-      }
-    }
-
-    if (empty($contractsNeedingAttention)) {
-      $this->info('No contracts need attention at this time.');
-      return self::SUCCESS;
-    }
-
-    // Sort by days active descending
-    usort($contractsNeedingAttention, fn($a, $b) => $b['days_active'] - $a['days_active']);
-
-    // Display results
-    $this->table(
-      ['Contract #', 'Client', 'Days Active', 'Billboards', 'Total Amount'],
-      array_map(fn($item) => [
-        $item['contract']->contract_number,
-        $item['contract']->client->name,
-        $item['days_active'],
-        $item['contract']->billboards->count(),
-        number_format($item['contract']->total_amount, 2),
-      ], $contractsNeedingAttention)
-    );
-
-    if ($shouldNotify) {
-      $this->sendNotifications($contractsNeedingAttention);
-    }
-
-    $this->info('Contract check completed successfully.');
-    return self::SUCCESS;
-  }
-
-  protected function getNotificationThreshold(int $days): int
-  {
-    foreach ($this->thresholds as $threshold) {
-      if ($days >= $threshold) {
-        return $threshold;
-      }
-    }
-
-    return 30; // Default threshold
-  }
-
-  protected function sendNotifications(array $contractsNeedingAttention): void
-  {
-    // Get users who should be notified (admins and managers)
-    $users = User::whereHas('roles', function ($query) {
-      $query->whereIn('name', ['admin', 'manager']);
-    })->get();
-
-    if ($users->isEmpty()) {
-      $this->warn('No users found to notify.');
+    // Check if we should run based on last execution time
+    if (!$force && !$this->shouldRun()) {
+      $this->info('Command was recently run. Use --force to override.');
       return;
     }
 
-    foreach ($contractsNeedingAttention as $item) {
-      $contract = $item['contract'];
-      $daysActive = $item['days_active'];
-      $threshold = $item['threshold'];
+    $now = Carbon::now();
+    $totalContracts = 0;
+    $notificationsSent = 0;
 
-      // Send notifications
-      Notification::send($users, new ContractExpirationNotification(
-        contract: $contract,
-        daysActive: $daysActive,
-        threshold: $threshold
-      ));
+    foreach ($daysToCheck as $days) {
+      $expiryDate = $now->copy()->addDays($days)->startOfDay();
 
-      $this->info("Sent notification for contract {$contract->contract_number} ({$daysActive} days active)");
+      $contracts = Contract::query()
+        ->with(['billboards', 'client', 'users']) // Eager load relationships
+        ->whereDate('end_date', $expiryDate->toDateString())
+        ->where('status', 'active')
+        ->whereDoesntHave('renewals') // Exclude contracts that are already being renewed
+        ->get();
+
+      $count = $contracts->count();
+      $totalContracts += $count;
+
+      $this->info("Found {$count} contracts expiring in {$days} days.");
+
+      if ($count > 0 && $shouldNotify) {
+        foreach ($contracts as $contract) {
+          $this->processContract($contract, $days, $notificationsSent);
+        }
+      }
     }
+
+    // Log the execution
+    $this->logExecution($totalContracts, $notificationsSent);
+
+    $this->info("Check completed. Found {$totalContracts} contracts nearing expiry.");
+    if ($shouldNotify) {
+      $this->info("Sent {$notificationsSent} notifications.");
+    }
+  }
+
+  protected function getDaysToCheck(): array
+  {
+    $days = $this->option('days');
+    if (empty($days)) {
+      return $this->defaultDays;
+    }
+
+    return collect($days)
+      ->map(fn($day) => (int) $day)
+      ->filter(fn($day) => $day > 0)
+      ->unique()
+      ->sort()
+      ->values()
+      ->toArray();
+  }
+
+  protected function shouldRun(): bool
+  {
+    $lastRun = cache()->get('last_contract_check');
+    if (!$lastRun) {
+      return true;
+    }
+
+    // Only run once per day unless forced
+    return Carbon::parse($lastRun)->diffInHours(now()) >= 24;
+  }
+
+  protected function processContract(Contract $contract, int $days, int &$notificationsSent): void
+  {
+    try {
+      // Get users who should be notified
+      $users = $this->getNotificationRecipients($contract);
+
+      foreach ($users as $user) {
+        if ($user->shouldReceiveNotification('contract_expiry', 'email')) {
+          $user->notify(new ContractExpiryNotification($contract, $days));
+          $notificationsSent++;
+        }
+      }
+
+      // Log successful notifications
+      Log::info('Contract expiry notification sent', [
+        'contract_id' => $contract->id,
+        'days_until_expiry' => $days,
+        'recipients' => $users->pluck('email'),
+      ]);
+
+    } catch (\Exception $e) {
+      Log::error('Failed to process contract expiry notification', [
+        'contract_id' => $contract->id,
+        'days_until_expiry' => $days,
+        'error' => $e->getMessage(),
+      ]);
+
+      $this->error("Error processing contract #{$contract->id}: {$e->getMessage()}");
+    }
+  }
+
+  protected function getNotificationRecipients(Contract $contract): \Illuminate\Database\Eloquent\Collection
+  {
+    // Get users associated with the contract
+    $contractUsers = $contract->users;
+
+    // Get users with specific roles who should be notified
+    $roleUsers = User::role(['admin', 'manager'])
+      ->where('is_active', true)
+      ->whereNotIn('id', $contractUsers->pluck('id'))
+      ->get();
+
+    return $contractUsers->merge($roleUsers);
+  }
+
+  protected function logExecution(int $totalContracts, int $notificationsSent): void
+  {
+    $data = [
+      'executed_at' => now(),
+      'contracts_found' => $totalContracts,
+      'notifications_sent' => $notificationsSent,
+      'executed_by' => 'system',
+    ];
+
+    // Cache last run time
+    cache()->put('last_contract_check', now(), Carbon::now()->addDay());
+
+    // Log execution details
+    Log::info('Contract expiry check completed', $data);
   }
 }

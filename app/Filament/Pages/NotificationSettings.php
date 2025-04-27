@@ -2,26 +2,49 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Forms;
+use App\Models\User;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
 
 class NotificationSettings extends Page
 {
+  use InteractsWithForms;
+
   protected static ?string $navigationIcon = 'heroicon-o-bell-alert';
+
   protected static ?string $navigationGroup = 'Settings';
-  protected static ?string $title = 'Notification Preferences';
+
+  protected static ?int $navigationSort = 2;
+
+  protected static string $view = 'filament.pages.notification-settings';
 
   public ?array $data = [];
 
   public function mount(): void
   {
-    $settings = Auth::user()->notificationSettings;
-    $this->form->fill($settings ? $settings->toArray() : [
-      'email_notifications' => true,
-      'database_notifications' => true,
-      'notification_thresholds' => [30, 14, 7, 3, 1],
+    abort_unless(
+      Auth::user()->can('manage_notification_settings'),
+      403,
+      'You do not have permission to manage notification settings.'
+    );
+
+    $this->form->fill([
+      'contract_expiry' => auth()->user()->notification_preferences['contract_expiry'] ?? true,
+      'contract_renewal' => auth()->user()->notification_preferences['contract_renewal'] ?? true,
+      'new_contract' => auth()->user()->notification_preferences['new_contract'] ?? true,
+      'payment_due' => auth()->user()->notification_preferences['payment_due'] ?? true,
+      'payment_overdue' => auth()->user()->notification_preferences['payment_overdue'] ?? true,
+      'billboard_maintenance' => auth()->user()->notification_preferences['billboard_maintenance'] ?? true,
+      'billboard_availability' => auth()->user()->notification_preferences['billboard_availability'] ?? true,
+      'email_notifications' => auth()->user()->notification_preferences['email_notifications'] ?? true,
+      'in_app_notifications' => auth()->user()->notification_preferences['in_app_notifications'] ?? true,
+      'push_notifications' => auth()->user()->notification_preferences['push_notifications'] ?? true,
     ]);
   }
 
@@ -29,43 +52,111 @@ class NotificationSettings extends Page
   {
     return $form
       ->schema([
-        Forms\Components\Section::make('Contract Expiration Notifications')
-          ->description('Configure how you want to be notified about expiring contracts')
+        Section::make('Notification Types')
+          ->description('Choose which types of notifications you want to receive')
           ->schema([
-            Forms\Components\Toggle::make('email_notifications')
-              ->label('Email Notifications')
-              ->helperText('Receive notifications via email'),
+            Grid::make(2)
+              ->schema([
+                Toggle::make('contract_expiry')
+                  ->label('Contract Expiry')
+                  ->helperText('Get notified when contracts are about to expire')
+                  ->default(true),
 
-            Forms\Components\Toggle::make('database_notifications')
-              ->label('In-App Notifications')
-              ->helperText('Receive notifications within the application'),
+                Toggle::make('contract_renewal')
+                  ->label('Contract Renewal')
+                  ->helperText('Get notified when contracts are up for renewal')
+                  ->default(true),
 
-            Forms\Components\CheckboxList::make('notification_thresholds')
-              ->label('Notification Schedule')
-              ->helperText('Select when you want to be notified before contract expiration')
-              ->options([
-                30 => '30 days before',
-                14 => '14 days before',
-                7 => '7 days before',
-                3 => '3 days before',
-                1 => '1 day before',
-              ])
-              ->columns(3),
+                Toggle::make('new_contract')
+                  ->label('New Contracts')
+                  ->helperText('Get notified when new contracts are created')
+                  ->default(true),
+
+                Toggle::make('payment_due')
+                  ->label('Payment Due')
+                  ->helperText('Get notified when payments are due')
+                  ->default(true),
+
+                Toggle::make('payment_overdue')
+                  ->label('Payment Overdue')
+                  ->helperText('Get notified when payments are overdue')
+                  ->default(true),
+
+                Toggle::make('billboard_maintenance')
+                  ->label('Billboard Maintenance')
+                  ->helperText('Get notified about billboard maintenance schedules')
+                  ->default(true),
+
+                Toggle::make('billboard_availability')
+                  ->label('Billboard Availability')
+                  ->helperText('Get notified when billboards become available')
+                  ->default(true),
+              ]),
+          ]),
+
+        Section::make('Notification Channels')
+          ->description('Choose how you want to receive notifications')
+          ->schema([
+            Grid::make(3)
+              ->schema([
+                Toggle::make('email_notifications')
+                  ->label('Email Notifications')
+                  ->helperText('Receive notifications via email')
+                  ->default(true),
+
+                Toggle::make('in_app_notifications')
+                  ->label('In-App Notifications')
+                  ->helperText('Receive notifications within the application')
+                  ->default(true),
+
+                Toggle::make('push_notifications')
+                  ->label('Push Notifications')
+                  ->helperText('Receive push notifications in your browser')
+                  ->default(true),
+              ]),
           ]),
       ]);
   }
 
-  public function save(): void
+  public function submit(): void
   {
     $data = $this->form->getState();
 
-    Auth::user()->notificationSettings()->updateOrCreate(
-      ['user_id' => Auth::id()],
-      $data
-    );
+    $user = auth()->user();
 
-    $this->notify('success', 'Notification preferences updated successfully.');
+    $user->update([
+      'notification_preferences' => $data
+    ]);
+
+    Notification::make()
+      ->title('Notification settings updated successfully')
+      ->success()
+      ->send();
   }
 
-  protected static string $view = 'filament.pages.notification-settings';
+  public static function shouldRegister(): bool
+  {
+    return auth()->check() &&
+      auth()->user()->can('manage_notification_settings');
+  }
+
+  protected function getHeaderActions(): array
+  {
+    return [];
+  }
+
+  public static function getNavigationLabel(): string
+  {
+    return 'Notification Settings';
+  }
+
+  public static function getNavigationGroup(): ?string
+  {
+    return 'Settings';
+  }
+
+  public function getTitle(): string
+  {
+    return 'Notification Preferences';
+  }
 }

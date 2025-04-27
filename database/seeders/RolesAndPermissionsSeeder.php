@@ -99,6 +99,11 @@ class RolesAndPermissionsSeeder extends Seeder
       ]);
     }
 
+    Permission::create([
+      'name' => 'manage_notification_settings',
+      'description' => 'Manage notification preferences'
+    ]);
+
     // Create roles and assign permissions
     $roles = [
       'super_admin' => 'Full access to all features',
@@ -131,12 +136,14 @@ class RolesAndPermissionsSeeder extends Seeder
               'view_user',
               'create_user',
               'update_user',
+              'manage_notification_settings',
             ]
           ));
           break;
 
         case 'manager':
           $newRole->givePermissionTo([
+            'manage_notification_settings',
             'view_any_user',
             'view_user',
             ...array_keys($billboardPermissions),

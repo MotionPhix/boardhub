@@ -15,6 +15,7 @@ use Filament\Infolists;
 use Filament\Infolists\Infolist;
 use Filament\Support\Enums\FontWeight;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Model;
 
 class BillboardResource extends Resource
 {
@@ -312,5 +313,68 @@ class BillboardResource extends Resource
             ->whereDate('end_date', '>=', now());
         })
         ->count() . ' available';
+  }
+
+  // authorization
+  public static function canViewAny(): bool
+  {
+    return auth()->user()->can('view_any_billboard');
+  }
+
+  public static function canCreate(): bool
+  {
+    return auth()->user()->can('create_billboard');
+  }
+
+  public static function canView(Model $record): bool
+  {
+    return auth()->user()->can('view_billboard');
+  }
+
+  public static function canEdit(Model $record): bool
+  {
+    return auth()->user()->can('update_billboard');
+  }
+
+  public static function canDelete(Model $record): bool
+  {
+    return auth()->user()->can('delete_billboard');
+  }
+
+  public static function canDeleteAny(): bool
+  {
+    return auth()->user()->can('delete_billboard');
+  }
+
+  public static function canForceDelete(Model $record): bool
+  {
+    return auth()->user()->can('force_delete_billboard');
+  }
+
+  public static function canForceDeleteAny(): bool
+  {
+    return auth()->user()->can('force_delete_billboard');
+  }
+
+  public static function canRestore(Model $record): bool
+  {
+    return auth()->user()->can('restore_billboard');
+  }
+
+  public static function canRestoreAny(): bool
+  {
+    return auth()->user()->can('restore_billboard');
+  }
+
+  protected function shouldPersistTableFiltersInSession(): bool
+  {
+    return true;
+  }
+
+  protected function getTableRecordUrlUsing(): ?\Closure
+  {
+    return fn (Model $record): string => auth()->user()->can('view_billboard')
+      ? static::getUrl('view', ['record' => $record])
+      : '';
   }
 }

@@ -10,12 +10,13 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasPermissions;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable implements FilamentUser
 {
   /** @use HasFactory<\Database\Factories\UserFactory> */
-  use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles;
+  use HasApiTokens, HasFactory, Notifiable, SoftDeletes, HasRoles, HasPermissions;
 
   /**
    * The attributes that are mass assignable.
@@ -32,6 +33,7 @@ class User extends Authenticatable implements FilamentUser
     'is_admin',
     'is_active',
     'email_verified_at',
+    'notification_preferences',
   ];
 
   /**
@@ -53,6 +55,7 @@ class User extends Authenticatable implements FilamentUser
   {
     return [
       'email_verified_at' => 'datetime',
+      'notification_preferences' => 'array',
       'password' => 'hashed',
       'is_admin' => 'boolean',
       'is_active' => 'boolean',
@@ -74,18 +77,22 @@ class User extends Authenticatable implements FilamentUser
     return $this->is_admin;
   }
 
-// Add this relationship to your User model
   public function notificationSettings()
   {
-    return $this->hasOne(NotificationSettings::class);
+    return $this->hasMany(NotificationSettings::class);
   }
 
-// Add this to determine if user should receive specific notifications
-  public function shouldNotifyForDays(int $days): bool
+  public function routeNotificationForMail()
   {
-    $settings = $this->notificationSettings;
-    if (!$settings) return true;
+    return $this->email;
+  }
 
-    return in_array($days, $settings->notification_thresholds);
+  public function shouldReceiveNotification(string $type, string $channel): bool
+  {
+    return $this->notificationSettings()
+      ->where('type', $type)
+      ->where('channel', $channel)
+      ->where('is_enabled', true)
+      ->exists();
   }
 }

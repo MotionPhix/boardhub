@@ -12,19 +12,39 @@ class NotificationSettings extends Model
 
   protected $fillable = [
     'user_id',
-    'email_notifications',
-    'database_notifications',
-    'notification_thresholds',
+    'type',
+    'channel',
+    'is_enabled',
   ];
 
   protected $casts = [
-    'email_notifications' => 'boolean',
-    'database_notifications' => 'boolean',
-    'notification_thresholds' => 'array',
+    'is_enabled' => 'boolean',
   ];
 
   public function user(): BelongsTo
   {
     return $this->belongsTo(User::class);
+  }
+
+  public static function getNotificationTypes(): array
+  {
+    return [
+      'contract_expiry' => 'Contract Expiry',
+      'contract_renewal' => 'Contract Renewal',
+      'new_contract' => 'New Contract',
+      'payment_due' => 'Payment Due',
+      'payment_overdue' => 'Payment Overdue',
+      'billboard_maintenance' => 'Billboard Maintenance',
+      'billboard_availability' => 'Billboard Availability',
+    ];
+  }
+
+  public static function getNotificationChannels(): array
+  {
+    return [
+      'email' => 'Email Notifications',
+      'database' => 'In-App Notifications',
+      'broadcast' => 'Push Notifications',
+    ];
   }
 }

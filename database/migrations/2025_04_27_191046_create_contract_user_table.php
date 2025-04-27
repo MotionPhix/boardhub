@@ -10,15 +10,14 @@ return new class extends Migration {
    */
   public function up(): void
   {
-    Schema::create('notification_settings', function (Blueprint $table) {
+    Schema::create('contract_user', function (Blueprint $table) {
       $table->id();
+      $table->foreignId('contract_id')->constrained()->cascadeOnDelete();
       $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-      $table->string('type');
-      $table->string('channel');
-      $table->boolean('is_enabled')->default(true);
+      $table->string('role')->default('viewer'); // owner, manager, viewer, etc.
       $table->timestamps();
 
-      $table->unique(['user_id', 'type', 'channel']);
+      $table->unique(['contract_id', 'user_id']);
     });
   }
 
@@ -27,6 +26,6 @@ return new class extends Migration {
    */
   public function down(): void
   {
-    Schema::dropIfExists('notification_settings');
+    Schema::dropIfExists('contract_user');
   }
 };
