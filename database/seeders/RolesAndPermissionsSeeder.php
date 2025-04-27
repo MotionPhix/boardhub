@@ -15,236 +15,213 @@ class RolesAndPermissionsSeeder extends Seeder
     // Reset cached roles and permissions
     app()[\Spatie\Permission\PermissionRegistrar::class]->forgetCachedPermissions();
 
-    // Create permissions for users
-    $userPermissions = [
-      'view_any_user' => 'Access user listing',
-      'view_user' => 'View user details',
-      'create_user' => 'Create new users',
-      'update_user' => 'Update user details',
-      'delete_user' => 'Delete users',
-      'restore_user' => 'Restore deleted users',
-      'force_delete_user' => 'Permanently delete users',
-      'impersonate_users' => 'Impersonate other users',
+    // Create roles first
+    $roles = [
+      'super_admin' => [
+        'description' => 'Full access to all features',
+        'permissions' => [], // Will get all permissions
+      ],
+      'admin' => [
+        'description' => 'Administrative access with some restrictions',
+        'permissions' => [
+          // Billboard permissions
+          'view_any_billboard', 'view_billboard', 'create_billboard',
+          'update_billboard', 'delete_billboard', 'restore_billboard',
+          'force_delete_billboard',
+
+          // Location permissions
+          'view_any_location', 'view_location', 'create_location',
+          'update_location', 'delete_location', 'restore_location',
+          'force_delete_location',
+
+          // Contract permissions
+          'view_any_contract', 'view_contract', 'create_contract',
+          'update_contract', 'delete_contract', 'restore_contract',
+          'force_delete_contract', 'approve_contract', 'reject_contract',
+
+          // Quote permissions
+          'view_any_quote', 'view_quote', 'create_quote',
+          'update_quote', 'delete_quote', 'approve_quote',
+          'reject_quote',
+
+          // User management
+          'view_any_user', 'view_user', 'create_user',
+          'update_user',
+
+          // Additional permissions
+          'manage_notification_settings',
+        ],
+      ],
+      'manager' => [
+        'description' => 'Manage billboards and contracts',
+        'permissions' => [
+          // Billboard permissions
+          'view_any_billboard', 'view_billboard', 'create_billboard',
+          'update_billboard', 'delete_billboard',
+
+          // Location permissions
+          'view_any_location', 'view_location', 'create_location',
+          'update_location',
+
+          // Contract permissions
+          'view_any_contract', 'view_contract', 'create_contract',
+          'update_contract', 'approve_contract', 'reject_contract',
+
+          // Quote permissions
+          'view_any_quote', 'view_quote', 'create_quote',
+          'update_quote', 'approve_quote', 'reject_quote',
+
+          // Basic user viewing
+          'view_any_user', 'view_user',
+
+          // Additional permissions
+          'manage_notification_settings',
+        ],
+      ],
+      'agent' => [
+        'description' => 'Handle sales and contracts',
+        'permissions' => [
+          'view_any_billboard', 'view_billboard',
+          'view_any_location', 'view_location',
+          'view_any_contract', 'view_contract', 'create_contract',
+          'view_any_quote', 'view_quote', 'create_quote', 'update_quote',
+        ],
+      ],
+      'viewer' => [
+        'description' => 'View-only access',
+        'permissions' => [
+          'view_any_billboard', 'view_billboard',
+          'view_any_location', 'view_location',
+        ],
+      ],
     ];
 
-    // Create permissions for roles
-    $rolePermissions = [
-      'view_any_role' => 'Access role listing',
-      'view_role' => 'View role details',
-      'create_role' => 'Create new roles',
-      'update_role' => 'Update role details',
-      'delete_role' => 'Delete roles',
-    ];
-
-    // Create permissions for billboards
-    $billboardPermissions = [
-      'view_any_billboard' => 'Access billboard listing',
-      'view_billboard' => 'View billboard details',
-      'create_billboard' => 'Create new billboards',
-      'update_billboard' => 'Update billboard details',
-      'delete_billboard' => 'Delete billboards',
-      'restore_billboard' => 'Restore deleted billboards',
-      'force_delete_billboard' => 'Permanently delete billboards',
-    ];
-
-    // Create permissions for locations
-    $locationPermissions = [
-      'view_any_location' => 'Access location listing',
-      'view_location' => 'View location details',
-      'create_location' => 'Create new locations',
-      'update_location' => 'Update location details',
-      'delete_location' => 'Delete locations',
-      'restore_location' => 'Restore deleted locations',
-      'force_delete_location' => 'Permanently delete locations',
-    ];
-
-    // Create permissions for contracts
-    $contractPermissions = [
-      'view_any_contract' => 'Access contract listing',
-      'view_contract' => 'View contract details',
-      'create_contract' => 'Create new contracts',
-      'update_contract' => 'Update contract details',
-      'delete_contract' => 'Delete contracts',
-      'restore_contract' => 'Restore deleted contracts',
-      'force_delete_contract' => 'Permanently delete contracts',
-      'approve_contract' => 'Approve contracts',
-      'reject_contract' => 'Reject contracts',
-    ];
-
-    // Create permissions for quotes
-    $quotePermissions = [
-      'view_any_quote' => 'Access quote listing',
-      'view_quote' => 'View quote details',
-      'create_quote' => 'Create new quotes',
-      'update_quote' => 'Update quotes',
-      'delete_quote' => 'Delete quotes',
-      'approve_quote' => 'Approve quotes',
-      'reject_quote' => 'Reject quotes',
+    // Create all permissions first
+    $permissionGroups = [
+      'user' => [
+        'view_any' => 'Access user listing',
+        'view' => 'View user details',
+        'create' => 'Create new users',
+        'update' => 'Update user details',
+        'delete' => 'Delete users',
+        'restore' => 'Restore deleted users',
+        'force_delete' => 'Permanently delete users',
+        'impersonate' => 'Impersonate other users',
+      ],
+      'billboard' => [
+        'view_any' => 'Access billboard listing',
+        'view' => 'View billboard details',
+        'create' => 'Create new billboards',
+        'update' => 'Update billboard details',
+        'delete' => 'Delete billboards',
+        'restore' => 'Restore deleted billboards',
+        'force_delete' => 'Permanently delete billboards',
+      ],
+      'location' => [
+        'view_any' => 'Access location listing',
+        'view' => 'View location details',
+        'create' => 'Create new locations',
+        'update' => 'Update location details',
+        'delete' => 'Delete locations',
+        'restore' => 'Restore deleted locations',
+        'force_delete' => 'Permanently delete locations',
+      ],
+      'contract' => [
+        'view_any' => 'Access contract listing',
+        'view' => 'View contract details',
+        'create' => 'Create new contracts',
+        'update' => 'Update contract details',
+        'delete' => 'Delete contracts',
+        'restore' => 'Restore deleted contracts',
+        'force_delete' => 'Permanently delete contracts',
+        'approve' => 'Approve contracts',
+        'reject' => 'Reject contracts',
+      ],
+      'quote' => [
+        'view_any' => 'Access quote listing',
+        'view' => 'View quote details',
+        'create' => 'Create new quotes',
+        'update' => 'Update quotes',
+        'delete' => 'Delete quotes',
+        'approve' => 'Approve quotes',
+        'reject' => 'Reject quotes',
+      ],
     ];
 
     // Create permissions
-    $allPermissions = array_merge(
-      $userPermissions,
-      $rolePermissions,
-      $billboardPermissions,
-      $locationPermissions,
-      $contractPermissions,
-      $quotePermissions
-    );
-
-    foreach ($allPermissions as $permission => $description) {
-      Permission::create([
-        'name' => $permission,
-        'description' => $description,
-      ]);
+    $allPermissions = [];
+    foreach ($permissionGroups as $group => $permissions) {
+      foreach ($permissions as $action => $description) {
+        $permissionName = "{$action}_{$group}";
+        if ($action === 'view_any' || $action === 'view') {
+          $permissionName = "{$action}_{$group}";
+        }
+        $permission = Permission::create([
+          'name' => $permissionName,
+          'description' => $description,
+        ]);
+        $allPermissions[] = $permission->name;
+      }
     }
 
+    // Add special permissions
     Permission::create([
       'name' => 'manage_notification_settings',
       'description' => 'Manage notification preferences'
     ]);
 
     // Create roles and assign permissions
-    $roles = [
-      'super_admin' => 'Full access to all features',
-      'admin' => 'Administrative access with some restrictions',
-      'manager' => 'Manage billboards and contracts',
-      'agent' => 'Handle sales and contracts',
-      'viewer' => 'View-only access',
-    ];
-
-    foreach ($roles as $role => $description) {
-      $newRole = Role::create([
-        'name' => $role,
-        'description' => $description,
+    foreach ($roles as $roleName => $roleData) {
+      $role = Role::create([
+        'name' => $roleName,
+        'description' => $roleData['description'],
       ]);
 
-      // Assign permissions based on role
-      switch ($role) {
-        case 'super_admin':
-          $newRole->givePermissionTo(Permission::all());
-          break;
-
-        case 'admin':
-          $newRole->givePermissionTo(array_merge(
-            array_keys($billboardPermissions),
-            array_keys($locationPermissions),
-            array_keys($contractPermissions),
-            array_keys($quotePermissions),
-            [
-              'view_any_user',
-              'view_user',
-              'create_user',
-              'update_user',
-              'manage_notification_settings',
-            ]
-          ));
-          break;
-
-        case 'manager':
-          $newRole->givePermissionTo([
-            'manage_notification_settings',
-            'view_any_user',
-            'view_user',
-            ...array_keys($billboardPermissions),
-            ...array_keys($locationPermissions),
-            ...array_keys($contractPermissions),
-            ...array_keys($quotePermissions),
-          ]);
-          break;
-
-        case 'agent':
-          $newRole->givePermissionTo([
-            'view_any_billboard',
-            'view_billboard',
-            'view_any_location',
-            'view_location',
-            'view_any_contract',
-            'view_contract',
-            'create_contract',
-            'view_any_quote',
-            'view_quote',
-            'create_quote',
-            'update_quote',
-          ]);
-          break;
-
-        case 'viewer':
-          $newRole->givePermissionTo([
-            'view_any_billboard',
-            'view_billboard',
-            'view_any_location',
-            'view_location',
-          ]);
-          break;
+      if ($roleName === 'super_admin') {
+        $role->givePermissionTo(Permission::all());
+      } else {
+        $role->givePermissionTo($roleData['permissions']);
       }
     }
 
-    // Create default super admin user
-    $user = User::create([
-      'name' => 'MotionPhix',
-      'email' => 'boss@example.com',
-      'password' => Hash::make('password'),
-      'email_verified_at' => now(),
-      'is_admin' => true,
-      'is_active' => true,
-      'created_at' => '2025-04-27 19:29:38',
-    ]);
+    // Create users with their respective roles
+    $users = [
+      'super_admin' => [
+        'name' => 'MotionPhix',
+        'email' => 'boss@example.com',
+      ],
+      'admin' => [
+        'name' => 'Admin User',
+        'email' => 'admin@example.com',
+      ],
+      'manager' => [
+        'name' => 'Manager User',
+        'email' => 'manager@example.com',
+      ],
+      'agent' => [
+        'name' => 'Agent User',
+        'email' => 'agent@example.com',
+      ],
+      'viewer' => [
+        'name' => 'Viewer User',
+        'email' => 'viewer@example.com',
+      ],
+    ];
 
-    $user->assignRole('super_admin');
+    foreach ($users as $role => $userData) {
+      $user = User::create([
+        'name' => $userData['name'],
+        'email' => $userData['email'],
+        'password' => Hash::make('password'),
+        'email_verified_at' => now(),
+        'is_active' => true,
+        'created_at' => '2025-04-27 19:44:18',
+      ]);
 
-    // Create Admin User
-    $admin = User::create([
-      'name' => 'Admin User',
-      'email' => 'admin@example.com',
-      'password' => Hash::make('password'),
-      'email_verified_at' => now(),
-      'is_admin' => true,
-      'is_active' => true,
-      'created_at' => '2025-04-27 19:34:07',
-    ]);
-    $admin->assignRole('admin');
-    $this->command->info('Created Admin: ' . $admin->email);
+      $user->assignRole($role);
+      $this->command->info("Created {$role}: {$user->email}");
+    }
 
-    // Create Manager User
-    $manager = User::create([
-      'name' => 'Manager User',
-      'email' => 'manager@example.com',
-      'password' => Hash::make('password'),
-      'email_verified_at' => now(),
-      'is_admin' => false,
-      'is_active' => true,
-      'created_at' => '2025-04-27 19:34:07',
-    ]);
-    $manager->assignRole('manager');
-    $this->command->info('Created Manager: ' . $manager->email);
-
-    // Create Agent User
-    $agent = User::create([
-      'name' => 'Agent User',
-      'email' => 'agent@example.com',
-      'password' => Hash::make('password'),
-      'email_verified_at' => now(),
-      'is_admin' => true,
-      'is_active' => true,
-      'created_at' => '2025-04-27 19:34:07',
-    ]);
-    $agent->assignRole('agent');
-    $this->command->info('Created Agent: ' . $agent->email);
-
-    // Create Viewer User
-    $viewer = User::create([
-      'name' => 'Viewer User',
-      'email' => 'viewer@example.com',
-      'password' => Hash::make('password'),
-      'email_verified_at' => now(),
-      'is_admin' => false,
-      'is_active' => true,
-      'created_at' => '2025-04-27 19:34:07',
-    ]);
-    $viewer->assignRole('viewer');
-    $this->command->info('Created Viewer: ' . $viewer->email);
-
-    $this->command->info('All users created successfully!');
+    $this->command->info('All roles, permissions, and users created successfully!');
   }
 }
