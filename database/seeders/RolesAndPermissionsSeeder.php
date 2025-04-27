@@ -188,38 +188,63 @@ class RolesAndPermissionsSeeder extends Seeder
       'email_verified_at' => now(),
       'is_admin' => true,
       'is_active' => true,
-      'created_at' => '2025-04-25 11:42:15',
+      'created_at' => '2025-04-27 19:29:38',
     ]);
 
     $user->assignRole('super_admin');
 
-    // Create an example user for each role
-    $defaultUsers = [
-      'admin' => [
-        'name' => 'Admin User',
-        'email' => 'admin@example.com',
-      ],
-      'manager' => [
-        'name' => 'Manager User',
-        'email' => 'manager@example.com',
-      ],
-      'agent' => [
-        'name' => 'Agent User',
-        'email' => 'agent@example.com',
-      ],
-    ];
+    // Create Admin User
+    $admin = User::create([
+      'name' => 'Admin User',
+      'email' => 'admin@example.com',
+      'password' => Hash::make('password'),
+      'email_verified_at' => now(),
+      'is_admin' => true,
+      'is_active' => true,
+      'created_at' => '2025-04-27 19:34:07',
+    ]);
+    $admin->assignRole('admin');
+    $this->command->info('Created Admin: ' . $admin->email);
 
-    foreach ($defaultUsers as $role => $userData) {
-      $user = User::create([
-        'name' => $userData['name'],
-        'email' => $userData['email'],
-        'password' => Hash::make('password'),
-        'email_verified_at' => now(),
-        'is_active' => true,
-        'created_at' => '2025-04-25 11:42:15',
-      ]);
+    // Create Manager User
+    $manager = User::create([
+      'name' => 'Manager User',
+      'email' => 'manager@example.com',
+      'password' => Hash::make('password'),
+      'email_verified_at' => now(),
+      'is_admin' => false,
+      'is_active' => true,
+      'created_at' => '2025-04-27 19:34:07',
+    ]);
+    $manager->assignRole('manager');
+    $this->command->info('Created Manager: ' . $manager->email);
 
-      $user->assignRole($role);
-    }
+    // Create Agent User
+    $agent = User::create([
+      'name' => 'Agent User',
+      'email' => 'agent@example.com',
+      'password' => Hash::make('password'),
+      'email_verified_at' => now(),
+      'is_admin' => true,
+      'is_active' => true,
+      'created_at' => '2025-04-27 19:34:07',
+    ]);
+    $agent->assignRole('agent');
+    $this->command->info('Created Agent: ' . $agent->email);
+
+    // Create Viewer User
+    $viewer = User::create([
+      'name' => 'Viewer User',
+      'email' => 'viewer@example.com',
+      'password' => Hash::make('password'),
+      'email_verified_at' => now(),
+      'is_admin' => false,
+      'is_active' => true,
+      'created_at' => '2025-04-27 19:34:07',
+    ]);
+    $viewer->assignRole('viewer');
+    $this->command->info('Created Viewer: ' . $viewer->email);
+
+    $this->command->info('All users created successfully!');
   }
 }
