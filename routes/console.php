@@ -62,7 +62,7 @@ Artisan::command('contracts:check-expiry
     $contracts = Contract::query()
       ->with(['billboards', 'client', 'users'])
       ->whereDate('end_date', $expiryDate->toDateString())
-      ->where('status', 'active')
+      ->where('agreement_status', Contract::AGREEMENT_STATUS_ACTIVE) // Fixed: changed 'status' to 'agreement_status'
       ->whereDoesntHave('renewals')
       ->get();
 
@@ -87,11 +87,15 @@ Artisan::command('contracts:check-expiry
             if ($user->shouldReceiveNotification('contract_expiry', 'email')) {
               $user->notify(new ContractExpiryNotification($contract, $days));
               $notificationsSent++;
+
+              // Record that notification was sent
+              $contract->recordNotificationSent();
             }
           }
 
           Log::info('Contract expiry notification sent', [
             'contract_id' => $contract->id,
+            'contract_number' => $contract->contract_number,
             'days_until_expiry' => $days,
             'recipients' => $users->pluck('email'),
           ]);
@@ -99,11 +103,12 @@ Artisan::command('contracts:check-expiry
         } catch (\Exception $e) {
           Log::error('Failed to process contract expiry notification', [
             'contract_id' => $contract->id,
+            'contract_number' => $contract->contract_number,
             'days_until_expiry' => $days,
             'error' => $e->getMessage(),
           ]);
 
-          $this->error("Error processing contract #{$contract->id}: {$e->getMessage()}");
+          $this->error("Error processing contract #{$contract->contract_number}: {$e->getMessage()}");
         }
       }
     }
@@ -114,7 +119,7 @@ Artisan::command('contracts:check-expiry
     'executed_at' => now(),
     'contracts_found' => $totalContracts,
     'notifications_sent' => $notificationsSent,
-    'executed_by' => 'system',
+    'executed_by' => 'MotionPhix',
   ];
 
   cache()->put('last_contract_check', now(), Carbon::now()->addDay());
