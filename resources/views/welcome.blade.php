@@ -21,9 +21,8 @@
               @auth
                 <a href="{{ url('/auth') }}" class="text-gray-600 hover:text-gray-900">Dashboard</a>
               @else
-                <a href="{{ url('/auth/login') }}" class="text-gray-600 hover:text-gray-900">Sign In</a>
-                <a href="{{ url('/auth/register') }}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
-                  Sign Up
+                <a href="{{ url('/auth/login') }}" class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900">
+                  Sign In
                 </a>
               @endauth
             </div>
@@ -334,7 +333,7 @@
                 Go to Dashboard
               </a>
             @else
-              <a href="{{ url('/auth/register') }}" class="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
+              <a href="{{ url('/auth/login') }}" class="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-gray-900 shadow-sm hover:bg-gray-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white">
                 Get Started
               </a>
               <a href="{{ url('/auth/login') }}" class="text-sm font-semibold leading-6 text-white">
