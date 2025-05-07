@@ -11,8 +11,7 @@ return new class extends Migration {
   public function up(): void
   {
     Schema::table('locations', function (Blueprint $table) {
-      $table->string('slug')->unique()->after('name');
-      $table->text('description')->nullable()->after('slug');
+      $table->text('description')->nullable()->after('name');
       $table->boolean('is_active')->default(true)->after('description');
     });
   }
@@ -23,7 +22,7 @@ return new class extends Migration {
   public function down(): void
   {
     Schema::table('locations', function (Blueprint $table) {
-      $table->dropColumn(['slug', 'description', 'is_active']);
+      $table->dropColumn(['description', 'is_active']);
     });
   }
 };

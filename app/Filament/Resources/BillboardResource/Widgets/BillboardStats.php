@@ -16,12 +16,7 @@ class BillboardStats extends BaseWidget
       ->whereDate('end_date', '>=', now())
       ->first();
 
-    $totalRevenue = $this->record->contracts()
-      ->sum('total_amount');
-
-    $contractsCount = $this->record->contracts()->count();
-
-    return [
+    $stats = [
       Stat::make('Physical Status', $this->record::getPhysicalStatuses()[$this->record->physical_status])
         ->description($currentContract
           ? "Currently occupied until " . $currentContract->end_date->format('M d, Y')
@@ -31,14 +26,22 @@ class BillboardStats extends BaseWidget
           $this->record::PHYSICAL_STATUS_MAINTENANCE => 'warning',
           $this->record::PHYSICAL_STATUS_DAMAGED => 'danger',
         }),
-
-      Stat::make('Total Revenue', 'MK ' . number_format($totalRevenue, 2))
-        ->description($contractsCount . ' total contracts')
-        ->color('success'),
-
-      Stat::make('Current Rate', 'MK ' . number_format($this->record->price, 2))
-        ->description('Per booking period')
-        ->color('info'),
     ];
+
+    // Only show revenue-related stats for authorized roles
+    if (auth()->user()->hasAnyRole(['super_admin', 'admin', 'manager'])) {
+      $totalRevenue = $this->record->contracts()->sum('total_amount');
+      $contractsCount = $this->record->contracts()->count();
+
+      $stats[] = Stat::make('Total Revenue', 'MK ' . number_format($totalRevenue, 2))
+        ->description($contractsCount . ' total contracts')
+        ->color('success');
+
+      $stats[] = Stat::make('Current Rate', 'MK ' . number_format($this->record->price, 2))
+        ->description('Per booking period')
+        ->color('info');
+    }
+
+    return $stats;
   }
 }

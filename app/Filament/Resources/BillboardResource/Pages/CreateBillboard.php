@@ -8,5 +8,5 @@ use Filament\Resources\Pages\CreateRecord;
 
 class CreateBillboard extends CreateRecord
 {
-    protected static string $resource = BillboardResource::class;
+  protected static string $resource = BillboardResource::class;
 }

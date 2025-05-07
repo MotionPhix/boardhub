@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletingScope;
 use Illuminate\Support\Facades\Hash;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
+use Illuminate\Support\Str;
 
 class UserResource extends Resource
 {
@@ -25,6 +26,18 @@ class UserResource extends Resource
   protected static ?string $navigationGroup = 'Settings';
 
   protected static ?int $navigationSort = 1;
+
+  protected static function getRoleLabel(string $role): string
+  {
+    return match ($role) {
+      'super_admin' => 'Super Admin',
+      'admin' => 'Administrator',
+      'manager' => 'Manager',
+      'agent' => 'Agent',
+      'viewer' => 'Viewer',
+      default => Str::title(str_replace('_', ' ', $role)),
+    };
+  }
 
   public static function form(Form $form): Form
   {
@@ -54,15 +67,30 @@ class UserResource extends Resource
               ->dehydrated(fn (?string $state): bool => filled($state))
               ->required(fn (string $operation): bool => $operation === 'create'),
 
-            Forms\Components\Toggle::make('is_admin')
-              ->label('Administrator')
-              ->helperText('Grant administrative privileges to this user.')
-              ->default(false),
-
             Forms\Components\Select::make('roles')
               ->multiple()
-              ->relationship('roles', 'name')
-              ->preload(),
+              ->relationship(
+                'roles',
+                'name',
+                fn ($query) => $query->orderBy('name')
+              )
+              ->options(function () {
+                return \Spatie\Permission\Models\Role::query()
+                  ->orderBy('name')
+                  ->pluck('name', 'name')
+                  ->mapWithKeys(function ($role) {
+                    return [$role => static::getRoleLabel($role)];
+                  });
+              })
+              ->preload()
+              ->searchable()
+              ->helperText('Assign roles to determine user permissions.')
+              ->required(),
+
+            Forms\Components\Toggle::make('is_active')
+              ->label('Active Status')
+              ->helperText('Deactivating a user will prevent them from logging in.')
+              ->default(true),
           ])
           ->columns(2),
 
@@ -113,11 +141,19 @@ class UserResource extends Resource
 
         TextColumn::make('roles.name')
           ->badge()
+          ->formatStateUsing(fn (string $state): string => static::getRoleLabel($state))
+          ->colors([
+            'danger' => 'super_admin',
+            'warning' => 'admin',
+            'success' => 'manager',
+            'info' => 'agent',
+            'gray' => 'viewer',
+          ])
           ->searchable()
           ->sortable(),
 
-        IconColumn::make('is_admin')
-          ->label('Admin')
+        IconColumn::make('is_active')
+          ->label('Active')
           ->boolean()
           ->sortable()
           ->toggleable(),
@@ -142,7 +178,19 @@ class UserResource extends Resource
         Tables\Filters\SelectFilter::make('roles')
           ->relationship('roles', 'name')
           ->multiple()
-          ->preload(),
+          ->preload()
+          ->options(function () {
+            return \Spatie\Permission\Models\Role::query()
+              ->orderBy('name')
+              ->pluck('name', 'name')
+              ->mapWithKeys(function ($role) {
+                return [$role => static::getRoleLabel($role)];
+              });
+          }),
+        Tables\Filters\Filter::make('active')
+          ->query(fn (Builder $query): Builder => $query->where('is_active', true)),
+        Tables\Filters\Filter::make('inactive')
+          ->query(fn (Builder $query): Builder => $query->where('is_active', false)),
       ])
       ->actions([
         Tables\Actions\EditAction::make(),
@@ -150,7 +198,10 @@ class UserResource extends Resource
         Tables\Actions\Action::make('impersonate')
           ->icon('heroicon-m-user')
           ->requiresConfirmation()
-          ->hidden(fn (User $record) => $record->id === auth()->id())
+          ->hidden(fn (User $record) =>
+            $record->id === auth()->id() ||
+            !auth()->user()->hasRole('super_admin')
+          )
           ->action(function (User $record) {
             auth()->user()->impersonate($record);
             return redirect()->route('filament.admin.pages.dashboard');

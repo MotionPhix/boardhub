@@ -21,6 +21,38 @@ class Dashboard extends BaseDashboard
 
   public ?array $data = [];
 
+  protected function getAuthWidgets(): array
+  {
+    // Widgets that require higher permissions
+    if (auth()->user()->hasAnyRole(['super_admin', 'admin', 'manager'])) {
+      return [
+        StatsOverview::class,
+        LatestContracts::class,
+        RevenueChart::class,
+      ];
+    }
+
+    return [];
+  }
+
+  protected function getBaseWidgets(): array
+  {
+    // Widgets available to all authenticated users
+    return [
+      BillboardsMap::class,
+      BillboardOccupancyChart::class,
+      PopularLocations::class,
+    ];
+  }
+
+  public function getWidgets(): array
+  {
+    return array_merge(
+      $this->getAuthWidgets(),
+      $this->getBaseWidgets()
+    );
+  }
+
   public function mount(): void
   {
     $this->data = [
@@ -32,50 +64,43 @@ class Dashboard extends BaseDashboard
     ];
   }
 
-  public function getWidgets(): array
-  {
-    return [
-      StatsOverview::class,
-      BillboardsMap::class,
-      LatestContracts::class,
-      RevenueChart::class,
-      BillboardOccupancyChart::class,
-      PopularLocations::class,
-    ];
-  }
-
   public function filtersForm(Form $form): Form
   {
-    return $form
-      ->schema([
-        DateRangePicker::make('dateRange')
-          ->label('Date Range')
-          ->displayFormat('D MMM Y')
-          ->timezone('Africa/Blantyre')
-          ->live()
-          ->afterStateUpdated(function () {
-            $this->refreshWidgets();
-          })
-          ->default([
-            'from' => now()->startOfMonth()->format('Y-m-d'),
-            'to' => now()->endOfMonth()->format('Y-m-d'),
-          ]),
+    $filterSchema = [
+      Select::make('location')
+        ->label('Filter by Location')
+        ->multiple()
+        ->options(
+          Location::query()
+            ->where('is_active', true)
+            ->pluck('name', 'id')
+        )
+        ->searchable()
+        ->preload()
+        ->live()
+        ->afterStateUpdated(function () {
+          $this->refreshWidgets();
+        }),
+    ];
 
-        Select::make('location')
-          ->label('Filter by Location')
-          ->multiple()
-          ->options(
-            Location::query()
-              ->where('is_active', true)
-              ->pluck('name', 'id')
-          )
-          ->searchable()
-          ->preload()
-          ->live()
-          ->afterStateUpdated(function () {
-            $this->refreshWidgets();
-          }),
-      ])
+    // Only show date range filter to users who can see revenue data
+    if (auth()->user()->hasAnyRole(['super_admin', 'admin', 'manager'])) {
+      $filterSchema[] = DateRangePicker::make('dateRange')
+        ->label('Date Range')
+        ->displayFormat('D MMM Y')
+        ->timezone('Africa/Blantyre')
+        ->live()
+        ->afterStateUpdated(function () {
+          $this->refreshWidgets();
+        })
+        ->default([
+          'from' => now()->startOfMonth()->format('Y-m-d'),
+          'to' => now()->endOfMonth()->format('Y-m-d'),
+        ]);
+    }
+
+    return $form
+      ->schema($filterSchema)
       ->columns([
         'default' => 1,
         'sm' => 2,

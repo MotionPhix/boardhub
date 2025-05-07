@@ -20,6 +20,7 @@ class ShieldSeeder extends Seeder
 
     // Define all permissions
     $permissions = [
+      // Billboard permissions
       'view_billboard',
       'view_any_billboard',
       'create_billboard',
@@ -28,6 +29,7 @@ class ShieldSeeder extends Seeder
       'restore_billboard',
       'force_delete_billboard',
 
+      // Location permissions
       'view_location',
       'view_any_location',
       'create_location',
@@ -36,6 +38,7 @@ class ShieldSeeder extends Seeder
       'restore_location',
       'force_delete_location',
 
+      // Contract permissions
       'view_contract',
       'view_any_contract',
       'create_contract',
@@ -46,18 +49,29 @@ class ShieldSeeder extends Seeder
       'approve_contract',
       'reject_contract',
 
-      'view_quote',
-      'view_any_quote',
-      'create_quote',
-      'update_quote',
-      'delete_quote',
-      'approve_quote',
-      'reject_quote',
-
+      // User permissions
       'view_user',
       'view_any_user',
       'create_user',
       'update_user',
+
+      // Shield (Roles) permissions
+      'view_role',
+      'view_any_role',
+      'create_role',
+      'update_role',
+      'delete_role',
+
+      // Widget permissions
+      'view_StatsOverview',
+      'view_ListRevenue',
+
+      // Client permissions
+      'view_client',
+      'view_any_client',
+      'create_client',
+      'update_client',
+      'delete_client',
     ];
 
     // Create permissions

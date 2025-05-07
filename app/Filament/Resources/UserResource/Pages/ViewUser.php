@@ -40,10 +40,6 @@ class ViewUser extends ViewRecord
             Infolists\Components\TextEntry::make('roles.name')
               ->badge()
               ->color('primary'),
-
-            Infolists\Components\IconEntry::make('is_admin')
-              ->label('Administrator')
-              ->boolean(),
           ])
           ->columns(2),
 

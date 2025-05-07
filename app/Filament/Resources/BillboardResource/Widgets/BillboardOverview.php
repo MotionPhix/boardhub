@@ -13,10 +13,9 @@ class BillboardOverview extends BaseWidget
   protected function getStats(): array
   {
     $billboardStats = $this->getBillboardStats();
-    $revenueStats = $this->getRevenueStats();
     $occupancyRate = $this->calculateOccupancyRate();
 
-    return [
+    $stats = [
       Stat::make('Total Billboards', $billboardStats['total'])
         ->description('By Physical Status')
         ->descriptionIcon('heroicon-m-rectangle-stack')
@@ -26,17 +25,23 @@ class BillboardOverview extends BaseWidget
           $billboardStats['damaged'],
         ])
         ->color('primary'),
+    ];
 
-      Stat::make('Current Revenue', 'MK ' . number_format($revenueStats['current_month'], 2))
+    // Only show revenue for authorized roles
+    if (auth()->user()->hasAnyRole(['super_admin', 'admin', 'manager'])) {
+      $revenueStats = $this->getRevenueStats();
+      $stats[] = Stat::make('Current Revenue', 'MK ' . number_format($revenueStats['current_month'], 2))
         ->description($revenueStats['trend'] . '% from last month')
         ->descriptionIcon($revenueStats['trend'] > 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
-        ->color($revenueStats['trend'] > 0 ? 'success' : 'danger'),
+        ->color($revenueStats['trend'] > 0 ? 'success' : 'danger');
+    }
 
-      Stat::make('Occupancy Rate', number_format($occupancyRate, 1) . '%')
-        ->description('Of operational billboards')
-        ->descriptionIcon('heroicon-m-chart-bar')
-        ->color($this->getOccupancyRateColor($occupancyRate)),
-    ];
+    $stats[] = Stat::make('Occupancy Rate', number_format($occupancyRate, 1) . '%')
+      ->description('Of operational billboards')
+      ->descriptionIcon('heroicon-m-chart-bar')
+      ->color($this->getOccupancyRateColor($occupancyRate));
+
+    return $stats;
   }
 
   protected function getBillboardStats(): array
@@ -58,6 +63,15 @@ class BillboardOverview extends BaseWidget
 
   protected function getRevenueStats(): array
   {
+    // Only calculate revenue stats if user has permission
+    if (!auth()->user()->hasAnyRole(['super_admin', 'admin', 'manager'])) {
+      return [
+        'current_month' => 0,
+        'last_month' => 0,
+        'trend' => 0,
+      ];
+    }
+
     $currentMonth = now()->startOfMonth();
     $lastMonth = now()->subMonth()->startOfMonth();
 
