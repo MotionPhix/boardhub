@@ -26,6 +26,11 @@ class RevenueChart extends ApexChartWidget
 
   protected static ?int $sort = 4;
 
+  public static function canView(): bool
+  {
+    return auth()->user()->hasRole(['super_admin', 'admin']);
+  }
+
   /**
    * Chart options (series, labels, types, size, animations...)
    * https://apexcharts.com/docs/options
