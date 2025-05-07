@@ -30,7 +30,6 @@ class User extends Authenticatable implements FilamentUser
     'avatar',
     'phone',
     'bio',
-    'is_admin',
     'is_active',
     'email_verified_at',
     'notification_preferences',
@@ -57,7 +56,6 @@ class User extends Authenticatable implements FilamentUser
       'email_verified_at' => 'datetime',
       'notification_preferences' => 'array',
       'password' => 'hashed',
-      'is_admin' => 'boolean',
       'is_active' => 'boolean',
     ];
   }
@@ -69,7 +67,15 @@ class User extends Authenticatable implements FilamentUser
 
   public function canAccessPanel(Panel $panel): bool
   {
-    return $this->is_admin || $this->hasRole('admin');
+    return $this->hasVerifiedEmail() &&
+      $this->is_active &&
+      $this->roles->count() > 0;
+  }
+
+  public function canAccessResource(string $resource): bool
+  {
+    $model = str_replace('Resource', '', class_basename($resource));
+    return $this->can("view_any_" . strtolower($model));
   }
 
   public function canImpersonate(): bool
@@ -94,5 +100,10 @@ class User extends Authenticatable implements FilamentUser
       ->where('channel', $channel)
       ->where('is_enabled', true)
       ->exists();
+  }
+
+  public function getFilamentShieldPermissions(): array
+  {
+    return $this->getAllPermissions()->pluck('name')->toArray();
   }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Providers\Filament;
 
+use BezhanSalleh\FilamentShield\FilamentShieldPlugin;
 use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -36,9 +37,9 @@ class AuthPanelProvider extends PanelProvider
       ->pages([
         Dashboard::class,
       ])
-      // Remove the discoverWidgets and widgets methods since they're handled in Dashboard
       ->plugins([
-        FilamentApexChartsPlugin::make()
+        FilamentApexChartsPlugin::make(),
+        FilamentShieldPlugin::make()
       ])
       ->middleware([
         EncryptCookies::class,
@@ -53,6 +54,11 @@ class AuthPanelProvider extends PanelProvider
       ])
       ->authMiddleware([
         Authenticate::class,
-      ]);
+      ])
+      ->authGuard('web')
+      ->registration()
+      ->passwordReset()
+      ->emailVerification()
+      ->profile();
   }
 }
