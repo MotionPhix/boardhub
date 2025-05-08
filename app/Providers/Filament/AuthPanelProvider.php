@@ -56,7 +56,7 @@ class AuthPanelProvider extends PanelProvider
         Authenticate::class,
       ])
       ->authGuard('web')
-      ->registration()
+//      ->registration()
       ->passwordReset()
       ->emailVerification()
       ->profile();
