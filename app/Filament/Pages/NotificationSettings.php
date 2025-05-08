@@ -154,7 +154,7 @@ class NotificationSettings extends Page
 
   public static function getNavigationLabel(): string
   {
-    return 'Notification Settings';
+    return 'Notifications';
   }
 
   public static function getNavigationGroup(): ?string

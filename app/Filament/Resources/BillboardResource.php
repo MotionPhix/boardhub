@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\BillboardResource\Pages;
 use App\Filament\Resources\BillboardResource\RelationManagers\ContractsRelationManager;
 use App\Models\Billboard;
+use App\Models\Settings;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -80,10 +81,26 @@ class BillboardResource extends Resource
                 Forms\Components\TextInput::make('size')
                   ->required()
                   ->helperText('Format: width x height (e.g., 48 x 14)'),
-                Forms\Components\TextInput::make('price')
+
+                /*Forms\Components\TextInput::make('price')
                   ->numeric()
                   ->prefix('MK')
-                  ->required(),
+                  ->required(),*/
+
+                Forms\Components\Grid::make()
+                  ->schema([
+                    Forms\Components\TextInput::make('price')
+                      ->numeric()
+                      ->placeholder('Enter billboard monthly rental price')
+                      ->required(),
+
+                    Forms\Components\Select::make('currency_code')
+                      ->label('Currency')
+                      ->options(collect(Settings::getAvailableCurrencies())->pluck('name', 'code'))
+                      ->default(Settings::get('default_currency.code', 'MWK'))
+                      ->required(),
+                  ])
+                  ->columns(2),
                 Forms\Components\Select::make('physical_status')
                   ->options(Billboard::getPhysicalStatuses())
                   ->required()
