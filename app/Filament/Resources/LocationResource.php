@@ -183,50 +183,46 @@ class LocationResource extends Resource
       ->columns([
         Tables\Columns\TextColumn::make('name')
           ->searchable()
-          ->sortable(),
+          ->sortable()
+          ->description(fn (Location $record): string =>
+          "{$record->city}, {$record->state}")
+          ->tooltip(fn (Location $record): string =>
+          "Coordinates: {$record->latitude}, {$record->longitude}"),
+
         Tables\Columns\TextColumn::make('city')
           ->searchable()
           ->sortable(),
+
         Tables\Columns\TextColumn::make('state')
-          ->searchable(),
+          ->searchable()
+          ->sortable(),
+
         Tables\Columns\TextColumn::make('country')
           ->searchable(),
+
         Tables\Columns\TextColumn::make('postal_code')
           ->searchable()
           ->toggleable(isToggledHiddenByDefault: true),
-        Tables\Columns\TextColumn::make('billboards_count')
-          ->counts('billboards')
-          ->label('Billboards')
-          ->sortable(),
-        Tables\Columns\TextColumn::make('active_billboards')
-          ->label('Active')
-          ->counts('billboards', function ($query) {
-            $query->whereHas('contracts', function ($query) {
-              $query->where('billboard_contract.booking_status', 'in_use');
-            });
-          })
-          ->color(fn(string $state): string => $state > 0 ? 'success' : 'gray')
-          ->sortable(),
-        Tables\Columns\IconColumn::make('is_active')
-          ->boolean()
+
+        Tables\Columns\TextColumn::make('is_active')
+          ->label('Status')
+          ->formatStateUsing(fn (bool $state): string => $state ? 'Active' : 'Inactive')
+          ->color(fn (bool $state): string => $state ? 'success' : 'danger')
           ->sortable(),
       ])
       ->filters([
         Tables\Filters\SelectFilter::make('country')
           ->options(self::getCountryOptions())
           ->searchable(),
+
         Tables\Filters\Filter::make('has_billboards')
           ->label('Has Billboards')
           ->query(fn(Builder $query): Builder => $query->has('billboards')),
-        Tables\Filters\Filter::make('has_active_billboards')
-          ->label('Has Active Billboards')
-          ->query(fn(Builder $query): Builder => $query->whereHas('billboards', function ($query) {
-            $query->whereHas('contracts', function ($query) {
-              $query->where('billboard_contract.booking_status', 'in_use');
-            });
-          })),
+
         Tables\Filters\TernaryFilter::make('is_active')
-          ->label('Active Status')
+          ->label('Status')
+          ->trueLabel('Active')
+          ->falseLabel('Inactive')
           ->nullable(),
       ])
       ->actions([
@@ -234,7 +230,8 @@ class LocationResource extends Resource
         Tables\Actions\EditAction::make(),
         Tables\Actions\Action::make('map')
           ->icon('heroicon-o-map')
-          ->url(fn(Location $record): string => "https://www.openstreetmap.org/?mlat={$record->latitude}&mlon={$record->longitude}&zoom=15")
+          ->url(fn(Location $record): string =>
+          "https://www.openstreetmap.org/?mlat={$record->latitude}&mlon={$record->longitude}&zoom=15")
           ->openUrlInNewTab(),
       ])
       ->bulkActions([

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasMoney;
 use App\Traits\HasUuid;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,7 +17,7 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Contract extends Model implements HasMedia
 {
-  use HasFactory, SoftDeletes, InteractsWithMedia, HasUuid;
+  use HasFactory, SoftDeletes, InteractsWithMedia, HasUuid, HasMoney;
 
   protected $fillable = [
     'client_id',
