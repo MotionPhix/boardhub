@@ -70,15 +70,14 @@ class ViewClient extends ViewRecord
 
         Section::make('Documents')
           ->schema([
-            RepeatableEntry::make('media')
-              ->label('Uploaded Documents')
+            Grid::make()
               ->schema([
-                TextEntry::make('name')
+                TextEntry::make('media.name')
                   ->label('File Name'),
-                TextEntry::make('size')
+                TextEntry::make('media.size')
                   ->label('File Size')
                   ->formatStateUsing(fn ($state) => number_format($state / 1024, 2) . ' KB'),
-                TextEntry::make('created_at')
+                TextEntry::make('media.created_at')
                   ->label('Upload Date')
                   ->dateTime(),
               ])
@@ -88,15 +87,14 @@ class ViewClient extends ViewRecord
 
         Section::make('Recent Contracts')
           ->schema([
-            RepeatableEntry::make('contracts')
-              ->label(false)
+            Grid::make()
               ->schema([
-                TextEntry::make('contract_number')
+                TextEntry::make('contracts.contract_number')
                   ->label('Contract #'),
-                TextEntry::make('total_amount')
+                TextEntry::make('contracts.total_amount')
                   ->label('Amount')
                   ->money(),
-                TextEntry::make('agreement_status')
+                TextEntry::make('contracts.agreement_status')
                   ->badge()
                   ->color(fn (string $state): string => match ($state) {
                     'active' => 'success',
@@ -104,12 +102,12 @@ class ViewClient extends ViewRecord
                     'completed' => 'gray',
                     'cancelled' => 'danger',
                   }),
-                TextEntry::make('billboards_count')
+                TextEntry::make('contracts.billboards_count')
                   ->label('Billboards')
                   ->state(fn ($record) => $record->billboards()->count()),
               ])
-              ->limit(5)
-              ->columns(4),
+              ->columns(4)
+              ->relationship('contracts', limit: 5),
           ])
           ->collapsible(),
       ]);
