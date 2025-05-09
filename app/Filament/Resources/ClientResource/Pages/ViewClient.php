@@ -8,9 +8,7 @@ use Filament\Resources\Pages\ViewRecord;
 use Filament\Infolists\Infolist;
 use Filament\Infolists\Components\Section;
 use Filament\Infolists\Components\TextEntry;
-use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\Grid;
-use Filament\Infolists\Components\SpatieMediaLibraryImageEntry;
 
 class ViewClient extends ViewRecord
 {
@@ -51,20 +49,18 @@ class ViewClient extends ViewRecord
                 TextEntry::make('contracts_count')
                   ->label('Total Contracts')
                   ->state(fn ($record) => $record->contracts()->count()),
+
                 TextEntry::make('active_contracts_count')
                   ->label('Active Contracts')
                   ->state(fn ($record) => $record->contracts()
                     ->where('agreement_status', 'active')
+                    ->where('end_date', '>=', now())
                     ->whereHas('billboards', function ($query) {
-                      $query->wherePivot('booking_status', 'in_use');
+                      $query->whereHas('contracts', function ($query) {
+                        $query->where('billboard_contract.booking_status', 'in_use');
+                      });
                     })
                     ->count()),
-                TextEntry::make('total_contracts_value')
-                  ->label('Total Contract Value')
-                  ->money()
-                  ->state(fn ($record) => $record->contracts()
-                    ->where('agreement_status', 'active')
-                    ->sum('total_amount')),
               ]),
           ]),
 
@@ -89,25 +85,21 @@ class ViewClient extends ViewRecord
           ->schema([
             Grid::make()
               ->schema([
-                TextEntry::make('contracts.contract_number')
-                  ->label('Contract #'),
-                TextEntry::make('contracts.total_amount')
-                  ->label('Amount')
-                  ->money(),
-                TextEntry::make('contracts.agreement_status')
-                  ->badge()
-                  ->color(fn (string $state): string => match ($state) {
-                    'active' => 'success',
-                    'draft' => 'warning',
-                    'completed' => 'gray',
-                    'cancelled' => 'danger',
+                TextEntry::make('contracts')
+                  ->listWithLineBreaks()
+                  ->limitList(5)
+                  ->formatStateUsing(function ($state) {
+                    return collect($state)->map(function ($contract) {
+                      return [
+                        "Contract #{$contract->contract_number}",
+                        "Amount: " . money($contract->total_amount),
+                        "Status: {$contract->agreement_status}",
+                        "Billboards: " . $contract->billboards->count(),
+                      ];
+                    });
                   }),
-                TextEntry::make('contracts.billboards_count')
-                  ->label('Billboards')
-                  ->state(fn ($record) => $record->billboards()->count()),
               ])
-              ->columns(4)
-              ->relationship('contracts', limit: 5),
+              ->columns(1),
           ])
           ->collapsible(),
       ]);
