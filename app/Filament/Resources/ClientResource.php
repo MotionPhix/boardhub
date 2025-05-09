@@ -84,16 +84,10 @@ class ClientResource extends Resource
           ->label('Active Contracts')
           ->counts('contracts', fn (Builder $query) => $query
             ->where('agreement_status', 'active')
+            ->where('end_date', '>=', now())
             ->whereHas('billboards', function ($query) {
               $query->wherePivot('booking_status', 'in_use');
             }))
-          ->sortable(),
-        Tables\Columns\TextColumn::make('total_contracts_value')
-          ->label('Total Contract Value')
-          ->money()
-          ->state(fn ($record) => $record->contracts()
-            ->where('agreement_status', 'active')
-            ->sum('total_amount'))
           ->sortable(),
         Tables\Columns\TextColumn::make('created_at')
           ->dateTime()
@@ -105,6 +99,7 @@ class ClientResource extends Resource
           ->query(fn (Builder $query): Builder => $query
             ->whereHas('contracts', function ($query) {
               $query->where('agreement_status', 'active')
+                ->where('end_date', '>=', now())
                 ->whereHas('billboards', function ($query) {
                   $query->wherePivot('booking_status', 'in_use');
                 });

@@ -35,13 +35,15 @@ class Client extends Model implements HasMedia
 
   public function getTotalContractsValueAttribute()
   {
-    return $this->contracts()->sum('total_amount');
+    return $this->contracts()
+      ->where('agreement_status', 'active')
+      ->sum('total_amount');
   }
 
   public function getActiveContractsCountAttribute()
   {
     return $this->contracts()
-      ->where('status', 'active')
+      ->where('agreement_status', 'active')
       ->where('end_date', '>=', now())
       ->count();
   }
