@@ -20,43 +20,50 @@ class Contract extends Model implements HasMedia
 
   protected $fillable = [
     'client_id',
+    'parent_contract_id',
     'contract_number',
     'start_date',
     'end_date',
+    'base_amount',
+    'discount_amount',
     'total_amount',
     'agreement_status',
+    'payment_terms',
     'notes',
     'last_notification_sent_at',
     'notification_count',
-    'base_amount',
-    'discount_amount',
-    'payment_terms',
   ];
 
   protected $casts = [
     'start_date' => 'datetime',
     'end_date' => 'datetime',
+    'base_amount' => 'decimal:2',
+    'discount_amount' => 'decimal:2',
     'total_amount' => 'decimal:2',
     'last_notification_sent_at' => 'datetime',
     'notification_count' => 'integer',
-    'base_amount' => 'decimal:2',
-    'discount_amount' => 'decimal:2',
   ];
 
-  // Define possible agreement statuses as constants
+  // Agreement status constants
   const AGREEMENT_STATUS_DRAFT = 'draft';
   const AGREEMENT_STATUS_ACTIVE = 'active';
   const AGREEMENT_STATUS_COMPLETED = 'completed';
   const AGREEMENT_STATUS_CANCELLED = 'cancelled';
+  const AGREEMENT_STATUS_EXPIRED = 'expired';
 
-  // Define notification thresholds
+  // Notification thresholds in days
   const NOTIFICATION_THRESHOLDS = [30, 14, 7, 3, 1];
+
+  public function renewals(): HasMany
+  {
+    return $this->hasMany(Contract::class, 'parent_contract_id');
+  }
 
   public function billboards(): BelongsToMany
   {
     return $this->belongsToMany(Billboard::class, 'billboard_contract')
       ->using(BillboardContract::class)
-      ->withPivot(['price', 'booking_status', 'notes'])
+      ->withPivot(['base_price', 'discount_amount', 'final_price', 'booking_status', 'notes'])
       ->withTimestamps();
   }
 
@@ -70,11 +77,6 @@ class Contract extends Model implements HasMedia
     return $this->belongsToMany(User::class, 'contract_user')
       ->withTimestamps()
       ->withPivot(['role']); // roles like 'owner', 'manager', etc.
-  }
-
-  public function renewals(): HasMany
-  {
-    return $this->hasMany(Contract::class, 'parent_contract_id');
   }
 
   public function registerMediaCollections(): void
@@ -102,10 +104,27 @@ class Contract extends Model implements HasMedia
     parent::boot();
 
     static::creating(function ($contract) {
+      // Generate contract number if not set
       if (!$contract->contract_number) {
-        $contract->contract_number = 'CNT-' . date('Y') . '-' . str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT);
+        $contract->contract_number = 'CNT-' . date('Y') . '-' .
+          str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT);
+      }
+
+      // Set total_amount based on base and discount
+      $contract->total_amount = $contract->base_amount - $contract->discount_amount;
+    });
+
+    static::updating(function ($contract) {
+      // Recalculate total amount when base or discount changes
+      if ($contract->isDirty(['base_amount', 'discount_amount'])) {
+        $contract->total_amount = $contract->base_amount - $contract->discount_amount;
       }
     });
+  }
+
+  public function parent(): BelongsTo
+  {
+    return $this->belongsTo(Contract::class, 'parent_contract_id');
   }
 
   public function formatAmount($amount)
@@ -127,6 +146,20 @@ class Contract extends Model implements HasMedia
   public function getFormattedTotalAmountAttribute()
   {
     return $this->formatAmount($this->total_amount);
+  }
+
+  public function calculateBaseAmount(): void
+  {
+    $this->base_amount = $this->billboards()
+      ->sum('billboard_contract.base_price');
+  }
+
+  public function updatePricing(float $discountAmount = 0): void
+  {
+    $this->discount_amount = $discountAmount;
+    $this->calculateBaseAmount();
+    $this->total_amount = $this->base_amount - $this->discount_amount;
+    $this->save();
   }
 
   /**
