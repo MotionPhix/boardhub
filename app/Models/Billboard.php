@@ -14,18 +14,14 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Billboard extends Model implements HasMedia
 {
-  use HasFactory;
-  use InteractsWithMedia;
-  use SoftDeletes;
-  use HasUuid;
-  use HasMoney;
+  use HasFactory, InteractsWithMedia, SoftDeletes, HasUuid, HasMoney;
 
   protected $fillable = [
     'name',
     'location_id',
     'size',
     'type',
-    'price',
+    'base_price', // Changed from price to base_price for consistency
     'physical_status',
     'description',
     'latitude',
@@ -33,7 +29,7 @@ class Billboard extends Model implements HasMedia
   ];
 
   protected $casts = [
-    'price' => 'decimal:2',
+    'base_price' => 'decimal:2',
   ];
 
   // Define possible physical statuses as constants
@@ -45,7 +41,13 @@ class Billboard extends Model implements HasMedia
   {
     return $this->belongsToMany(Contract::class, 'billboard_contract')
       ->using(BillboardContract::class)
-      ->withPivot(['price', 'booking_status', 'notes'])
+      ->withPivot([
+        'base_price',
+        'discount_amount',
+        'final_price',
+        'booking_status',
+        'notes'
+      ])
       ->withTimestamps();
   }
 
@@ -77,5 +79,11 @@ class Billboard extends Model implements HasMedia
     }
 
     return $this->current_contract ? 'occupied' : 'available';
+  }
+
+  // Price-related methods
+  public function getFormattedBasePriceAttribute(): string
+  {
+    return $this->formatMoney($this->base_price);
   }
 }

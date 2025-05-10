@@ -27,6 +27,7 @@ class Contract extends Model implements HasMedia
     'base_amount',
     'discount_amount',
     'total_amount',
+    'currency_code',
     'agreement_status',
     'payment_terms',
     'notes',
@@ -45,14 +46,47 @@ class Contract extends Model implements HasMedia
   ];
 
   // Agreement status constants
-  const AGREEMENT_STATUS_DRAFT = 'draft';
-  const AGREEMENT_STATUS_ACTIVE = 'active';
-  const AGREEMENT_STATUS_COMPLETED = 'completed';
-  const AGREEMENT_STATUS_CANCELLED = 'cancelled';
-  const AGREEMENT_STATUS_EXPIRED = 'expired';
+  const STATUS_DRAFT = 'draft';
+  const STATUS_ACTIVE = 'active';
+  const STATUS_COMPLETED = 'completed';
+  const STATUS_CANCELLED = 'cancelled';
+  const STATUS_EXPIRED = 'expired';
 
   // Notification thresholds in days
   const NOTIFICATION_THRESHOLDS = [30, 14, 7, 3, 1];
+
+  protected static function boot()
+  {
+    parent::boot();
+
+    static::creating(function ($contract) {
+      // Generate contract number
+      if (!$contract->contract_number) {
+        $contract->contract_number = 'CNT-' . date('Y') . '-' .
+          str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT);
+      }
+
+      // Set default currency if not set
+      if (!$contract->currency_code) {
+        $contract->currency_code = 'MWK';
+      }
+
+      // Calculate total amount
+      $contract->total_amount = $contract->base_amount - ($contract->discount_amount ?? 0);
+    });
+
+    static::updating(function ($contract) {
+      if ($contract->isDirty(['base_amount', 'discount_amount'])) {
+        $contract->total_amount = $contract->base_amount - ($contract->discount_amount ?? 0);
+      }
+    });
+  }
+
+  // Relationships
+  public function parent(): BelongsTo
+  {
+    return $this->belongsTo(Contract::class, 'parent_contract_id');
+  }
 
   public function renewals(): HasMany
   {
@@ -76,9 +110,10 @@ class Contract extends Model implements HasMedia
   {
     return $this->belongsToMany(User::class, 'contract_user')
       ->withTimestamps()
-      ->withPivot(['role']); // roles like 'owner', 'manager', etc.
+      ->withPivot(['role']);
   }
 
+  // Media collections
   public function registerMediaCollections(): void
   {
     $this->addMediaCollection('contract_documents')
@@ -89,171 +124,21 @@ class Contract extends Model implements HasMedia
       ->useDisk('public');
   }
 
+  // Status related methods
   public static function getAgreementStatuses(): array
   {
     return [
-      self::AGREEMENT_STATUS_DRAFT => 'Draft',
-      self::AGREEMENT_STATUS_ACTIVE => 'Active',
-      self::AGREEMENT_STATUS_COMPLETED => 'Completed',
-      self::AGREEMENT_STATUS_CANCELLED => 'Cancelled',
+      self::STATUS_DRAFT => 'Draft',
+      self::STATUS_ACTIVE => 'Active',
+      self::STATUS_COMPLETED => 'Completed',
+      self::STATUS_CANCELLED => 'Cancelled',
+      self::STATUS_EXPIRED => 'Expired',
     ];
   }
 
-  protected static function boot()
-  {
-    parent::boot();
-
-    static::creating(function ($contract) {
-      // Generate contract number if not set
-      if (!$contract->contract_number) {
-        $contract->contract_number = 'CNT-' . date('Y') . '-' .
-          str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT);
-      }
-
-      // Set total_amount based on base and discount
-      $contract->total_amount = $contract->base_amount - $contract->discount_amount;
-    });
-
-    static::updating(function ($contract) {
-      // Recalculate total amount when base or discount changes
-      if ($contract->isDirty(['base_amount', 'discount_amount'])) {
-        $contract->total_amount = $contract->base_amount - $contract->discount_amount;
-      }
-    });
-  }
-
-  public function parent(): BelongsTo
-  {
-    return $this->belongsTo(Contract::class, 'parent_contract_id');
-  }
-
-  public function formatAmount($amount)
-  {
-    $currency = Settings::getDefaultCurrency();
-    return $currency['symbol'] . ' ' . number_format($amount, 2);
-  }
-
-  public function getFormattedBaseAmountAttribute()
-  {
-    return $this->formatAmount($this->base_amount);
-  }
-
-  public function getFormattedDiscountAmountAttribute()
-  {
-    return $this->formatAmount($this->discount_amount);
-  }
-
-  public function getFormattedTotalAmountAttribute()
-  {
-    return $this->formatAmount($this->total_amount);
-  }
-
-  public function calculateBaseAmount(): void
-  {
-    $this->base_amount = $this->billboards()
-      ->sum('billboard_contract.base_price');
-  }
-
-  public function updatePricing(float $discountAmount = 0): void
-  {
-    $this->discount_amount = $discountAmount;
-    $this->calculateBaseAmount();
-    $this->total_amount = $this->base_amount - $this->discount_amount;
-    $this->save();
-  }
-
-  /**
-   * Get the number of days until the contract expires
-   */
-  public function getDaysUntilExpiryAttribute(): int
-  {
-    return $this->end_date->startOfDay()->diffInDays(now()->startOfDay());
-  }
-
-  /**
-   * Check if the contract is expiring within the given number of days
-   */
-  public function isExpiringWithinDays(int $days): bool
-  {
-    return $this->days_until_expiry <= $days &&
-      $this->days_until_expiry > 0 &&
-      $this->agreement_status === self::AGREEMENT_STATUS_ACTIVE;
-  }
-
-  /**
-   * Check if the contract needs renewal
-   */
-  public function needsRenewal(): bool
-  {
-    return $this->isExpiringWithinDays(30) &&
-      !$this->renewals()->exists() &&
-      $this->agreement_status === self::AGREEMENT_STATUS_ACTIVE;
-  }
-
-  /**
-   * Get all users who should be notified about this contract
-   */
-  public function getNotificationRecipients(): Collection
-  {
-    // Get users directly associated with the contract
-    $contractUsers = $this->users;
-
-    // Get users with specific roles who should be notified
-    $roleUsers = User::role(['admin', 'manager'])
-      ->where('is_active', true)
-      ->whereNotIn('id', $contractUsers->pluck('id'))
-      ->get();
-
-    return $contractUsers->merge($roleUsers);
-  }
-
-  /**
-   * Record that a notification was sent
-   */
-  public function recordNotificationSent(): void
-  {
-    $this->update([
-      'last_notification_sent_at' => now(),
-      'notification_count' => $this->notification_count + 1,
-    ]);
-  }
-
-  /**
-   * Check if we should send a notification based on the notification history
-   */
-  public function shouldSendNotification(): bool
-  {
-    if (!$this->last_notification_sent_at) {
-      return true;
-    }
-
-    // Don't send more than one notification per day
-    return $this->last_notification_sent_at->diffInHours(now()) >= 24;
-  }
-
-  /**
-   * Get contracts that need expiry notifications
-   */
-  public static function getExpiringContracts(array $days = null): Collection
-  {
-    $days = $days ?? self::NOTIFICATION_THRESHOLDS;
-
-    return static::query()
-      ->with(['billboards', 'client', 'users'])
-      ->where('agreement_status', self::AGREEMENT_STATUS_ACTIVE)
-      ->whereDoesntHave('renewals')
-      ->where('end_date', '>', now())
-      ->where('end_date', '<=', now()->addDays(max($days)))
-      ->get()
-      ->filter(fn ($contract) => in_array($contract->days_until_expiry, $days));
-  }
-
-  /**
-   * Get the contract's current status for display
-   */
   public function getStatusAttribute(): string
   {
-    if ($this->agreement_status !== self::AGREEMENT_STATUS_ACTIVE) {
+    if ($this->agreement_status !== self::STATUS_ACTIVE) {
       return self::getAgreementStatuses()[$this->agreement_status];
     }
 
@@ -268,33 +153,104 @@ class Contract extends Model implements HasMedia
     return 'Active';
   }
 
-  /**
-   * Scope a query to only include active contracts
-   */
-  public function scopeActive($query)
+  // Expiry related methods
+  public function getDaysUntilExpiryAttribute(): int
   {
-    return $query->where('agreement_status', self::AGREEMENT_STATUS_ACTIVE);
+    return $this->end_date->startOfDay()->diffInDays(now()->startOfDay());
   }
 
-  /**
-   * Scope a query to only include contracts expiring within given days
-   */
+  public function isExpiringWithinDays(int $days): bool
+  {
+    return $this->days_until_expiry <= $days &&
+      $this->days_until_expiry > 0 &&
+      $this->agreement_status === self::STATUS_ACTIVE;
+  }
+
+  public function needsRenewal(): bool
+  {
+    return $this->isExpiringWithinDays(30) &&
+      !$this->renewals()->exists() &&
+      $this->agreement_status === self::STATUS_ACTIVE;
+  }
+
+  // Notification related methods
+  public function getNotificationRecipients(): Collection
+  {
+    return $this->users
+      ->merge(
+        User::role(['admin', 'manager'])
+          ->where('is_active', true)
+          ->whereNotIn('id', $this->users->pluck('id'))
+          ->get()
+      );
+  }
+
+  public function recordNotificationSent(): void
+  {
+    $this->update([
+      'last_notification_sent_at' => now(),
+      'notification_count' => $this->notification_count + 1,
+    ]);
+  }
+
+  public function shouldSendNotification(): bool
+  {
+    if (!$this->last_notification_sent_at) {
+      return true;
+    }
+
+    return $this->last_notification_sent_at->diffInHours(now()) >= 24;
+  }
+
+  // Query scopes
+  public function scopeActive($query)
+  {
+    return $query->where('agreement_status', self::STATUS_ACTIVE);
+  }
+
   public function scopeExpiringWithin($query, int $days)
   {
     return $query
-      ->where('agreement_status', self::AGREEMENT_STATUS_ACTIVE)
+      ->where('agreement_status', self::STATUS_ACTIVE)
       ->whereDate('end_date', '<=', now()->addDays($days))
       ->whereDate('end_date', '>', now());
   }
 
-  /**
-   * Scope a query to only include contracts that need renewal
-   */
   public function scopeNeedsRenewal($query)
   {
     return $query
       ->active()
       ->expiringWithin(30)
       ->whereDoesntHave('renewals');
+  }
+
+  // Static methods
+  public static function getExpiringContracts(array $days = null): Collection
+  {
+    $days = $days ?? self::NOTIFICATION_THRESHOLDS;
+
+    return static::query()
+      ->with(['billboards', 'client', 'users'])
+      ->where('agreement_status', self::STATUS_ACTIVE)
+      ->whereDoesntHave('renewals')
+      ->where('end_date', '>', now())
+      ->where('end_date', '<=', now()->addDays(max($days)))
+      ->get()
+      ->filter(fn ($contract) => in_array($contract->days_until_expiry, $days));
+  }
+
+  // Price calculation methods
+  public function calculateBaseAmount(): void
+  {
+    $this->base_amount = $this->billboards()
+      ->sum('billboard_contract.base_price');
+  }
+
+  public function updatePricing(float $discountAmount = 0): void
+  {
+    $this->discount_amount = $discountAmount;
+    $this->calculateBaseAmount();
+    $this->total_amount = $this->base_amount - $this->discount_amount;
+    $this->save();
   }
 }

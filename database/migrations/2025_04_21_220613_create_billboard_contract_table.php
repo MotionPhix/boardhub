@@ -5,28 +5,30 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration {
-  /**
-   * Run the migrations.
-   */
   public function up(): void
   {
     Schema::create('billboard_contract', function (Blueprint $table) {
       $table->id();
       $table->foreignId('billboard_id')->constrained()->onDelete('cascade');
       $table->foreignId('contract_id')->constrained()->onDelete('cascade');
-      $table->decimal('price', 10, 2);
+
+      // Pricing information
+      $table->decimal('base_price', 10, 2);
+      $table->decimal('discount_amount', 10, 2)->default(0);
+      $table->decimal('final_price', 10, 2);
+
+      // Status and notes
       $table->string('booking_status')->default('active');
       $table->text('notes')->nullable();
+
       $table->timestamps();
 
+      // Indexes and constraints
       $table->unique(['billboard_id', 'contract_id']);
       $table->index(['contract_id', 'booking_status']);
     });
   }
 
-  /**
-   * Reverse the migrations.
-   */
   public function down(): void
   {
     Schema::dropIfExists('billboard_contract');
