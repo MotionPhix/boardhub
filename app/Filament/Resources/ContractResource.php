@@ -28,7 +28,7 @@ class ContractResource extends Resource
   public static function form(Form $form): Form
   {
     $currency = Settings::getDefaultCurrency();
-    
+
     return $form
       ->schema([
         Forms\Components\Group::make()
@@ -71,7 +71,7 @@ class ContractResource extends Resource
 
                 Forms\Components\DatePicker::make('end_date')
                   ->required()
-                  ->afterDate(fn (Forms\Get $get) => $get('start_date')),
+                  ->afterOrEqual(fn (Forms\Get $get) => $get('start_date')),
 
                 Forms\Components\Select::make('agreement_status')
                   ->options([
@@ -108,7 +108,7 @@ class ContractResource extends Resource
                     }
 
                     $baseAmount = \App\Models\Billboard::whereIn('id', $state)
-                      ->sum('base_price');
+                      ->sum('base_amount');
 
                     $set('base_amount', $baseAmount);
 
