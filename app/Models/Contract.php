@@ -29,6 +29,9 @@ class Contract extends Model implements HasMedia
     'notes',
     'last_notification_sent_at',
     'notification_count',
+    'base_amount',
+    'discount_amount',
+    'payment_terms',
   ];
 
   protected $casts = [
@@ -37,6 +40,8 @@ class Contract extends Model implements HasMedia
     'total_amount' => 'decimal:2',
     'last_notification_sent_at' => 'datetime',
     'notification_count' => 'integer',
+    'base_amount' => 'decimal:2',
+    'discount_amount' => 'decimal:2',
   ];
 
   // Define possible agreement statuses as constants
@@ -102,6 +107,27 @@ class Contract extends Model implements HasMedia
         $contract->contract_number = 'CNT-' . date('Y') . '-' . str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT);
       }
     });
+  }
+
+  public function formatAmount($amount)
+  {
+    $currency = Settings::getDefaultCurrency();
+    return $currency['symbol'] . ' ' . number_format($amount, 2);
+  }
+
+  public function getFormattedBaseAmountAttribute()
+  {
+    return $this->formatAmount($this->base_amount);
+  }
+
+  public function getFormattedDiscountAmountAttribute()
+  {
+    return $this->formatAmount($this->discount_amount);
+  }
+
+  public function getFormattedTotalAmountAttribute()
+  {
+    return $this->formatAmount($this->total_amount);
   }
 
   /**

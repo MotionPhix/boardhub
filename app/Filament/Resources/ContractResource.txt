@@ -6,7 +6,6 @@ use App\Enums\BookingStatus;
 use App\Filament\Resources\ContractResource\Pages;
 use App\Filament\Resources\ContractResource\RelationManagers\LoginActivitiesRelationManager;
 use App\Models\Contract;
-use App\Models\Settings;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -27,8 +26,6 @@ class ContractResource extends Resource
 
   public static function form(Form $form): Form
   {
-    $currency = Settings::getDefaultCurrency();
-    
     return $form
       ->schema([
         Forms\Components\Group::make()
@@ -61,17 +58,11 @@ class ContractResource extends Resource
                       ->maxLength(255),
                   ]),
 
-                Forms\Components\DatePicker::make('start_date')
+                Forms\Components\TextInput::make('total_amount')
+                  ->numeric()
+                  ->prefix('MK')
                   ->required()
-                  ->default(now())
-                  ->live()
-                  ->afterStateUpdated(fn ($state, Forms\Set $set) =>
-                  $set('end_date', $state ? date('Y-m-d', strtotime($state . ' +1 month')) : null)
-                  ),
-
-                Forms\Components\DatePicker::make('end_date')
-                  ->required()
-                  ->afterDate(fn (Forms\Get $get) => $get('start_date')),
+                  ->maxValue(42949672.95),
 
                 Forms\Components\Select::make('agreement_status')
                   ->options([
@@ -90,7 +81,7 @@ class ContractResource extends Resource
               ])
               ->columns(2),
 
-            Forms\Components\Section::make('Billboard Selection & Pricing')
+            Forms\Components\Section::make('Billboard Selection')
               ->schema([
                 Forms\Components\Select::make('billboards')
                   ->relationship('billboards', 'name')
@@ -100,58 +91,20 @@ class ContractResource extends Resource
                   ->required()
                   ->live()
                   ->afterStateUpdated(function ($state, Forms\Set $set) {
-                    if (empty($state)) {
-                      $set('base_amount', 0);
-                      $set('discount_amount', 0);
-                      $set('total_amount', 0);
-                      return;
+                    // Calculate suggested total amount based on selected billboards
+                    $suggestedAmount = 0;
+                    if (!empty($state)) {
+                      $suggestedAmount = \App\Models\Billboard::whereIn('id', $state)
+                        ->sum('base_price');
                     }
-
-                    $baseAmount = \App\Models\Billboard::whereIn('id', $state)
-                      ->sum('base_price');
-
-                    $set('base_amount', $baseAmount);
-
-                    // Recalculate total with any existing discount
-                    $discountAmount = $set('discount_amount') ?? 0;
-                    $set('total_amount', $baseAmount - $discountAmount);
+                    $set('suggested_amount', $suggestedAmount);
                   }),
 
-                Forms\Components\Grid::make(3)
-                  ->schema([
-                    Forms\Components\TextInput::make('base_amount')
-                      ->label('Base Amount')
-                      ->numeric()
-                      ->prefix($currency['symbol'])
-                      ->disabled()
-                      ->dehydrated(false),
-
-                    Forms\Components\TextInput::make('discount_amount')
-                      ->label('Discount Amount')
-                      ->numeric()
-                      ->prefix($currency['symbol'])
-                      ->default(0)
-                      ->live()
-                      ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                        $baseAmount = $get('base_amount') ?? 0;
-                        $discountAmount = $state ?? 0;
-
-                        if ($discountAmount > $baseAmount) {
-                          $set('discount_amount', $baseAmount);
-                          $discountAmount = $baseAmount;
-                        }
-
-                        $set('total_amount', $baseAmount - $discountAmount);
-                      }),
-
-                    Forms\Components\TextInput::make('total_amount')
-                      ->label('Final Amount')
-                      ->numeric()
-                      ->prefix($currency['symbol'])
-                      ->required()
-                      ->disabled()
-                      ->dehydrated(),
-                  ]),
+                Forms\Components\TextInput::make('suggested_amount')
+                  ->numeric()
+                  ->prefix('MK')
+                  ->disabled()
+                  ->dehydrated(false),
               ]),
           ])
           ->columnSpan(['lg' => 2]),
@@ -173,17 +126,6 @@ class ContractResource extends Resource
                   ->acceptedFileTypes(['application/pdf'])
                   ->columnSpanFull()
                   ->visible(fn(Forms\Get $get) => $get('agreement_status') === 'active'),
-              ])
-              ->collapsible(),
-
-            Forms\Components\Section::make('Payment Terms')
-              ->schema([
-                Forms\Components\Select::make('payment_terms')
-                  ->options(function () {
-                    $terms = Settings::get('document_settings.default_payment_terms', []);
-                    return collect($terms)->pluck('description', 'days');
-                  })
-                  ->label('Payment Terms'),
               ])
               ->collapsible(),
           ])
