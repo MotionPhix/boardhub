@@ -25,7 +25,7 @@ class BillboardsRelationManager extends RelationManager
           ->required(),
         Forms\Components\TextInput::make('type')
           ->required(),
-        Forms\Components\TextInput::make('price')
+        Forms\Components\TextInput::make('base_price')
           ->required()
           ->numeric()
           ->prefix('MK'),
@@ -53,7 +53,7 @@ class BillboardsRelationManager extends RelationManager
           ->searchable(),
         Tables\Columns\TextColumn::make('type')
           ->searchable(),
-        Tables\Columns\TextColumn::make('price')
+        Tables\Columns\TextColumn::make('base_price')
           ->money()
           ->sortable(),
         Tables\Columns\TextColumn::make('physical_status')

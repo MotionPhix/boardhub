@@ -24,7 +24,7 @@ class Contract extends Model implements HasMedia
     'contract_number',
     'start_date',
     'end_date',
-    'base_amount',
+    'base_price',
     'discount_amount',
     'total_amount',
     'currency_code',
@@ -68,16 +68,29 @@ class Contract extends Model implements HasMedia
 
       // Set default currency if not set
       if (!$contract->currency_code) {
-        $contract->currency_code = 'MWK';
+        $contract->currency_code = Settings::getDefaultCurrency()['code'] ?? 'MWK';
       }
 
       // Calculate total amount
-      $contract->total_amount = $contract->base_amount - ($contract->discount_amount ?? 0);
+      $contract->total_amount = $contract->base_price - ($contract->discount_amount ?? 0);
     });
 
     static::updating(function ($contract) {
-      if ($contract->isDirty(['base_amount', 'discount_amount'])) {
-        $contract->total_amount = $contract->base_amount - ($contract->discount_amount ?? 0);
+      if ($contract->isDirty(['base_price', 'discount_amount'])) {
+        $contract->total_amount = $contract->base_price - ($contract->discount_amount ?? 0);
+      }
+    });
+
+    static::saved(function ($contract) {
+      // Update billboard pivot data
+      if ($contract->billboards) {
+        foreach ($contract->billboards as $billboard) {
+          $contract->billboards()->updateExistingPivot($billboard->id, [
+            'base_price' => $billboard->base_price,
+            'discount_amount' => $contract->discount_amount / count($contract->billboards),
+            'final_price' => $billboard->base_price - ($contract->discount_amount / count($contract->billboards)),
+          ]);
+        }
       }
     });
   }

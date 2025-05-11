@@ -58,18 +58,6 @@ class BillboardResource extends Resource
                     Forms\Components\TextInput::make('country')
                       ->required()
                       ->maxLength(255),
-                    Forms\Components\TextInput::make('postal_code')
-                      ->required()
-                      ->maxLength(255),
-                    Forms\Components\Grid::make(2)
-                      ->schema([
-                        Forms\Components\TextInput::make('latitude')
-                          ->numeric()
-                          ->required(),
-                        Forms\Components\TextInput::make('longitude')
-                          ->numeric()
-                          ->required(),
-                      ]),
                   ]),
 
                 Forms\Components\Select::make('type')
@@ -82,7 +70,8 @@ class BillboardResource extends Resource
 
                 Forms\Components\TextInput::make('size')
                   ->required()
-                  ->helperText('Format: width x height (e.g., 48 x 14)'),
+                  ->placeholder('width x height (e.g. 12m x 6m)')
+                  ->helperText('Format: width x height (e.g. 12m x 6m)'),
 
                 Forms\Components\Grid::make()
                   ->schema([

@@ -93,7 +93,9 @@ class ContractResource extends Resource
             Forms\Components\Section::make('Billboard Selection & Pricing')
               ->schema([
                 Forms\Components\Select::make('billboards')
-                  ->relationship('billboards', 'name')
+                  ->relationship('billboards', 'name', function ($query) {
+                    return $query->select(['id', 'name', 'base_price']);
+                  })
                   ->multiple()
                   ->preload()
                   ->searchable()
@@ -115,6 +117,14 @@ class ContractResource extends Resource
                     // Recalculate total with any existing discount
                     $discountAmount = $get('discount_amount') ?? 0;
                     $set('total_amount', $baseAmount - $discountAmount);
+                  })
+                  ->afterStateHydrated(function ($component, $state, Forms\Set $set) {
+                    if (empty($state)) return;
+
+                    $baseAmount = \App\Models\Billboard::whereIn('id', $state)
+                      ->sum('base_price');
+
+                    $set('base_price', $baseAmount);
                   }),
 
                 Forms\Components\Grid::make(3)
@@ -124,7 +134,7 @@ class ContractResource extends Resource
                       ->numeric()
                       ->prefix($currency['symbol'])
                       ->disabled()
-                      ->dehydrated(false),
+                      ->dehydrated(), // Changed to true to save the value
 
                     Forms\Components\TextInput::make('discount_amount')
                       ->label('Discount Amount')

@@ -17,11 +17,12 @@ return new class extends Migration {
       $table->foreignId('location_id')->constrained()->onDelete('cascade');
       $table->string('size');
       $table->string('type');
-      $table->decimal('price', 10, 2);
+      $table->decimal('base_price', 10, 2);
+      $table->string('currency_code')->default('MWK');
       $table->string('physical_status');
       $table->text('description')->nullable();
-      $table->decimal('latitude', 10, 8)->nullable();
-      $table->decimal('longitude', 10, 8)->nullable();
+      $table->decimal('latitude', 20, 8)->nullable();
+      $table->decimal('longitude', 20, 8)->nullable();
       $table->timestamps();
       $table->softDeletes();
     });

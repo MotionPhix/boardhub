@@ -21,7 +21,7 @@ return new class extends Migration {
       $table->timestamp('end_date');
 
       // Financial information
-      $table->decimal('base_amount', 10, 2)->default(0);
+      $table->decimal('base_price', 10, 2)->default(0);
       $table->decimal('discount_amount', 10, 2)->default(0);
       $table->decimal('total_amount', 10, 2);
       $table->string('currency_code')->default('MWK');
