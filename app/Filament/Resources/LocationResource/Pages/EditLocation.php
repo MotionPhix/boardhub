@@ -8,12 +8,12 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditLocation extends EditRecord
 {
-    protected static string $resource = LocationResource::class;
+  protected static string $resource = LocationResource::class;
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\DeleteAction::make(),
-        ];
-    }
+  protected function getHeaderActions(): array
+  {
+    return [
+      Actions\DeleteAction::make(),
+    ];
+  }
 }

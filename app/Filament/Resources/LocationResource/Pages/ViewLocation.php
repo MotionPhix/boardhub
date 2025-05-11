@@ -16,17 +16,6 @@ class ViewLocation extends ViewRecord
 
   public $location;
 
-  public function mount($record): void
-  {
-    parent::mount($record);
-
-    // Initialize the location data
-    $this->location = [
-      'lat' => $this->record->latitude,
-      'lng' => $this->record->longitude,
-    ];
-  }
-
   protected function getHeaderActions(): array
   {
     return [
@@ -51,42 +40,6 @@ class ViewLocation extends ViewRecord
                 Infolists\Components\TextEntry::make('state'),
                 Infolists\Components\TextEntry::make('country'),
               ]),
-
-            Infolists\Components\TextEntry::make('postal_code')
-              ->label('Postal Code'),
-
-            MapEntry::make('location')
-              ->columnSpanFull()
-              // Basic Configuration
-              ->defaultLocation(
-                latitude: $record->latitude ?? -13.9626,
-                longitude: $record->longitude ?? 33.7741
-              )
-              ->draggable(false)
-              ->zoom(15)
-              ->minZoom(0)
-              ->maxZoom(18)
-              ->detectRetina(true)
-
-              // Marker Configuration
-              ->showMarker(true)
-              ->markerColor('#3b82f6')
-
-              // Controls
-              ->showFullscreenControl(true)
-              ->showZoomControl(true)
-
-              // Styling
-              ->extraStyles([
-                'min-height: 400px',
-                'border-radius: 0.75rem'
-              ])
-
-              // State Management
-              ->state(fn ($record) => [
-                'lat' => $record->latitude,
-                'lng' => $record->longitude
-              ]),
           ])
           ->columnSpan(['lg' => 2]),
 
@@ -94,12 +47,12 @@ class ViewLocation extends ViewRecord
           ->schema([
             Infolists\Components\TextEntry::make('billboards_count')
               ->label('Total Billboards')
-              ->state(fn ($record) => $record->billboards()->count())
+              ->state(fn($record) => $record->billboards()->count())
               ->color('gray'),
 
             Infolists\Components\TextEntry::make('active_billboards')
               ->label('Active Billboards')
-              ->state(fn ($record) => $record->billboards()
+              ->state(fn($record) => $record->billboards()
                 ->whereHas('contracts', function ($query) {
                   $query->where('billboard_contract.booking_status', 'in_use');
                 })->count())
@@ -107,13 +60,13 @@ class ViewLocation extends ViewRecord
 
             Infolists\Components\TextEntry::make('maintenance_billboards')
               ->label('Under Maintenance')
-              ->state(fn ($record) => $record->billboards()
+              ->state(fn($record) => $record->billboards()
                 ->where('physical_status', 'maintenance')->count())
               ->color('warning'),
 
             Infolists\Components\TextEntry::make('damaged_billboards')
               ->label('Damaged Billboards')
-              ->state(fn ($record) => $record->billboards()
+              ->state(fn($record) => $record->billboards()
                 ->where('physical_status', 'damaged')->count())
               ->color('danger'),
           ])
@@ -127,24 +80,22 @@ class ViewLocation extends ViewRecord
                   ->weight(FontWeight::Bold),
                 Infolists\Components\TextEntry::make('type'),
                 Infolists\Components\TextEntry::make('size'),
-                Infolists\Components\TextEntry::make('price')
+                Infolists\Components\TextEntry::make('base_price')
+                  ->label('Rental Fee (Monthly)')
                   ->money(),
                 Infolists\Components\TextEntry::make('physical_status')
                   ->badge()
-                  ->color(fn (string $state): string => match ($state) {
+                  ->color(fn(string $state): string => match ($state) {
                     'operational' => 'success',
                     'maintenance' => 'warning',
                     'damaged' => 'danger',
                     default => 'gray',
                   }),
-                Infolists\Components\TextEntry::make('current_contract.contract_number')
-                  ->label('Active Contract')
-                  ->placeholder('-'),
               ])
               ->columns(6),
           ])
           ->columnSpan('full')
-          ->hidden(fn ($record) => $record->billboards()->count() === 0),
+          ->hidden(fn($record) => $record->billboards()->count() === 0),
 
         Infolists\Components\Section::make('Record History')
           ->schema([
