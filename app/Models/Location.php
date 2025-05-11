@@ -17,20 +17,24 @@ class Location extends Model
     'city',
     'state',
     'country',
-    'postal_code',
-    'latitude',
-    'longitude',
     'is_active',
   ];
 
   protected $casts = [
-    'latitude' => 'decimal:8',
-    'longitude' => 'decimal:8',
     'is_active' => 'boolean',
   ];
 
   public function billboards(): HasMany
   {
     return $this->hasMany(Billboard::class);
+  }
+
+  public function getFullAddressAttribute(): string
+  {
+    return implode(', ', array_filter([
+      $this->getAttribute('city'),
+      $this->getAttribute('state'),
+      $this->getAttribute('country')
+    ]));
   }
 }

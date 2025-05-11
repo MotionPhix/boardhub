@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -85,5 +86,24 @@ class Billboard extends Model implements HasMedia
   public function getFormattedBasePriceAttribute(): string
   {
     return $this->formatMoney($this->base_price);
+  }
+
+  public function registerMediaCollections(): void
+  {
+    $this->addMediaCollection('billboard-images')
+      ->useDisk('public')
+      ->registerMediaConversions(function () {
+        $this
+          ->addMediaConversion('thumb')
+          ->fit(Fit::Crop, 300, 200)
+          ->sharpen(10)
+          ->optimize();
+
+        $this
+          ->addMediaConversion('preview')
+          ->fit(Fit::Contain, 800, 600)
+          ->sharpen(10)
+          ->optimize();
+      });
   }
 }

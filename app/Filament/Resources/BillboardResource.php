@@ -24,9 +24,9 @@ class BillboardResource extends Resource
 
   protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
 
-  protected static ?string $navigationGroup = 'Inventory';
+  protected static ?string $navigationGroup = 'Management';
 
-  protected static ?int $navigationSort = 1;
+  protected static ?int $navigationSort = 2;
 
   public static function form(Form $form): Form
   {
@@ -299,36 +299,12 @@ class BillboardResource extends Resource
                     ->visible(fn($record) => $record->current_contract !== null),
                 ]),
 
-              /*Infolists\Components\SpatieMediaLibraryImageEntry::make('images')
+              Infolists\Components\SpatieMediaLibraryImageEntry::make('images')
                 ->collection('billboard-images')
                 ->conversion('thumb')
                 ->label('Images')
-                ->columns(2),*/
+                ->columns(2),
 
-              Infolists\Components\Grid::make(2)
-                ->schema([
-                  Infolists\Components\SpatieMediaLibraryImageEntry::make('images')
-                    ->collection('billboard-images')
-                    ->label('Billboard Images')
-                    ->conversion('thumb')
-                    ->columns(2)
-                    ->action(
-                      Infolists\Components\Actions\Action::make('viewImage')
-                        ->modalWidth('max-w-4xl')
-                        ->modalAlignment(\Filament\Support\Enums\Alignment::Center)
-                        ->button()
-                        ->icon('heroicon-o-magnifying-glass-plus')
-                        ->iconButton()
-                        ->modalSubmitAction(false)
-                        ->modalCancelAction(false)
-                        ->label('View Image')
-                        ->color('primary')
-                        ->modalContent(fn ($record, $state): string => view(
-                          'filament.components.image-modal',
-                          ['url' => $state],
-                        ))
-                    ),
-                ]),
             ])->from('lg'),
           ]),
 
@@ -337,27 +313,32 @@ class BillboardResource extends Resource
             Infolists\Components\Grid::make(3)
               ->schema([
                 Infolists\Components\TextEntry::make('location.city')
+                  ->size(36)
                   ->label('City'),
 
                 Infolists\Components\TextEntry::make('location.state')
+                  ->size(36)
                   ->label('State'),
 
                 Infolists\Components\TextEntry::make('location.country')
-                  ->weight('black')
-                  ->size(24)
+                  ->size(36)
                   ->label('Country'),
               ]),
 
             Infolists\Components\Grid::make(3)
               ->schema([
-                Infolists\Components\TextEntry::make('latitude'),
-                Infolists\Components\TextEntry::make('longitude'),
+                Infolists\Components\TextEntry::make('latitude')
+                  ->size(36),
+
+                Infolists\Components\TextEntry::make('longitude')
+                  ->size(36),
               ]),
 
             Infolists\Components\Grid::make(3)
               ->schema([
                 Infolists\Components\TextEntry::make('description')
-                ->columnSpan(2)
+                  ->size(36)
+                  ->columnSpan(2)
               ])
           ])
           ->collapsible(),

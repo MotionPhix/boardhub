@@ -10,6 +10,7 @@ use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Panel;
 use Filament\PanelProvider;
+use Filament\Support\Assets\Css;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\MaxWidth;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -32,8 +33,12 @@ class AuthPanelProvider extends PanelProvider
       ->login()
       ->colors([
         'primary' => '#6366f1',
+        'muted' => '#dcdcdc'
       ])
       ->font('Geist Mono', provider: GoogleFontProvider::class)
+      ->assets([
+        Css::make('custom-stylesheet', resource_path('css/custom.css')),
+      ])
       ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
       ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
       ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')

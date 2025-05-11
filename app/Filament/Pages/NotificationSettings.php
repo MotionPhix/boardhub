@@ -19,7 +19,7 @@ class NotificationSettings extends Page
 
   protected static ?string $navigationIcon = 'heroicon-o-bell-alert';
 
-  protected static ?string $navigationGroup = 'Settings';
+  // protected static ?string $navigationGroup = 'Settings';
 
   protected static ?int $navigationSort = 2;
 
@@ -159,7 +159,7 @@ class NotificationSettings extends Page
 
   public static function getNavigationGroup(): ?string
   {
-    return 'Settings';
+    return 'System';
   }
 
   public function getTitle(): string

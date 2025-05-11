@@ -3,10 +3,8 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\LocationResource\Pages;
-use App\Filament\Resources\LocationResource\RelationManagers;
 use App\Filament\Resources\LocationResource\RelationManagers\BillboardsRelationManager;
 use App\Models\Location;
-use Dotswan\MapPicker\Fields\Map;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -23,7 +21,7 @@ class LocationResource extends Resource
 
   protected static ?string $navigationGroup = 'Management';
 
-  protected static ?int $navigationSort = 2;
+  protected static ?int $navigationSort = 3;
 
   protected static ?string $recordTitleAttribute = 'name';
 
@@ -45,17 +43,10 @@ class LocationResource extends Resource
                     }
                   }),
 
-                Forms\Components\TextInput::make('slug')
-                  ->required()
-                  ->maxLength(255)
-                  ->unique(ignoreRecord: true)
-                  ->disabled()
-                  ->dehydrated(),
-
                 Forms\Components\Toggle::make('is_active')
-                  ->label('Active')
+                  ->label('Council Cleared')
                   ->default(true)
-                  ->helperText('Inactive locations will not be available for new billboards'),
+                  ->helperText('Uncleared locations will not be available for new billboards'),
 
                 Forms\Components\MarkdownEditor::make('description')
                   ->columnSpanFull(),
@@ -76,76 +67,8 @@ class LocationResource extends Resource
                   ->required()
                   ->searchable()
                   ->options(self::getCountryOptions()),
-
-                Forms\Components\TextInput::make('postal_code')
-                  ->required()
-                  ->maxLength(20),
               ])
               ->columns(2),
-
-            Forms\Components\Section::make('Geographic Coordinates')
-              ->schema([
-                Map::make('location')
-                  ->label('Location')
-                  ->columnSpanFull()
-                  // Basic Configuration
-                  ->defaultLocation(latitude: -13.9626, longitude: 33.7741)
-                  ->draggable(true)
-                  ->clickable(true)
-                  ->zoom(13)
-                  ->minZoom(0)
-                  ->maxZoom(18)
-                  ->detectRetina(true)
-
-                  // Marker Configuration
-                  ->showMarker(true)
-                  ->markerColor('#3b82f6')
-
-                  // Controls
-                  ->showFullscreenControl(true)
-                  ->showZoomControl(true)
-
-                  // Location Features
-                  ->showMyLocationButton(true)
-
-                  // State Management
-                  ->afterStateUpdated(function (Forms\Set $set, ?array $state): void {
-                    if ($state) {
-                      $set('latitude', $state['lat']);
-                      $set('longitude', $state['lng']);
-                    }
-                  })
-                  ->afterStateHydrated(function ($state, $record, Forms\Set $set): void {
-                    if ($record) {
-                      $set('location', [
-                        'lat' => $record->latitude,
-                        'lng' => $record->longitude,
-                      ]);
-                    }
-                  }),
-
-                Forms\Components\Grid::make()
-                  ->schema([
-                    Forms\Components\TextInput::make('latitude')
-                      ->required()
-                      ->numeric()
-                      ->step(0.000001)
-                      ->minValue(-90)
-                      ->maxValue(90)
-                      ->default(-13.9626)
-                      ->reactive(),
-
-                    Forms\Components\TextInput::make('longitude')
-                      ->required()
-                      ->numeric()
-                      ->step(0.000001)
-                      ->minValue(-180)
-                      ->maxValue(180)
-                      ->default(33.7741)
-                      ->reactive(),
-                  ])
-                  ->columns(2),
-              ]),
           ])
           ->columnSpan(['lg' => 2]),
 
@@ -165,8 +88,9 @@ class LocationResource extends Resource
                   ->content(function (?Location $record): string {
                     if (!$record) return '0';
                     return (string)$record->billboards()
-                      ->whereHas('contracts', fn($query) => $query->where('billboard_contract.booking_status', 'in_use')
-                      )->count();
+                      ->whereHas('contracts', fn($query) => $query
+                        ->where('billboard_contract.booking_status', 'in_use'))
+                      ->count();
                   }),
               ])
               ->hidden(fn(?Location $record) => !$record)
@@ -184,10 +108,7 @@ class LocationResource extends Resource
         Tables\Columns\TextColumn::make('name')
           ->searchable()
           ->sortable()
-          ->description(fn (Location $record): string =>
-          "{$record->city}, {$record->state}")
-          ->tooltip(fn (Location $record): string =>
-          "Coordinates: {$record->latitude}, {$record->longitude}"),
+          ->description(fn (Location $record): string => $record->full_address),
 
         Tables\Columns\TextColumn::make('city')
           ->searchable()
@@ -204,10 +125,13 @@ class LocationResource extends Resource
           ->searchable()
           ->toggleable(isToggledHiddenByDefault: true),
 
-        Tables\Columns\TextColumn::make('is_active')
-          ->label('Status')
-          ->formatStateUsing(fn (bool $state): string => $state ? 'Active' : 'Inactive')
-          ->color(fn (bool $state): string => $state ? 'success' : 'danger')
+        Tables\Columns\TextColumn::make('billboards_count')
+          ->counts('billboards')
+          ->label('Billboards'),
+
+        Tables\Columns\IconColumn::make('is_active')
+          ->boolean()
+          ->label('Active')
           ->sortable(),
       ])
       ->filters([
@@ -228,11 +152,6 @@ class LocationResource extends Resource
       ->actions([
         Tables\Actions\ViewAction::make(),
         Tables\Actions\EditAction::make(),
-        Tables\Actions\Action::make('map')
-          ->icon('heroicon-o-map')
-          ->url(fn(Location $record): string =>
-          "https://www.openstreetmap.org/?mlat={$record->latitude}&mlon={$record->longitude}&zoom=15")
-          ->openUrlInNewTab(),
       ])
       ->bulkActions([
         Tables\Actions\BulkActionGroup::make([
@@ -269,8 +188,8 @@ class LocationResource extends Resource
   {
     return [
       'MW' => 'Malawi',
-      'ZW' => 'Zambia'
-      // Add more countries as needed
+      'ZM' => 'Zambia',
+      'ZW' => 'Zimbabwe'
     ];
   }
 }

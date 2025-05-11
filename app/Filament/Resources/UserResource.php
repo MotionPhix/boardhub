@@ -23,7 +23,7 @@ class UserResource extends Resource
 
   protected static ?string $navigationIcon = 'heroicon-o-users';
 
-  protected static ?string $navigationGroup = 'Settings';
+  protected static ?string $navigationGroup = 'Management';
 
   protected static ?int $navigationSort = 1;
 
@@ -152,22 +152,10 @@ class UserResource extends Resource
           ->searchable()
           ->sortable(),
 
-        IconColumn::make('is_active')
-          ->label('Active')
-          ->boolean()
-          ->sortable()
-          ->toggleable(),
-
-        TextColumn::make('created_at')
-          ->dateTime('M d, Y')
-          ->sortable()
-          ->toggleable(),
-
-        TextColumn::make('updated_at')
-          ->dateTime('M d, Y')
-          ->sortable()
-          ->toggleable()
-          ->toggledHiddenByDefault(),
+        TextColumn::make('is_active')
+          ->label('Status')
+          ->formatStateUsing(fn (string $state): string => $state == 1 ? 'Active' : 'Inactive')
+          ->sortable(),
       ])
       ->filters([
         Tables\Filters\TrashedFilter::make(),
