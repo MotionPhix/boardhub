@@ -22,7 +22,7 @@ class Billboard extends Model implements HasMedia
     'location_id',
     'size',
     'type',
-    'base_price', // Changed from price to base_price for consistency
+    'base_price',
     'physical_status',
     'description',
     'latitude',

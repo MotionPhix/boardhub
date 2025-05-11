@@ -17,9 +17,6 @@ return new class extends Migration {
       $table->string('city');
       $table->string('state');
       $table->string('country');
-      $table->string('postal_code');
-      $table->decimal('latitude', 10, 8);
-      $table->decimal('longitude', 10, 8);
       $table->timestamps();
     });
   }

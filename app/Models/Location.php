@@ -29,12 +29,32 @@ class Location extends Model
     return $this->hasMany(Billboard::class);
   }
 
+  /**
+   * Get the full address of the location.
+   */
   public function getFullAddressAttribute(): string
   {
     return implode(', ', array_filter([
       $this->getAttribute('city'),
       $this->getAttribute('state'),
-      $this->getAttribute('country')
+      $this->getCountryName(),
     ]));
+  }
+
+  /**
+   * Get the country name from the country code.
+   */
+  public function getCountryName(): string
+  {
+    $countries = [
+      'MW' => 'Malawi',
+      'ZM' => 'Zambia',
+      'ZW' => 'Zimbabwe',
+      'MZ' => 'Mozambique',
+      'TZ' => 'Tanzania',
+      'ZA' => 'South Africa',
+    ];
+
+    return $countries[$this->getAttribute('country')] ?? $this->getAttribute('country');
   }
 }

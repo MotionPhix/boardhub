@@ -99,28 +99,28 @@ class ContractResource extends Resource
                   ->searchable()
                   ->required()
                   ->live()
-                  ->afterStateUpdated(function ($state, Forms\Set $set) {
+                  ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                     if (empty($state)) {
-                      $set('base_amount', 0);
+                      $set('base_price', 0);
                       $set('discount_amount', 0);
                       $set('total_amount', 0);
                       return;
                     }
 
                     $baseAmount = \App\Models\Billboard::whereIn('id', $state)
-                      ->sum('base_amount');
+                      ->sum('base_price');
 
-                    $set('base_amount', $baseAmount);
+                    $set('base_price', $baseAmount);
 
                     // Recalculate total with any existing discount
-                    $discountAmount = $set('discount_amount') ?? 0;
+                    $discountAmount = $get('discount_amount') ?? 0;
                     $set('total_amount', $baseAmount - $discountAmount);
                   }),
 
                 Forms\Components\Grid::make(3)
                   ->schema([
-                    Forms\Components\TextInput::make('base_amount')
-                      ->label('Base Amount')
+                    Forms\Components\TextInput::make('base_price')
+                      ->label('Base Price')
                       ->numeric()
                       ->prefix($currency['symbol'])
                       ->disabled()
@@ -133,7 +133,7 @@ class ContractResource extends Resource
                       ->default(0)
                       ->live()
                       ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                        $baseAmount = $get('base_amount') ?? 0;
+                        $baseAmount = $get('base_price') ?? 0;
                         $discountAmount = $state ?? 0;
 
                         if ($discountAmount > $baseAmount) {
@@ -288,9 +288,7 @@ class ContractResource extends Resource
 
   public static function getRelations(): array
   {
-    return [
-      LoginActivitiesRelationManager::class,
-    ];
+    return [];
   }
 
   public static function getPages(): array
