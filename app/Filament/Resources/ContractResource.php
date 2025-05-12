@@ -93,9 +93,17 @@ class ContractResource extends Resource
             Forms\Components\Section::make('Billboard Selection & Pricing')
               ->schema([
                 Forms\Components\Select::make('billboards')
-                  ->relationship('billboards', 'name', function ($query) {
-                    return $query->select(['id', 'name', 'base_price']);
-                  })
+                  ->relationship(
+                    'billboards',
+                    'name',
+                    function ($query) {
+                      return $query->select([
+                        'billboards.id',
+                        'billboards.name',
+                        'billboards.base_price'
+                      ]);
+                    }
+                  )
                   ->multiple()
                   ->preload()
                   ->searchable()
@@ -109,8 +117,8 @@ class ContractResource extends Resource
                       return;
                     }
 
-                    $baseAmount = \App\Models\Billboard::whereIn('id', $state)
-                      ->sum('base_price');
+                    $baseAmount = \App\Models\Billboard::whereIn('billboards.id', $state)
+                      ->sum('billboards.base_price');
 
                     $set('contract_total', $baseAmount);
 
@@ -176,17 +184,6 @@ class ContractResource extends Resource
                   ->acceptedFileTypes(['application/pdf'])
                   ->columnSpanFull()
                   ->visible(fn(Forms\Get $get) => $get('agreement_status') === 'active'),
-              ])
-              ->collapsible(),
-
-            Forms\Components\Section::make('Payment Terms')
-              ->schema([
-                Forms\Components\Select::make('payment_terms')
-                  ->options(function () {
-                    $terms = Settings::get('document_settings.default_payment_terms', []);
-                    return collect($terms)->pluck('description', 'days');
-                  })
-                  ->label('Payment Terms'),
               ])
               ->collapsible(),
           ])

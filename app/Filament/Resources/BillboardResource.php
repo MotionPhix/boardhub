@@ -12,11 +12,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Filament\Infolists;
-use Filament\Infolists\Infolist;
-use Filament\Support\Enums\FontWeight;
-use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
 
 class BillboardResource extends Resource
 {
@@ -26,10 +21,12 @@ class BillboardResource extends Resource
 
   protected static ?string $navigationGroup = 'Management';
 
-  protected static ?int $navigationSort = 2;
+  protected static ?int $navigationSort = 3;
 
   public static function form(Form $form): Form
   {
+    $currency = Settings::getDefaultCurrency();
+
     return $form
       ->schema([
         Forms\Components\Group::make()
@@ -38,6 +35,16 @@ class BillboardResource extends Resource
               ->schema([
                 Forms\Components\TextInput::make('name')
                   ->required()
+                  ->maxLength(255)
+                  ->live(onBlur: true)
+                  ->afterStateUpdated(fn (string $state, Forms\Set $set) =>
+                  $set('code', str()->snake($state))),
+
+                Forms\Components\TextInput::make('code')
+                  ->disabled()
+                  ->dehydrated()
+                  ->required()
+                  ->unique(ignoreRecord: true)
                   ->maxLength(255),
 
                 Forms\Components\Select::make('location_id')
@@ -49,51 +56,16 @@ class BillboardResource extends Resource
                     Forms\Components\TextInput::make('name')
                       ->required()
                       ->maxLength(255),
-                    Forms\Components\TextInput::make('city')
+                    Forms\Components\TextInput::make('address')
                       ->required()
                       ->maxLength(255),
-                    Forms\Components\TextInput::make('state')
-                      ->required()
-                      ->maxLength(255),
-                    Forms\Components\TextInput::make('country')
-                      ->required()
-                      ->maxLength(255),
+                    Forms\Components\Textarea::make('description')
+                      ->maxLength(65535)
+                      ->columnSpanFull(),
                   ]),
 
-                Forms\Components\Select::make('type')
-                  ->options([
-                    'static' => 'Static',
-                    'digital' => 'Digital',
-                    'mobile' => 'Mobile',
-                  ])
-                  ->required(),
-
                 Forms\Components\TextInput::make('size')
-                  ->required()
-                  ->placeholder('width x height (e.g. 12m x 6m)')
-                  ->helperText('Format: width x height (e.g. 12m x 6m)'),
-
-                Forms\Components\Grid::make()
-                  ->schema([
-                    Forms\Components\TextInput::make('base_price')
-                      ->label('Base Price')
-                      ->numeric()
-                      ->prefix(fn() => Settings::get('default_currency.symbol', 'MK'))
-                      ->required(),
-
-                    Forms\Components\Select::make('currency_code')
-                      ->label('Currency')
-                      ->options(collect(Settings::getAvailableCurrencies())->pluck('name', 'code'))
-                      ->default(Settings::get('default_currency.code', 'MWK'))
-                      ->required(),
-                  ])
-                  ->columns(2),
-
-                Forms\Components\Select::make('physical_status')
-                  ->options(Billboard::getPhysicalStatuses())
-                  ->required()
-                  ->default(Billboard::PHYSICAL_STATUS_OPERATIONAL)
-                  ->helperText('The current physical condition of the billboard'),
+                  ->maxLength(255),
               ])
               ->columns(2),
 
@@ -102,30 +74,89 @@ class BillboardResource extends Resource
                 Forms\Components\Grid::make(2)
                   ->schema([
                     Forms\Components\TextInput::make('latitude')
+                      ->label('Latitude')
                       ->numeric()
-                      ->helperText('Specific billboard location if different from general location'),
+                      ->rules(['nullable', 'numeric', 'between:-90,90'])
+                      ->placeholder('-13.962476'),
+
                     Forms\Components\TextInput::make('longitude')
-                      ->numeric(),
+                      ->label('Longitude')
+                      ->numeric()
+                      ->rules(['nullable', 'numeric', 'between:-180,180'])
+                      ->placeholder('33.774827'),
                   ]),
-                Forms\Components\Textarea::make('description')
-                  ->rows(3)
-                  ->columnSpanFull(),
               ]),
+
+            Forms\Components\Section::make('Pricing')
+              ->schema([
+                Forms\Components\TextInput::make('base_price')
+                  ->label('Base Price')
+                  ->numeric()
+                  ->rules(['required', 'numeric', 'min:0'])
+                  ->prefix($currency['symbol'])
+                  ->default(0),
+
+                Forms\Components\Select::make('currency_code')
+                  ->options([
+                    'MWK' => 'Malawian Kwacha (MWK)',
+                    'USD' => 'US Dollar (USD)',
+                    'EUR' => 'Euro (EUR)',
+                    'GBP' => 'British Pound (GBP)',
+                  ])
+                  ->default('MWK')
+                  ->required(),
+              ])
+              ->columns(2),
+
+            Forms\Components\Section::make('Status')
+              ->schema([
+                Forms\Components\Toggle::make('is_active')
+                  ->label('Active')
+                  ->default(true)
+                  ->inline(false),
+
+                Forms\Components\Toggle::make('is_illuminated')
+                  ->label('Illuminated')
+                  ->inline(false),
+              ])
+              ->columns(2),
           ])
           ->columnSpan(['lg' => 2]),
 
         Forms\Components\Group::make()
           ->schema([
-            Forms\Components\Section::make('Images')
+            Forms\Components\Section::make('Media')
               ->schema([
-                Forms\Components\SpatieMediaLibraryFileUpload::make('images')
-                  ->collection('billboard-images')
+                Forms\Components\SpatieMediaLibraryFileUpload::make('billboard_images')
+                  ->label('Billboard Images')
+                  ->collection('billboard_images')
                   ->multiple()
                   ->maxFiles(5)
                   ->image()
                   ->imageEditor()
-                  ->columnSpanFull()
-                  ->helperText('Upload up to 5 images. First image will be used as the main image.'),
+                  ->columnSpanFull(),
+              ])
+              ->collapsible(),
+
+            Forms\Components\Section::make('Current Revenue')
+              ->schema([
+                Forms\Components\Placeholder::make('current_revenue')
+                  ->label('Current Monthly Revenue')
+                  ->content(function (Billboard $record) {
+                    return $record->contracts()
+                      ->whereDate('start_date', '<=', now())
+                      ->whereDate('end_date', '>=', now())
+                      ->sum('contract_final_amount');
+                  }),
+
+                Forms\Components\Placeholder::make('active_contracts')
+                  ->label('Active Contracts')
+                  ->content(function (Billboard $record) {
+                    return $record->contracts()
+                      ->whereDate('start_date', '<=', now())
+                      ->whereDate('end_date', '>=', now())
+                      ->count();
+                  }),
               ])
               ->collapsible(),
           ])
@@ -138,83 +169,73 @@ class BillboardResource extends Resource
   {
     return $table
       ->columns([
-        Tables\Columns\SpatieMediaLibraryImageColumn::make('main-image')
-          ->collection('billboard-images')
-          ->conversion('thumb')
-          ->circular(false)
-          ->label('Image'),
+        Tables\Columns\SpatieMediaLibraryImageColumn::make('billboard_images')
+          ->label('Image')
+          ->collection('billboard_images')
+          ->circular()
+          ->stacked()
+          ->limit(3),
 
         Tables\Columns\TextColumn::make('name')
           ->searchable()
           ->sortable(),
 
+        Tables\Columns\TextColumn::make('code')
+          ->searchable()
+          ->sortable()
+          ->toggleable(),
+
         Tables\Columns\TextColumn::make('location.name')
           ->searchable()
           ->sortable(),
 
-        Tables\Columns\TextColumn::make('type')
-          ->badge()
-          ->color(fn(string $state): string => match ($state) {
-            'static' => 'gray',
-            'digital' => 'success',
-            'mobile' => 'warning',
-          }),
-
-        Tables\Columns\TextColumn::make('size')
-          ->searchable(),
-
         Tables\Columns\TextColumn::make('base_price')
-          ->label('Base Price')
-          ->money(fn(Model $record): string => $record->currency_code)
+          ->money(fn ($record) => $record->currency_code)
           ->sortable(),
 
-        Tables\Columns\TextColumn::make('physical_status')
-          ->badge()
-          ->color(fn(string $state): string => match ($state) {
-            Billboard::PHYSICAL_STATUS_OPERATIONAL => 'success',
-            Billboard::PHYSICAL_STATUS_MAINTENANCE => 'warning',
-            Billboard::PHYSICAL_STATUS_DAMAGED => 'danger',
-            default => 'gray',
+        Tables\Columns\TextColumn::make('current_revenue')
+          ->money(fn ($record) => $record->currency_code)
+          ->state(function (Billboard $record): float {
+            return $record->contracts()
+              ->whereDate('start_date', '<=', now())
+              ->whereDate('end_date', '>=', now())
+              ->sum('contract_final_amount');
           })
-          ->formatStateUsing(fn(string $state) => Billboard::getPhysicalStatuses()[$state]),
+          ->sortable(),
 
-        Tables\Columns\TextColumn::make('availability_status')
-          ->badge()
-          ->color(fn(string $state): string => match ($state) {
-            'available' => 'success',
-            'occupied' => 'warning',
-            default => 'danger',
-          }),
+        Tables\Columns\IconColumn::make('is_active')
+          ->label('Active')
+          ->boolean()
+          ->sortable(),
+
+        Tables\Columns\IconColumn::make('is_illuminated')
+          ->label('Illuminated')
+          ->boolean()
+          ->sortable()
+          ->toggleable(),
 
         Tables\Columns\TextColumn::make('contracts_count')
           ->counts('contracts')
-          ->label('Contracts'),
+          ->label('Contracts')
+          ->sortable(),
       ])
       ->filters([
+        Tables\Filters\TernaryFilter::make('is_active')
+          ->label('Active')
+          ->boolean()
+          ->trueLabel('Active billboards')
+          ->falseLabel('Inactive billboards')
+          ->placeholder('All billboards'),
+
+        Tables\Filters\TernaryFilter::make('is_illuminated')
+          ->label('Illuminated')
+          ->boolean()
+          ->trueLabel('Illuminated billboards')
+          ->falseLabel('Non-illuminated billboards')
+          ->placeholder('All billboards'),
+
         Tables\Filters\SelectFilter::make('location')
-          ->relationship('location', 'name')
-          ->searchable()
-          ->preload(),
-
-        Tables\Filters\SelectFilter::make('type')
-          ->options([
-            'static' => 'Static',
-            'digital' => 'Digital',
-            'mobile' => 'Mobile',
-          ]),
-
-        Tables\Filters\SelectFilter::make('physical_status')
-          ->options(Billboard::getPhysicalStatuses()),
-
-        Tables\Filters\Filter::make('available')
-          ->query(fn(Builder $query): Builder => $query
-            ->where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL)
-            ->whereDoesntHave('contracts', function ($query) {
-              $query->whereDate('start_date', '<=', now())
-                ->whereDate('end_date', '>=', now());
-            }))
-          ->label('Show Available Only')
-          ->toggle(),
+          ->relationship('location', 'name'),
       ])
       ->actions([
         Tables\Actions\ViewAction::make(),
@@ -223,115 +244,9 @@ class BillboardResource extends Resource
       ->bulkActions([
         Tables\Actions\BulkActionGroup::make([
           Tables\Actions\DeleteBulkAction::make(),
-          Tables\Actions\BulkAction::make('updateStatus')
-            ->label('Update Physical Status')
-            ->icon('heroicon-o-arrow-path')
-            ->requiresConfirmation()
-            ->form([
-              Forms\Components\Select::make('physical_status')
-                ->label('New Physical Status')
-                ->options(Billboard::getPhysicalStatuses())
-                ->required(),
-            ])
-            ->action(function (array $data, Collection $records) {
-              $records->each->update(['physical_status' => $data['physical_status']]);
-            }),
         ]),
-      ]);
-  }
-
-  public static function infolist(Infolist $infolist): Infolist
-  {
-    return $infolist
-      ->schema([
-        Infolists\Components\Section::make('Billboard Information')
-          ->schema([
-            Infolists\Components\Split::make([
-              Infolists\Components\Grid::make(2)
-                ->schema([
-                  Infolists\Components\TextEntry::make('name')
-                    ->weight(FontWeight::Bold),
-
-                  Infolists\Components\TextEntry::make('location.name')
-                    ->label('Location'),
-
-                  Infolists\Components\TextEntry::make('type')
-                    ->badge(),
-
-                  Infolists\Components\TextEntry::make('size'),
-
-                  Infolists\Components\TextEntry::make('base_price')
-                    ->label('Base Price')
-                    ->money(fn(Model $record): string => $record->currency_code),
-
-                  Infolists\Components\TextEntry::make('physical_status')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                      Billboard::PHYSICAL_STATUS_OPERATIONAL => 'success',
-                      Billboard::PHYSICAL_STATUS_MAINTENANCE => 'warning',
-                      Billboard::PHYSICAL_STATUS_DAMAGED => 'danger',
-                      default => 'gray',
-                    })
-                    ->formatStateUsing(fn(string $state) => Billboard::getPhysicalStatuses()[$state]),
-
-                  Infolists\Components\TextEntry::make('availability_status')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                      'available' => 'success',
-                      'occupied' => 'warning',
-                      default => 'danger',
-                    }),
-
-                  Infolists\Components\TextEntry::make('current_contract.final_price')
-                    ->label('Current Contract Price')
-                    ->money(fn(Model $record): string => $record->currency_code)
-                    ->visible(fn($record) => $record->current_contract !== null),
-                ]),
-
-              Infolists\Components\SpatieMediaLibraryImageEntry::make('images')
-                ->collection('billboard-images')
-                ->conversion('thumb')
-                ->label('Images')
-                ->columns(2),
-
-            ])->from('lg'),
-          ]),
-
-        Infolists\Components\Section::make('Location Details')
-          ->schema([
-            Infolists\Components\Grid::make(3)
-              ->schema([
-                Infolists\Components\TextEntry::make('location.city')
-                  ->size(36)
-                  ->label('City'),
-
-                Infolists\Components\TextEntry::make('location.state')
-                  ->size(36)
-                  ->label('State'),
-
-                Infolists\Components\TextEntry::make('location.country')
-                  ->size(36)
-                  ->label('Country'),
-              ]),
-
-            Infolists\Components\Grid::make(3)
-              ->schema([
-                Infolists\Components\TextEntry::make('latitude')
-                  ->size(36),
-
-                Infolists\Components\TextEntry::make('longitude')
-                  ->size(36),
-              ]),
-
-            Infolists\Components\Grid::make(3)
-              ->schema([
-                Infolists\Components\TextEntry::make('description')
-                  ->size(36)
-                  ->columnSpan(2)
-              ])
-          ])
-          ->collapsible(),
-      ]);
+      ])
+      ->defaultSort('created_at', 'desc');
   }
 
   public static function getRelations(): array
@@ -349,27 +264,5 @@ class BillboardResource extends Resource
       'view' => Pages\ViewBillboard::route('/{record}'),
       'edit' => Pages\EditBillboard::route('/{record}/edit'),
     ];
-  }
-
-  public static function getNavigationBadge(): ?string
-  {
-    return static::getModel()::where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL)
-        ->whereDoesntHave('contracts', function ($query) {
-          $query->whereDate('start_date', '<=', now())
-            ->whereDate('end_date', '>=', now());
-        })
-        ->count() . ' available';
-  }
-
-  protected function shouldPersistTableFiltersInSession(): bool
-  {
-    return true;
-  }
-
-  protected function getTableRecordUrlUsing(): ?\Closure
-  {
-    return fn(Model $record): string => auth()->user()->can('view_billboard')
-      ? static::getUrl('view', ['record' => $record])
-      : '';
   }
 }

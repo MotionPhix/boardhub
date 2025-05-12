@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Traits\HasMoney;
 use App\Traits\HasUuid;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -12,6 +14,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use function Pest\Laravel\get;
 
 class Billboard extends Model implements HasMedia
 {
@@ -89,9 +92,11 @@ class Billboard extends Model implements HasMedia
   }
 
   // Price-related methods
-  public function getFormattedBasePriceAttribute(): string
+  public function formattedBasePrice(): Attribute
   {
-    return $this->formatMoney($this->base_price);
+    return Attribute::make(
+      get: fn() => $this->formatMoney($this->base_price)
+    );
   }
 
   public function registerMediaCollections(): void
@@ -111,6 +116,39 @@ class Billboard extends Model implements HasMedia
           ->sharpen(10)
           ->optimize();
       });
+  }
+
+  #[Scope]
+  public function active($query)
+  {
+    return $query->where('is_active', true);
+  }
+
+  #[Scope]
+  public function available($query, $startDate, $endDate)
+  {
+    return $query->whereDoesntHave('contracts', function ($query) use ($startDate, $endDate) {
+      $query->where('booking_status', 'in_use')
+        ->where(function ($q) use ($startDate, $endDate) {
+          $q->whereBetween('start_date', [$startDate, $endDate])
+            ->orWhereBetween('end_date', [$startDate, $endDate])
+            ->orWhere(function ($q) use ($startDate, $endDate) {
+              $q->where('start_date', '<=', $startDate)
+                ->where('end_date', '>=', $endDate);
+            });
+        });
+    });
+  }
+
+  #[Scope]
+  public function withinRadius($query, $lat, $lng, $radius)
+  {
+    return $query->whereRaw("
+      ST_Distance_Sphere(
+        point(longitude, latitude),
+        point(?, ?)
+      ) <= ?
+    ", [$lng, $lat, $radius * 1000]);
   }
 
   protected static function boot()

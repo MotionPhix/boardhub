@@ -4,122 +4,75 @@ namespace App\Filament\Resources\BillboardResource\Widgets;
 
 use App\Models\Billboard;
 use App\Models\Contract;
+use App\Models\Settings;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
 
 class BillboardOverview extends BaseWidget
 {
+  protected static ?string $pollingInterval = '15s';
+
   protected function getStats(): array
   {
-    $billboardStats = $this->getBillboardStats();
-    $occupancyRate = $this->calculateOccupancyRate();
+    $currency = Settings::getDefaultCurrency();
 
-    $stats = [
-      Stat::make('Total Billboards', $billboardStats['total'])
-        ->description('By Physical Status')
-        ->descriptionIcon('heroicon-m-rectangle-stack')
-        ->chart([
-          $billboardStats['operational'],
-          $billboardStats['maintenance'],
-          $billboardStats['damaged'],
-        ])
-        ->color('primary'),
-    ];
+    // Get total revenue for current month
+    $currentMonthRevenue = Contract::query()
+      ->whereHas('billboards')
+      ->whereMonth('start_date', '<=', now())
+      ->whereMonth('end_date', '>=', now())
+      ->sum('contract_final_amount');
 
-    // Only show revenue for authorized roles
-    if (auth()->user()->hasAnyRole(['super_admin', 'admin', 'manager'])) {
-      $revenueStats = $this->getRevenueStats();
-      $stats[] = Stat::make('Current Revenue', 'MK ' . number_format($revenueStats['current_month'], 2))
-        ->description($revenueStats['trend'] . '% from last month')
-        ->descriptionIcon($revenueStats['trend'] > 0 ? 'heroicon-m-arrow-trending-up' : 'heroicon-m-arrow-trending-down')
-        ->color($revenueStats['trend'] > 0 ? 'success' : 'danger');
-    }
+    // Get total active billboards
+    $activeBillboards = Billboard::active()->count();
 
-    $stats[] = Stat::make('Occupancy Rate', number_format($occupancyRate, 1) . '%')
-      ->description('Of operational billboards')
-      ->descriptionIcon('heroicon-m-chart-bar')
-      ->color($this->getOccupancyRateColor($occupancyRate));
+    // Get average billboard price
+    $averagePrice = Billboard::active()
+      ->where('base_price', '>', 0)
+      ->avg('base_price');
 
-    return $stats;
-  }
+    // Get total revenue trend (last 6 months)
+    $revenueTrend = Contract::query()
+      ->select(DB::raw('MONTH(start_date) as month'), DB::raw('SUM(contract_final_amount) as total'))
+      ->whereHas('billboards')
+      ->where('start_date', '>=', now()->subMonths(6))
+      ->groupBy('month')
+      ->orderBy('month')
+      ->pluck('total')
+      ->toArray();
 
-  protected function getBillboardStats(): array
-  {
-    $stats = Billboard::query()
-      ->selectRaw('COUNT(*) as total')
-      ->selectRaw("COUNT(CASE WHEN physical_status = ? THEN 1 END) as operational", [Billboard::PHYSICAL_STATUS_OPERATIONAL])
-      ->selectRaw("COUNT(CASE WHEN physical_status = ? THEN 1 END) as maintenance", [Billboard::PHYSICAL_STATUS_MAINTENANCE])
-      ->selectRaw("COUNT(CASE WHEN physical_status = ? THEN 1 END) as damaged", [Billboard::PHYSICAL_STATUS_DAMAGED])
-      ->first();
+    // Get active billboards trend (last 6 months)
+    $billboardsTrend = Billboard::query()
+      ->select(DB::raw('MONTH(created_at) as month'), DB::raw('COUNT(*) as total'))
+      ->where('created_at', '>=', now()->subMonths(6))
+      ->where('is_active', true)
+      ->groupBy('month')
+      ->orderBy('month')
+      ->pluck('total')
+      ->toArray();
 
     return [
-      'total' => $stats->total,
-      'operational' => $stats->operational,
-      'maintenance' => $stats->maintenance,
-      'damaged' => $stats->damaged,
-    ];
-  }
-
-  protected function getRevenueStats(): array
-  {
-    // Only calculate revenue stats if user has permission
-    if (!auth()->user()->hasAnyRole(['super_admin', 'admin', 'manager'])) {
-      return [
-        'current_month' => 0,
-        'last_month' => 0,
-        'trend' => 0,
-      ];
-    }
-
-    $currentMonth = now()->startOfMonth();
-    $lastMonth = now()->subMonth()->startOfMonth();
-
-    $currentMonthRevenue = Contract::whereHas('billboards', function ($query) use ($currentMonth) {
-      $query->whereDate('start_date', '<=', now())
-        ->whereDate('end_date', '>=', now());
-    })->sum('total_amount');
-
-    $lastMonthRevenue = Contract::whereHas('billboards', function ($query) use ($lastMonth) {
-      $query->whereDate('start_date', '<=', $lastMonth->endOfMonth())
-        ->whereDate('end_date', '>=', $lastMonth);
-    })->sum('total_amount');
-
-    $trend = $lastMonthRevenue > 0
-      ? (($currentMonthRevenue - $lastMonthRevenue) / $lastMonthRevenue) * 100
-      : 100;
-
-    return [
-      'current_month' => $currentMonthRevenue,
-      'last_month' => $lastMonthRevenue,
-      'trend' => round($trend, 1),
-    ];
-  }
-
-  protected function calculateOccupancyRate(): float
-  {
-    $operationalBillboards = Billboard::where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL)->count();
-
-    if ($operationalBillboards === 0) {
-      return 0;
-    }
-
-    $occupiedBillboards = Billboard::where('physical_status', Billboard::PHYSICAL_STATUS_OPERATIONAL)
-      ->whereHas('contracts', function ($query) {
-        $query->whereDate('start_date', '<=', now())
-          ->whereDate('end_date', '>=', now());
+      Stat::make('Current Month Revenue', function () use ($currentMonthRevenue, $currency) {
+        return $currency['symbol'] . number_format($currentMonthRevenue, 2);
       })
-      ->count();
+        ->description('Total revenue from active contracts')
+        ->descriptionIcon('heroicon-m-banknotes')
+        ->chart($revenueTrend)
+        ->color('success'),
 
-    return ($occupiedBillboards / $operationalBillboards) * 100;
-  }
+      Stat::make('Active Billboards', $activeBillboards)
+        ->description('Currently active billboards')
+        ->descriptionIcon('heroicon-m-rectangle-stack')
+        ->chart($billboardsTrend)
+        ->color('primary'),
 
-  protected function getOccupancyRateColor(float $rate): string
-  {
-    return match(true) {
-      $rate >= 80 => 'success',
-      $rate >= 50 => 'warning',
-      default => 'danger',
-    };
+      Stat::make('Average Billboard Price', function () use ($averagePrice, $currency) {
+        return $averagePrice ? $currency['symbol'] . number_format($averagePrice, 2) : $currency['symbol'] . '0.00';
+      })
+        ->description('Average price per billboard')
+        ->descriptionIcon('heroicon-m-calculator')
+        ->color('warning'),
+    ];
   }
 }
