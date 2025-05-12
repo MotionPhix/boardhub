@@ -36,8 +36,6 @@ class SettingsSeeder extends Seeder
 
     // Document Settings
     Settings::set('document_settings', [
-      'invoice_prefix' => 'INV-',
-      'invoice_footer_text' => 'Thank you for your business!',
       'contract_footer_text' => 'For any queries regarding this contract, please contact us.',
       'default_payment_terms' => [
         [
@@ -55,5 +53,18 @@ class SettingsSeeder extends Seeder
       ],
       'default_contract_terms' => "1. Payment Terms\n2. Duration\n3. Responsibilities\n4. Termination Conditions",
     ], 'documents');
+
+    // Billboard Code Settings
+    Settings::set('billboard_code_format', [
+      'prefix' => 'BH',
+      'cities' => [
+        ['code' => 'LL', 'name' => 'Lilongwe'],
+        ['code' => 'BT', 'name' => 'Blantyre'],
+        ['code' => 'MZ', 'name' => 'Mzuzu'],
+        ['code' => 'ZA', 'name' => 'Zomba'],
+      ],
+      'separator' => '-',
+      'counter_length' => 5,
+    ], 'billboards');
   }
 }

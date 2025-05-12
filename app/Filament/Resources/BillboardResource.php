@@ -99,9 +99,9 @@ class BillboardResource extends Resource
                 Forms\Components\Select::make('currency_code')
                   ->options([
                     'MWK' => 'Malawian Kwacha (MWK)',
+                    'ZMW' => 'Zambian Kwacha (ZMW)',
+                    'ZWL' => 'Zimbabwean Dollar (ZWL)',
                     'USD' => 'US Dollar (USD)',
-                    'EUR' => 'Euro (EUR)',
-                    'GBP' => 'British Pound (GBP)',
                   ])
                   ->default('MWK')
                   ->required(),
@@ -142,16 +142,20 @@ class BillboardResource extends Resource
               ->schema([
                 Forms\Components\Placeholder::make('current_revenue')
                   ->label('Current Monthly Revenue')
-                  ->content(function (Billboard $record) {
-                    return $record->contracts()
-                      ->whereDate('start_date', '<=', now())
-                      ->whereDate('end_date', '>=', now())
-                      ->sum('contract_final_amount');
+                  ->content(function (?Billboard $record) use($currency) {
+                    if (!$record) return $currency['symbol'] . '0.00';
+
+                    return $currency['symbol'] . number_format($record->contracts()
+                        ->whereDate('start_date', '<=', now())
+                        ->whereDate('end_date', '>=', now())
+                        ->sum('contract_final_amount'), 2);
                   }),
 
                 Forms\Components\Placeholder::make('active_contracts')
                   ->label('Active Contracts')
-                  ->content(function (Billboard $record) {
+                  ->content(function (?Billboard $record) {
+                    if (!$record) return 0;
+
                     return $record->contracts()
                       ->whereDate('start_date', '<=', now())
                       ->whereDate('end_date', '>=', now())

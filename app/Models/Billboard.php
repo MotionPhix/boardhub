@@ -160,6 +160,28 @@ class Billboard extends Model implements HasMedia
       if (!$billboard->currency_code) {
         $billboard->currency_code = Settings::getDefaultCurrency()['currency_code'] ?? 'MWK';
       }
+
+      // Generate billboard code
+      $format = Settings::get('billboard_code_format');
+      $location = Location::find($billboard->location_id);
+
+      // Get city code from location
+      $cityCode = $location->city_code;
+
+      // Get the last billboard number
+      $lastBillboard = static::orderByDesc('id')->first();
+      $counter = $lastBillboard
+        ? (int) substr($lastBillboard->code, -$format['counter_length']) + 1
+        : 1;
+
+      // Generate the code: PREFIX-CITYCODE-NUMBER
+      $billboard->code = implode($format['separator'], [
+        $format['prefix'],
+        $cityCode,
+        str_pad($counter, $format['counter_length'], '0', STR_PAD_LEFT)
+      ]);
+
     });
+
   }
 }

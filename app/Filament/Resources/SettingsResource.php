@@ -145,17 +145,6 @@ class SettingsResource extends Resource
 
             Forms\Components\Tabs\Tab::make('Document Settings')
               ->schema([
-                Forms\Components\Section::make('Invoice Settings')
-                  ->schema([
-                    Forms\Components\TextInput::make('value.invoice_prefix')
-                      ->label('Invoice Prefix')
-                      ->maxLength(255),
-                    Forms\Components\RichEditor::make('value.invoice_footer_text')
-                      ->label('Invoice Footer Text')
-                      ->maxLength(65535)
-                      ->columnSpanFull(),
-                  ]),
-
                 Forms\Components\Section::make('Contract Settings')
                   ->schema([
                     Forms\Components\RichEditor::make('value.default_contract_terms')
@@ -166,21 +155,6 @@ class SettingsResource extends Resource
                       ->label('Contract Footer Text')
                       ->maxLength(65535)
                       ->columnSpanFull(),
-                  ]),
-
-                Forms\Components\Section::make('Payment Terms')
-                  ->schema([
-                    Forms\Components\Repeater::make('value.default_payment_terms')
-                      ->label('Default Payment Terms')
-                      ->schema([
-                        Forms\Components\TextInput::make('days')
-                          ->numeric()
-                          ->required(),
-                        Forms\Components\TextInput::make('description')
-                          ->required()
-                          ->maxLength(255),
-                      ])
-                      ->columns(2),
                   ]),
               ])
               ->hidden(fn ($record) => $record?->key !== 'document_settings'),

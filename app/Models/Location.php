@@ -18,6 +18,7 @@ class Location extends Model
     'state',
     'country',
     'is_active',
+    'city_code'
   ];
 
   protected $casts = [

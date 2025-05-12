@@ -8,12 +8,12 @@ use Filament\Resources\Pages\EditRecord;
 
 class EditSettings extends EditRecord
 {
-    protected static string $resource = SettingsResource::class;
+  protected static string $resource = SettingsResource::class;
 
-    protected function getHeaderActions(): array
-    {
-        return [
-            Actions\DeleteAction::make(),
-        ];
-    }
+  protected function getHeaderActions(): array
+  {
+    return [
+      Actions\DeleteAction::make(),
+    ];
+  }
 }
