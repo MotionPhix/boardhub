@@ -14,17 +14,17 @@ class BillboardContract extends Pivot
   protected $fillable = [
     'billboard_id',
     'contract_id',
-    'base_price',
-    'discount_amount',
-    'final_price',
+    'billboard_base_price',
+    'billboard_discount_amount',
+    'billboard_final_price',
     'booking_status',
     'notes',
   ];
 
   protected $casts = [
-    'base_price' => 'decimal:2',
-    'discount_amount' => 'decimal:2',
-    'final_price' => 'decimal:2',
+    'billboard_base_price' => 'decimal:2',
+    'billboard_discount_amount' => 'decimal:2',
+    'billboard_final_price' => 'decimal:2',
   ];
 
   public function billboard()
@@ -43,17 +43,17 @@ class BillboardContract extends Pivot
 
     static::creating(function ($pivot) {
       // If base_price is not set, get it from the billboard
-      if (!$pivot->base_price) {
-        $pivot->base_price = Billboard::find($pivot->billboard_id)->base_price;
+      if (!$pivot->billboard_base_price) {
+        $pivot->billboard_base_price = Billboard::find($pivot->billboard_id)->base_price;
       }
 
       // Calculate final price
-      $pivot->final_price = $pivot->base_price - ($pivot->discount_amount ?? 0);
+      $pivot->final_price = $pivot->billboard_base_price - ($pivot->billboard_discount_amount ?? 0);
     });
 
     static::updating(function ($pivot) {
-      if ($pivot->isDirty(['base_price', 'discount_amount'])) {
-        $pivot->final_price = $pivot->base_price - ($pivot->discount_amount ?? 0);
+      if ($pivot->isDirty(['billboard_base_price', 'billboard_discount_amount'])) {
+        $pivot->billboard_final_price = $pivot->billboard_base_price - ($pivot->billboard_discount_amount ?? 0);
       }
     });
   }
