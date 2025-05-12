@@ -25,11 +25,10 @@ return new class extends Migration {
       $table->decimal('discount_amount', 10, 2)->default(0);
       $table->decimal('total_amount', 10, 2);
       $table->string('currency_code')->default('MWK');
-      $table->string('payment_terms')->nullable();
 
       // Status and notes
-      $table->string('agreement_status');
       $table->text('notes')->nullable();
+      $table->enum('agreement_status', ['draft', 'active', 'completed', 'cancelled'])->default('draft');
 
       // Notification tracking
       $table->timestamp('last_notification_sent_at')->nullable();

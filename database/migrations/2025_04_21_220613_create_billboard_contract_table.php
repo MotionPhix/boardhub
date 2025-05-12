@@ -18,7 +18,7 @@ return new class extends Migration {
       $table->decimal('final_price', 10, 2);
 
       // Status and notes
-      $table->string('booking_status')->default('active');
+      $table->enum('booking_status', ['available', 'in_use', 'completed', 'cancelled'])->default('available');
       $table->text('notes')->nullable();
 
       $table->timestamps();

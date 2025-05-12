@@ -27,6 +27,16 @@ class BillboardContract extends Pivot
     'final_price' => 'decimal:2',
   ];
 
+  public function billboard()
+  {
+    return $this->belongsTo(Billboard::class);
+  }
+
+  public function contract()
+  {
+    return $this->belongsTo(Contract::class);
+  }
+
   protected static function boot()
   {
     parent::boot();
@@ -46,15 +56,5 @@ class BillboardContract extends Pivot
         $pivot->final_price = $pivot->base_price - ($pivot->discount_amount ?? 0);
       }
     });
-  }
-
-  public function billboard()
-  {
-    return $this->belongsTo(Billboard::class);
-  }
-
-  public function contract()
-  {
-    return $this->belongsTo(Contract::class);
   }
 }

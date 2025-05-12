@@ -27,10 +27,16 @@ class Billboard extends Model implements HasMedia
     'description',
     'latitude',
     'longitude',
+    'currency_code',
+    'is_active',
+    'meta_data',
+    'site'
   ];
 
   protected $casts = [
     'base_price' => 'decimal:2',
+    'is_active' => 'boolean',
+    'meta_data' => 'json',
   ];
 
   // Define possible physical statuses as constants
@@ -105,5 +111,16 @@ class Billboard extends Model implements HasMedia
           ->sharpen(10)
           ->optimize();
       });
+  }
+
+  protected static function boot()
+  {
+    parent::boot();
+
+    static::creating(function ($billboard) {
+      if (!$billboard->currency_code) {
+        $billboard->currency_code = Settings::getDefaultCurrency()['currency_code'] ?? 'MWK';
+      }
+    });
   }
 }

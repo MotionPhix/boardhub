@@ -20,9 +20,15 @@ return new class extends Migration {
       $table->decimal('base_price', 10, 2);
       $table->string('currency_code')->default('MWK');
       $table->string('physical_status');
+
       $table->text('description')->nullable();
       $table->decimal('latitude', 20, 8)->nullable();
       $table->decimal('longitude', 20, 8)->nullable();
+      $table->string('site')->nullable();
+
+      $table->boolean('is_active')->default(true);
+      $table->json('meta_data')->nullable();
+
       $table->timestamps();
       $table->softDeletes();
     });
