@@ -7,8 +7,10 @@ use App\Filament\Resources\BillboardResource\RelationManagers\ContractsRelationM
 use App\Models\Billboard;
 use App\Models\Settings;
 use Filament\Forms;
+use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
@@ -54,7 +56,7 @@ class BillboardResource extends Resource
                     return $state;
                   }),
 
-                Forms\Components\Select::make('location_id')
+                /*Forms\Components\Select::make('location_id')
                   ->relationship('location', 'name')
                   ->required()
                   ->searchable()
@@ -115,7 +117,74 @@ class BillboardResource extends Resource
                       ->label('Notes')
                       ->maxLength(65535)
                       ->columnSpanFull(),
-                  ]),
+                  ])->maxWidth('md'),*/
+
+                Forms\Components\Select::make('location_id')
+                  ->relationship('location', 'name')
+                  ->required()
+                  ->searchable()
+                  ->preload()
+                  ->createOptionForm([
+                    Forms\Components\Select::make('country_code')
+                      ->label('Country')
+                      ->required()
+                      ->options(function () {
+                        return \App\Models\Country::query()
+                          ->where('is_active', true)
+                          ->pluck('name', 'code');
+                      })
+                      ->default(function () {
+                        return \App\Models\Country::where('is_default', true)
+                          ->first()?->code;
+                      })
+                      ->live(),
+
+                    Forms\Components\Select::make('city_code')
+                      ->label('City')
+                      ->required()
+                      ->options(function (callable $get) {
+                        $countryCode = $get('country_code');
+                        if (!$countryCode) return [];
+
+                        return \App\Models\City::query()
+                          ->where('country_code', $countryCode)
+                          ->where('is_active', true)
+                          ->pluck('name', 'code');
+                      })
+                      ->searchable()
+                      ->preload()
+                      ->live()
+                      ->afterStateUpdated(function ($state, callable $set) {
+                        if ($state) {
+                          $city = \App\Models\City::where('code', $state)->first();
+                          if ($city) {
+                            $set('state', $city->state);
+                          }
+                        }
+                      }),
+
+                    Forms\Components\TextInput::make('state')
+                      ->required()
+                      ->label('Province/State/Region')
+                      ->placeholder('Define the side of the country')
+                      ->maxLength(255),
+
+                    Forms\Components\TextInput::make('name')
+                      ->label('Area/Township')
+                      ->placeholder('Area or part of the city, e.g. Area 25')
+                      ->required()
+                      ->maxLength(255),
+
+                    Forms\Components\Textarea::make('description')
+                      ->label('Notes')
+                      ->maxLength(65535)
+                      ->columnSpanFull(),
+                  ])->createOptionAction(function (Action $action) {
+                    $action
+                      ->modalWidth(MaxWidth::Medium)
+                      ->modalHeading('New Location')
+                      ->isModalClosedByClickingAway(false);
+                  }),
 
                 Forms\Components\TextInput::make('size')
                   ->placeholder('The format should be Wm x Hm')
@@ -123,7 +192,7 @@ class BillboardResource extends Resource
               ])
               ->columns(2),
 
-            Forms\Components\Section::make('Location Details')
+            Forms\Components\Section::make('Billboard Map Coordinates')
               ->schema([
                 Forms\Components\Grid::make(2)
                   ->schema([
@@ -154,12 +223,12 @@ class BillboardResource extends Resource
                   ->label('Currency')
                   ->options(function (): array {
                     return collect(Settings::getAvailableCurrencies())
-                      ->mapWithKeys(fn (array $currency) => [
+                      ->mapWithKeys(fn(array $currency) => [
                         $currency['code'] => "{$currency['name']} ({$currency['code']})"
                       ])
                       ->toArray();
                   })
-                  ->default(fn () => Settings::getDefaultCurrency()['code'])
+                  ->default(fn() => Settings::getDefaultCurrency()['code'])
                   ->required(),
               ])
               ->columns(2),
@@ -182,7 +251,7 @@ class BillboardResource extends Resource
                   ->formatStateUsing(function (?string $state): string {
                     return Billboard::getPhysicalStatuses()[$state] ?? '';
                   })
-                ->columnSpan(2)
+                  ->columnSpan(2)
               ])
               ->columns(3),
           ])
@@ -207,7 +276,7 @@ class BillboardResource extends Resource
               ->schema([
                 Forms\Components\Placeholder::make('current_revenue')
                   ->label('Current Monthly Revenue')
-                  ->content(function (?Billboard $record) use($currency) {
+                  ->content(function (?Billboard $record) use ($currency) {
                     if (!$record) return $currency['symbol'] . '0.00';
 
                     return $currency['symbol'] . number_format($record->contracts()
@@ -259,22 +328,22 @@ class BillboardResource extends Resource
           ->sortable(),
 
         Tables\Columns\TextColumn::make('base_price')
-          ->money(fn ($record) => $record->currency_code)
+          ->money(fn($record) => $record->currency_code)
           ->sortable(),
 
         Tables\Columns\TextColumn::make('physical_status')
           ->badge()
-          ->color(fn (string $state): string => match ($state) {
+          ->color(fn(string $state): string => match ($state) {
             Billboard::PHYSICAL_STATUS_OPERATIONAL => 'success',
             Billboard::PHYSICAL_STATUS_MAINTENANCE => 'warning',
             Billboard::PHYSICAL_STATUS_DAMAGED => 'danger',
             default => 'gray',
           })
-          ->formatStateUsing(fn (string $state): string => Billboard::getPhysicalStatuses()[$state])
+          ->formatStateUsing(fn(string $state): string => Billboard::getPhysicalStatuses()[$state])
           ->sortable(),
 
         Tables\Columns\TextColumn::make('current_revenue')
-          ->money(fn ($record) => $record->currency_code)
+          ->money(fn($record) => $record->currency_code)
           ->state(function (Billboard $record): float {
             return $record->contracts()
               ->whereDate('start_date', '<=', now())

@@ -16,7 +16,7 @@ class Location extends Model
     'name',
     'description',
     'state',
-    'country',
+    'country_code',
     'is_active',
     'city_code'
   ];
@@ -35,32 +35,20 @@ class Location extends Model
     return $this->belongsTo(City::class, 'city_code', 'code');
   }
 
+  public function country(): BelongsTo
+  {
+    return $this->belongsTo(Country::class, 'country_code', 'code');
+  }
+
   /**
    * Get the full address of the location.
    */
   public function getFullAddressAttribute(): string
   {
     return implode(', ', array_filter([
-      $this->getAttribute('city'),
+      $this->getAttribute('city')->name ?? '',
       $this->getAttribute('state'),
-      $this->getCountryName(),
+      $this->getAttribute('country')->name ?? '',
     ]));
-  }
-
-  /**
-   * Get the country name from the country code.
-   */
-  public function getCountryName(): string
-  {
-    $countries = [
-      'MW' => 'Malawi',
-      'ZM' => 'Zambia',
-      'ZW' => 'Zimbabwe',
-      'MZ' => 'Mozambique',
-      'TZ' => 'Tanzania',
-      'ZA' => 'South Africa',
-    ];
-
-    return $countries[$this->getAttribute('country')] ?? $this->getAttribute('country');
   }
 }
