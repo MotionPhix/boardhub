@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -24,12 +25,11 @@ class Contract extends Model implements HasMedia
     'contract_number',
     'start_date',
     'end_date',
-    'base_price',
-    'discount_amount',
-    'total_amount',
+    'contract_total',
+    'contract_discount',
+    'contract_final_amount',
     'currency_code',
     'agreement_status',
-    'payment_terms',
     'notes',
     'last_notification_sent_at',
     'notification_count',
@@ -38,9 +38,9 @@ class Contract extends Model implements HasMedia
   protected $casts = [
     'start_date' => 'datetime',
     'end_date' => 'datetime',
-    'base_amount' => 'decimal:2',
-    'discount_amount' => 'decimal:2',
-    'total_amount' => 'decimal:2',
+    'contract_total' => 'decimal:2',
+    'contract_discount' => 'decimal:2',
+    'contract_final_amount' => 'decimal:2',
     'last_notification_sent_at' => 'datetime',
     'notification_count' => 'integer',
   ];
@@ -70,25 +70,19 @@ class Contract extends Model implements HasMedia
       if (!$contract->currency_code) {
         $contract->currency_code = Settings::getDefaultCurrency()['code'] ?? 'MWK';
       }
-
-      // Calculate total amount
-      $contract->total_amount = $contract->base_price - ($contract->discount_amount ?? 0);
-    });
-
-    static::updating(function ($contract) {
-      if ($contract->isDirty(['base_price', 'discount_amount'])) {
-        $contract->total_amount = $contract->base_price - ($contract->discount_amount ?? 0);
-      }
     });
 
     static::saved(function ($contract) {
-      // Update billboard pivot data
+      // Update billboard pivot data if billboards are attached
       if ($contract->billboards) {
+        $billboardCount = $contract->billboards->count();
+        $discountPerBillboard = $billboardCount > 0 ? $contract->contract_discount / $billboardCount : 0;
+
         foreach ($contract->billboards as $billboard) {
           $contract->billboards()->updateExistingPivot($billboard->id, [
-            'base_price' => $billboard->base_price,
-            'discount_amount' => $contract->discount_amount / count($contract->billboards),
-            'final_price' => $billboard->base_price - ($contract->discount_amount / count($contract->billboards)),
+            'billboard_base_price' => $billboard->base_price,
+            'billboard_discount' => $discountPerBillboard,
+            'billboard_final_price' => $billboard->base_price - $discountPerBillboard,
           ]);
         }
       }
@@ -96,7 +90,7 @@ class Contract extends Model implements HasMedia
   }
 
   // Relationships
-  public function parent(): BelongsTo
+  public function parentContract(): BelongsTo
   {
     return $this->belongsTo(Contract::class, 'parent_contract_id');
   }
@@ -110,7 +104,13 @@ class Contract extends Model implements HasMedia
   {
     return $this->belongsToMany(Billboard::class, 'billboard_contract')
       ->using(BillboardContract::class)
-      ->withPivot(['base_price', 'discount_amount', 'final_price', 'booking_status', 'notes'])
+      ->withPivot([
+        'base_price',
+        'discount_amount',
+        'final_price',
+        'booking_status',
+        'notes'
+      ])
       ->withTimestamps();
   }
 
@@ -219,6 +219,23 @@ class Contract extends Model implements HasMedia
   public function scopeActive($query)
   {
     return $query->where('agreement_status', self::STATUS_ACTIVE);
+  }
+
+  public function calculateTotals()
+  {
+    $billboardTotals = $this->billboards()
+      ->select(DB::raw('
+        SUM(billboard_contract.billboard_base_price) as total_base,
+        SUM(billboard_contract.billboard_discount) as total_discount,
+        SUM(billboard_contract.billboard_final_price) as total_final
+      '))
+      ->first();
+
+    $this->update([
+      'contract_total' => $billboardTotals->total_base ?? 0,
+      'contract_discount' => $billboardTotals->total_discount ?? 0,
+      'contract_final_amount' => $billboardTotals->total_final ?? 0,
+    ]);
   }
 
   public function scopeExpiringWithin($query, int $days)

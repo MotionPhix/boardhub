@@ -12,7 +12,7 @@ return new class extends Migration {
       $table->uuid('uuid')->unique()->nullable();
 
       // Basic contract information
-      $table->foreignId('client_id')->constrained()->onDelete('cascade');
+      $table->foreignId('client_id')->constrained()->cascadeOnDelete();
       $table->foreignId('parent_contract_id')->nullable()->constrained('contracts')->nullOnDelete();
       $table->string('contract_number')->unique();
 
@@ -21,9 +21,9 @@ return new class extends Migration {
       $table->timestamp('end_date');
 
       // Financial information
-      $table->decimal('base_price', 10, 2)->default(0);
-      $table->decimal('discount_amount', 10, 2)->default(0);
-      $table->decimal('total_amount', 10, 2);
+      $table->decimal('contract_total', 10, 2)->default(0);
+      $table->decimal('contract_discount', 10, 2)->default(0);
+      $table->decimal('contract_final_amount', 10, 2)->default(0);
       $table->string('currency_code')->default('MWK');
 
       // Status and notes

@@ -81,7 +81,7 @@ class BillboardStats extends BaseWidget
     return $this->record->contracts()
       ->orderBy('start_date')
       ->where('start_date', '>=', now()->subMonths(12))
-      ->pluck('base_price')
+      ->pluck('contract_base_price')
       ->map(fn ($price) => (float) $price)
       ->toArray();
   }
