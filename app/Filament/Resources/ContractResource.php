@@ -4,7 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Enums\BookingStatus;
 use App\Filament\Resources\ContractResource\Pages;
-use App\Filament\Resources\ContractResource\RelationManagers\LoginActivitiesRelationManager;
+use App\Filament\Resources\ContractResource\RelationManagers\BillboardsRelationManager;
 use App\Models\Contract;
 use App\Models\Settings;
 use Filament\Forms;
@@ -36,7 +36,8 @@ class ContractResource extends Resource
             Forms\Components\Section::make('Contract Details')
               ->schema([
                 Forms\Components\TextInput::make('contract_number')
-                  ->default(fn() => 'CNT-' . date('Y') . '-' . str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT))
+                  ->default(fn() => 'CNT-' . date('Y') . '-' .
+                    str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT))
                   ->disabled()
                   ->dehydrated()
                   ->required(),
@@ -66,8 +67,7 @@ class ContractResource extends Resource
                   ->default(now())
                   ->live()
                   ->afterStateUpdated(fn ($state, Forms\Set $set) =>
-                  $set('end_date', $state ? date('Y-m-d', strtotime($state . ' +1 month')) : null)
-                  ),
+                  $set('end_date', $state ? date('Y-m-d', strtotime($state . ' +1 month')) : null)),
 
                 Forms\Components\DatePicker::make('end_date')
                   ->required()
@@ -103,58 +103,51 @@ class ContractResource extends Resource
                   ->live()
                   ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
                     if (empty($state)) {
-                      $set('base_price', 0);
-                      $set('discount_amount', 0);
-                      $set('total_amount', 0);
+                      $set('contract_total', 0);
+                      $set('contract_discount', 0);
+                      $set('contract_final_amount', 0);
                       return;
                     }
 
                     $baseAmount = \App\Models\Billboard::whereIn('id', $state)
                       ->sum('base_price');
 
-                    $set('base_price', $baseAmount);
+                    $set('contract_total', $baseAmount);
 
                     // Recalculate total with any existing discount
-                    $discountAmount = $get('discount_amount') ?? 0;
-                    $set('total_amount', $baseAmount - $discountAmount);
-                  })
-                  ->afterStateHydrated(function ($component, $state, Forms\Set $set) {
-                    if (empty($state)) return;
-
-                    $baseAmount = \App\Models\Billboard::whereIn('id', $state)
-                      ->sum('base_price');
-
-                    $set('base_price', $baseAmount);
+                    $discountAmount = $get('contract_discount') ?? 0;
+                    $set('contract_final_amount', $baseAmount - $discountAmount);
                   }),
 
                 Forms\Components\Grid::make(3)
                   ->schema([
-                    Forms\Components\TextInput::make('base_price')
-                      ->label('Base Price')
+                    Forms\Components\TextInput::make('contract_total')
+                      ->label('Total Price')
                       ->numeric()
                       ->prefix($currency['symbol'])
                       ->disabled()
-                      ->dehydrated(), // Changed to true to save the value
+                      ->dehydrated()
+                      ->required(),
 
-                    Forms\Components\TextInput::make('discount_amount')
+                    Forms\Components\TextInput::make('contract_discount')
                       ->label('Discount Amount')
                       ->numeric()
                       ->prefix($currency['symbol'])
                       ->default(0)
                       ->live()
                       ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                        $baseAmount = $get('base_price') ?? 0;
+                        $totalAmount = $get('contract_total') ?? 0;
                         $discountAmount = $state ?? 0;
 
-                        if ($discountAmount > $baseAmount) {
-                          $set('discount_amount', $baseAmount);
-                          $discountAmount = $baseAmount;
+                        if ($discountAmount > $totalAmount) {
+                          $set('contract_discount', $totalAmount);
+                          $discountAmount = $totalAmount;
                         }
 
-                        $set('total_amount', $baseAmount - $discountAmount);
+                        $set('contract_final_amount', $totalAmount - $discountAmount);
                       }),
 
-                    Forms\Components\TextInput::make('total_amount')
+                    Forms\Components\TextInput::make('contract_final_amount')
                       ->label('Final Amount')
                       ->numeric()
                       ->prefix($currency['symbol'])
@@ -209,25 +202,45 @@ class ContractResource extends Resource
         Tables\Columns\TextColumn::make('contract_number')
           ->searchable()
           ->sortable(),
+
         Tables\Columns\TextColumn::make('client.name')
           ->searchable()
           ->sortable(),
-        Tables\Columns\TextColumn::make('total_amount')
-          ->money()
+
+        Tables\Columns\TextColumn::make('contract_total')
+          ->money(fn ($record) => $record->currency_code)
           ->sortable(),
+
+        Tables\Columns\TextColumn::make('contract_discount')
+          ->money(fn ($record) => $record->currency_code)
+          ->sortable(),
+
+        Tables\Columns\TextColumn::make('contract_final_amount')
+          ->money(fn ($record) => $record->currency_code)
+          ->sortable(),
+
         Tables\Columns\TextColumn::make('agreement_status')
           ->badge()
-          ->colors([
-            'danger' => 'cancelled',
-            'warning' => 'draft',
-            'success' => 'active',
-            'gray' => 'completed',
-          ]),
+          ->color(fn (string $state): string => match ($state) {
+            'draft' => 'warning',
+            'active' => 'success',
+            'completed' => 'gray',
+            'cancelled' => 'danger',
+            default => 'gray',
+          }),
+
         Tables\Columns\TextColumn::make('billboards_count')
           ->counts('billboards')
-          ->label('Billboards'),
-        Tables\Columns\TextColumn::make('created_at')
-          ->dateTime()
+          ->label('Billboards')
+          ->sortable(),
+
+        Tables\Columns\TextColumn::make('start_date')
+          ->date()
+          ->sortable()
+          ->toggleable(),
+
+        Tables\Columns\TextColumn::make('end_date')
+          ->date()
           ->sortable()
           ->toggleable(),
       ])
@@ -239,6 +252,7 @@ class ContractResource extends Resource
             'completed' => 'Completed',
             'cancelled' => 'Cancelled',
           ]),
+
         Tables\Filters\SelectFilter::make('booking_status')
           ->options(collect(BookingStatus::cases())->pluck('value', 'value'))
           ->query(function (Builder $query, array $data) {
@@ -248,22 +262,42 @@ class ContractResource extends Resource
               $query->where('billboard_contract.booking_status', $data['value']);
             });
           }),
+
+        Tables\Filters\Filter::make('date_range')
+          ->form([
+            Forms\Components\DatePicker::make('start_from')
+              ->label('Start Date From'),
+            Forms\Components\DatePicker::make('start_until')
+              ->label('Start Date Until'),
+          ])
+          ->query(function (Builder $query, array $data): Builder {
+            return $query
+              ->when(
+                $data['start_from'],
+                fn (Builder $query, $date): Builder => $query->whereDate('start_date', '>=', $date),
+              )
+              ->when(
+                $data['start_until'],
+                fn (Builder $query, $date): Builder => $query->whereDate('start_date', '<=', $date),
+              );
+          }),
       ])
       ->actions([
         Tables\Actions\ViewAction::make(),
         Tables\Actions\EditAction::make(),
         Tables\Actions\Action::make('download_contract')
-          ->icon('heroicon-o-document-arrow-down')
+          ->icon('heroicon-m-arrow-down-on-square')
           ->label('Download')
           ->visible(fn(Contract $record) => $record->hasMedia('signed_contracts'))
-          ->action(fn(Contract $record) => redirect($record->getFirstMediaUrl('signed_contracts'))),
+          ->url(fn(Contract $record) => $record->getFirstMediaUrl('signed_contracts'))
+          ->openUrlInNewTab(),
       ])
       ->bulkActions([
         Tables\Actions\BulkActionGroup::make([
           Tables\Actions\DeleteBulkAction::make(),
           Tables\Actions\BulkAction::make('updateStatus')
             ->label('Update Status')
-            ->icon('heroicon-o-arrow-path')
+            ->icon('heroicon-m-arrow-path')
             ->requiresConfirmation()
             ->form([
               Forms\Components\Select::make('agreement_status')
@@ -281,24 +315,29 @@ class ContractResource extends Resource
                 $record->update(['agreement_status' => $data['agreement_status']]);
 
                 // Update booking status for all billboards
-                foreach ($record->billboards as $billboard) {
-                  $billboard->pivot->update([
-                    'booking_status' => $data['agreement_status'] === 'active'
-                      ? BookingStatus::IN_USE->value
-                      : ($data['agreement_status'] === 'completed'
-                        ? BookingStatus::COMPLETED->value
-                        : BookingStatus::CANCELLED->value),
-                  ]);
-                }
+                $record->billboards()->updateExistingPivot(
+                  $record->billboards->pluck('id'),
+                  [
+                    'booking_status' => match($data['agreement_status']) {
+                      'active' => 'in_use',
+                      'completed' => 'completed',
+                      'cancelled' => 'cancelled',
+                      default => 'available',
+                    }
+                  ]
+                );
               });
             }),
         ]),
-      ]);
+      ])
+      ->defaultSort('created_at', 'desc');
   }
 
   public static function getRelations(): array
   {
-    return [];
+    return [
+      BillboardsRelationManager::class,
+    ];
   }
 
   public static function getPages(): array
@@ -308,25 +347,6 @@ class ContractResource extends Resource
       'create' => Pages\CreateContract::route('/create'),
       'view' => Pages\ViewContract::route('/{record}'),
       'edit' => Pages\EditContract::route('/{record}/edit'),
-    ];
-  }
-
-  public static function getGlobalSearchAttributes(): array
-  {
-    return ['contract_number', 'client.name', 'client.company'];
-  }
-
-  public static function getGloballySearchableAttributes(): array
-  {
-    return ['contract_number', 'client.name', 'client.company'];
-  }
-
-  public static function getGlobalSearchResultDetails(Model $record): array
-  {
-    return [
-      'Client' => $record->client->name,
-      'Amount' => 'MK ' . number_format($record->total_amount, 2),
-      'Status' => ucfirst($record->agreement_status),
     ];
   }
 }
