@@ -115,9 +115,18 @@ class BillboardResource extends Resource
                   ->default(true)
                   ->inline(false),
 
-                Forms\Components\Toggle::make('is_illuminated')
-                  ->label('Illuminated')
-                  ->inline(false),
+                Forms\Components\Select::make('physical_status')
+                  ->label('Physical Status')
+                  ->options(Billboard::getPhysicalStatuses())
+                  ->required()
+                  ->default(Billboard::PHYSICAL_STATUS_OPERATIONAL)
+                  ->helperText('Current physical condition of the billboard')
+                  ->badge()
+                  ->colors([
+                    'success' => Billboard::PHYSICAL_STATUS_OPERATIONAL,
+                    'warning' => Billboard::PHYSICAL_STATUS_MAINTENANCE,
+                    'danger' => Billboard::PHYSICAL_STATUS_DAMAGED,
+                  ]),
               ])
               ->columns(2),
           ])
@@ -197,6 +206,17 @@ class BillboardResource extends Resource
           ->money(fn ($record) => $record->currency_code)
           ->sortable(),
 
+        Tables\Columns\TextColumn::make('physical_status')
+          ->badge()
+          ->color(fn (string $state): string => match ($state) {
+            Billboard::PHYSICAL_STATUS_OPERATIONAL => 'success',
+            Billboard::PHYSICAL_STATUS_MAINTENANCE => 'warning',
+            Billboard::PHYSICAL_STATUS_DAMAGED => 'danger',
+            default => 'gray',
+          })
+          ->formatStateUsing(fn (string $state): string => Billboard::getPhysicalStatuses()[$state])
+          ->sortable(),
+
         Tables\Columns\TextColumn::make('current_revenue')
           ->money(fn ($record) => $record->currency_code)
           ->state(function (Billboard $record): float {
@@ -212,12 +232,6 @@ class BillboardResource extends Resource
           ->boolean()
           ->sortable(),
 
-        Tables\Columns\IconColumn::make('is_illuminated')
-          ->label('Illuminated')
-          ->boolean()
-          ->sortable()
-          ->toggleable(),
-
         Tables\Columns\TextColumn::make('contracts_count')
           ->counts('contracts')
           ->label('Contracts')
@@ -231,12 +245,9 @@ class BillboardResource extends Resource
           ->falseLabel('Inactive billboards')
           ->placeholder('All billboards'),
 
-        Tables\Filters\TernaryFilter::make('is_illuminated')
-          ->label('Illuminated')
-          ->boolean()
-          ->trueLabel('Illuminated billboards')
-          ->falseLabel('Non-illuminated billboards')
-          ->placeholder('All billboards'),
+        Tables\Filters\SelectFilter::make('physical_status')
+          ->options(Billboard::getPhysicalStatuses())
+          ->label('Physical Status'),
 
         Tables\Filters\SelectFilter::make('location')
           ->relationship('location', 'name'),

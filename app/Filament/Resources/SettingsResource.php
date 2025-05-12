@@ -158,6 +158,53 @@ class SettingsResource extends Resource
                   ]),
               ])
               ->hidden(fn ($record) => $record?->key !== 'document_settings'),
+
+            Forms\Components\Tabs\Tab::make('Billboard Settings')
+              ->schema([
+                Forms\Components\Section::make('Billboard Code Format')
+                  ->schema([
+                    Forms\Components\TextInput::make('value.prefix')
+                      ->label('Billboard Code Prefix')
+                      ->required()
+                      ->maxLength(10)
+                      ->helperText('Company initials or short code (e.g., BH, FM)'),
+
+                    Forms\Components\Repeater::make('value.cities')
+                      ->label('Cities')
+                      ->schema([
+                        Forms\Components\TextInput::make('code')
+                          ->required()
+                          ->maxLength(5)
+                          ->helperText('Short code (e.g., LL, BT)'),
+                        Forms\Components\TextInput::make('name')
+                          ->required()
+                          ->maxLength(255)
+                          ->helperText('Full city name'),
+                      ])
+                      ->columns(2)
+                      ->defaultItems(0)
+                      ->reorderable(false)
+                      ->columnSpanFull(),
+
+                    Forms\Components\TextInput::make('value.separator')
+                      ->label('Code Separator')
+                      ->required()
+                      ->default('-')
+                      ->maxLength(5)
+                      ->helperText('Character to separate code parts (e.g., -)'),
+
+                    Forms\Components\TextInput::make('value.counter_length')
+                      ->label('Counter Length')
+                      ->required()
+                      ->numeric()
+                      ->default(5)
+                      ->minValue(1)
+                      ->maxValue(10)
+                      ->helperText('Number of digits for the sequence number (e.g., 5 for 00001)'),
+                  ])
+                  ->columns(2),
+              ])
+              ->hidden(fn ($record) => $record?->key !== 'billboard_code_format'),
           ])
           ->columnSpanFull(),
 
@@ -166,7 +213,7 @@ class SettingsResource extends Resource
       ]);
   }
 
-  public static function table(Table $table): Table
+  /*public static function table(Table $table): Table
   {
     return $table
       ->columns([
@@ -182,6 +229,65 @@ class SettingsResource extends Resource
       ->actions([
         Tables\Actions\EditAction::make(),
       ]);
+  }*/
+
+  public static function table(Table $table): Table
+  {
+    return $table
+      ->columns([
+        Tables\Columns\TextColumn::make('key')
+          ->label('Setting')
+          ->formatStateUsing(function (string $state): string {
+            return match($state) {
+              'company_profile' => 'Company Profile',
+              'default_currency' => 'Currency Settings',
+              'localization' => 'Regional Settings',
+              'document_settings' => 'Document Settings',
+              'billboard_code_format' => 'Billboard Code Format',
+              default => str($state)->title(),
+            };
+          })
+          ->searchable()
+          ->sortable(),
+
+        Tables\Columns\TextColumn::make('value')
+          ->label('Configuration')
+          ->formatStateUsing(function ($record): string {
+            return match($record->key) {
+              'company_profile' => $record->value['name'] ?? 'Not configured',
+              'default_currency' => ($record->value['symbol'] ?? '') . ' ' . ($record->value['code'] ?? 'Not set'),
+              'localization' => ($record->value['timezone'] ?? 'Not set') . ' | ' . strtoupper($record->value['locale'] ?? ''),
+              'billboard_code_format' => ($record->value['prefix'] ?? '') . ($record->value['separator'] ?? '-') . 'XX' . ($record->value['separator'] ?? '-') . str_pad('1', $record->value['counter_length'] ?? 5, '0', STR_PAD_LEFT),
+              default => 'Configured',
+            };
+          })
+          ->wrap()
+          ->searchable(),
+
+        Tables\Columns\TextColumn::make('group')
+          ->badge()
+          ->color(fn (string $state): string => match ($state) {
+            'company' => 'success',
+            'system' => 'danger',
+            'documents' => 'warning',
+            'billboards' => 'info',
+            default => 'gray',
+          })
+          ->formatStateUsing(fn (string $state): string => str($state)->title()),
+
+        Tables\Columns\TextColumn::make('updated_at')
+          ->label('Last Updated')
+          ->dateTime()
+          ->sortable()
+          ->description(fn ($record) => $record->updated_at->diffForHumans()),
+      ])
+      ->defaultSort('updated_at', 'desc')
+      ->actions([
+        Tables\Actions\EditAction::make()
+          ->button()
+          ->label('Configure'),
+      ])
+      ->striped();
   }
 
   public static function getPages(): array
