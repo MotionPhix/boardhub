@@ -36,16 +36,21 @@ class BillboardResource extends Resource
                 Forms\Components\TextInput::make('name')
                   ->required()
                   ->maxLength(255)
-                  ->live(onBlur: true)
-                  ->afterStateUpdated(fn (string $state, Forms\Set $set) =>
-                  $set('code', str()->snake($state))),
+                  ->columnSpanFull()
+                  ->live(onBlur: true),
 
                 Forms\Components\TextInput::make('code')
+                  ->label('Billboard Code')
                   ->disabled()
-                  ->dehydrated()
-                  ->required()
-                  ->unique(ignoreRecord: true)
-                  ->maxLength(255),
+                  ->helperText('This code will be automatically generated after saving')
+                  ->dehydrated(false) // Since it's handled by the model
+                  ->columnSpanFull()
+                  ->formatStateUsing(function ($state) {
+                    if (!$state) {
+                      return '[Auto-generated]';
+                    }
+                    return $state;
+                  }),
 
                 Forms\Components\Select::make('location_id')
                   ->relationship('location', 'name')
@@ -56,9 +61,35 @@ class BillboardResource extends Resource
                     Forms\Components\TextInput::make('name')
                       ->required()
                       ->maxLength(255),
-                    Forms\Components\TextInput::make('address')
+
+                    Forms\Components\Select::make('city')
+                      ->label('City')
+                      ->relationship('city', 'name')
                       ->required()
-                      ->maxLength(255),
+                      ->preload()
+                      ->searchable()
+                      ->createOptionForm([
+                        Forms\Components\TextInput::make('name')
+                          ->required()
+                          ->maxLength(255),
+
+                        Forms\Components\TextInput::make('code')
+                          ->maxLength(10)
+                          ->unique()
+                          ->helperText('Leave empty to auto-generate from name')
+                          ->placeholder('Auto-generated if empty')
+                          ->uppercase(),
+
+                        Forms\Components\Select::make('country_code')
+                          ->relationship('country', 'name')
+                          ->required()
+                          ->preload()
+                          ->searchable(),
+
+                        Forms\Components\TextInput::make('state')
+                          ->maxLength(255),
+                      ]),
+
                     Forms\Components\Textarea::make('description')
                       ->maxLength(65535)
                       ->columnSpanFull(),
@@ -97,13 +128,15 @@ class BillboardResource extends Resource
                   ->default(0),
 
                 Forms\Components\Select::make('currency_code')
-                  ->options([
-                    'MWK' => 'Malawian Kwacha (MWK)',
-                    'ZMW' => 'Zambian Kwacha (ZMW)',
-                    'ZWL' => 'Zimbabwean Dollar (ZWL)',
-                    'USD' => 'US Dollar (USD)',
-                  ])
-                  ->default('MWK')
+                  ->label('Currency')
+                  ->options(function (): array {
+                    return collect(Settings::getAvailableCurrencies())
+                      ->mapWithKeys(fn (array $currency) => [
+                        $currency['code'] => "{$currency['name']} ({$currency['code']})"
+                      ])
+                      ->toArray();
+                  })
+                  ->default(fn () => Settings::getDefaultCurrency()['code'])
                   ->required(),
               ])
               ->columns(2),
@@ -113,7 +146,7 @@ class BillboardResource extends Resource
                 Forms\Components\Toggle::make('is_active')
                   ->label('Active')
                   ->default(true)
-                  ->inline(false),
+                  ->inline(),
 
                 Forms\Components\Select::make('physical_status')
                   ->label('Physical Status')
@@ -121,14 +154,14 @@ class BillboardResource extends Resource
                   ->required()
                   ->default(Billboard::PHYSICAL_STATUS_OPERATIONAL)
                   ->helperText('Current physical condition of the billboard')
-                  ->badge()
-                  ->colors([
-                    'success' => Billboard::PHYSICAL_STATUS_OPERATIONAL,
-                    'warning' => Billboard::PHYSICAL_STATUS_MAINTENANCE,
-                    'danger' => Billboard::PHYSICAL_STATUS_DAMAGED,
-                  ]),
+                  ->selectablePlaceholder(false)
+                  ->native(false) // This enables custom styling
+                  ->formatStateUsing(function (?string $state): string {
+                    return Billboard::getPhysicalStatuses()[$state] ?? '';
+                  })
+                ->columnSpan(2)
               ])
-              ->columns(2),
+              ->columns(3),
           ])
           ->columnSpan(['lg' => 2]),
 

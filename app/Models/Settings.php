@@ -100,7 +100,43 @@ class Settings extends Model implements HasMedia
         'symbol' => 'ZK',
         'name' => 'Zambian Kwacha',
       ],
-      // Add more currencies as needed
+    ];
+  }
+
+  public static function getAvailableCountries(): array
+  {
+    return Country::query()
+      ->where('is_active', true)
+      ->get()
+      ->mapWithKeys(fn (Country $country) => [
+        $country->code => [
+          'code' => $country->code,
+          'name' => $country->name,
+          'is_default' => $country->is_default,
+        ]
+      ])
+      ->toArray();
+  }
+
+  public static function getDefaultCountry(): array
+  {
+    $defaultCountry = Country::query()
+      ->where('is_active', true)
+      ->where('is_default', true)
+      ->first();
+
+    if (!$defaultCountry) {
+      $defaultCountry = Country::query()
+        ->where('is_active', true)
+        ->first();
+    }
+
+    return $defaultCountry ? [
+      'code' => $defaultCountry->code,
+      'name' => $defaultCountry->name,
+    ] : [
+      'code' => 'MW',
+      'name' => 'Malawi',
     ];
   }
 
