@@ -14,7 +14,7 @@ return new class extends Migration {
       $table->id();
       $table->uuid('uuid')->unique()->nullable();
       $table->string('name');
-      $table->string('city');
+      $table->string('city_code');
       $table->string('state');
       $table->string('country');
       $table->string('city_code')->nullable();

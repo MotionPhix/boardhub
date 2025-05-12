@@ -72,6 +72,27 @@ class ShieldSeeder extends Seeder
       'create_client',
       'update_client',
       'delete_client',
+
+      // Country permissions
+      'view_country',
+      'view_any_country',
+      'create_country',
+      'update_country',
+      'delete_country',
+
+      // City permissions
+      'view_city',
+      'view_any_city',
+      'create_city',
+      'update_city',
+      'delete_city',
+
+      // Settings permissions
+      'view_settings',
+      'view_any_settings',
+      'create_settings',
+      'update_settings',
+      'delete_settings',
     ];
 
     // Create permissions
@@ -139,6 +160,27 @@ class ShieldSeeder extends Seeder
           'create_client',
           'update_client',
           'delete_client',
+
+          // Country permissions
+          'view_country',
+          'view_any_country',
+          'create_country',
+          'update_country',
+          'delete_country',
+
+          // City permissions
+          'view_city',
+          'view_any_city',
+          'create_city',
+          'update_city',
+          'delete_city',
+
+          // Settings permissions
+          'view_settings',
+          'view_any_settings',
+          'create_settings',
+          'update_settings',
+          'delete_settings',
         ]
       ],
       'manager' => [
@@ -173,6 +215,14 @@ class ShieldSeeder extends Seeder
           // Basic user viewing permissions
           'view_user',
           'view_any_user',
+
+          // Only view permissions for cities
+          'view_city',
+          'view_any_city',
+
+          // Only view permissions for cities
+          'view_country',
+          'view_any_country',
         ]
       ],
       'agent' => [
@@ -183,6 +233,14 @@ class ShieldSeeder extends Seeder
           'view_any_billboard',
           'view_location',
           'view_any_location',
+
+          // Only view permissions for cities
+          'view_city',
+          'view_any_city',
+
+          // Only view permissions for countries
+          'view_country',
+          'view_any_country',
         ]
       ],
     ];

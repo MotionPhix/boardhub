@@ -15,7 +15,6 @@ class Location extends Model
   protected $fillable = [
     'name',
     'description',
-    'city',
     'state',
     'country',
     'is_active',
@@ -33,7 +32,7 @@ class Location extends Model
 
   public function city(): BelongsTo
   {
-    return $this->belongsTo(City::class, 'city', 'code');
+    return $this->belongsTo(City::class, 'city_code', 'code');
   }
 
   /**

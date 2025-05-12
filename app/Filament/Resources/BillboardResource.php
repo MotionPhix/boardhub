@@ -62,33 +62,50 @@ class BillboardResource extends Resource
                       ->required()
                       ->maxLength(255),
 
+                    // Get countries from Settings model
+                    Forms\Components\Select::make('country')
+                      ->label('Country')
+                      ->required()
+                      ->options(function () {
+                        $countries = \App\Models\Settings::getAvailableCountries();
+                        return collect($countries)->pluck('name', 'code')->toArray();
+                      })
+                      ->default(function () {
+                        $defaultCountry = \App\Models\Settings::getDefaultCountry();
+                        return $defaultCountry['code'];
+                      })
+                      ->live(),
+
                     Forms\Components\Select::make('city')
                       ->label('City')
-                      ->relationship('city', 'name')
                       ->required()
-                      ->preload()
+                      ->options(function (callable $get) {
+                        $country = $get('country');
+                        if (!$country) return [];
+
+                        return \App\Models\City::query()
+                          ->where('country_code', $country)
+                          ->pluck('name', 'name')
+                          ->toArray();
+                      })
                       ->searchable()
-                      ->createOptionForm([
-                        Forms\Components\TextInput::make('name')
-                          ->required()
-                          ->maxLength(255),
+                      ->preload()
+                      ->live()
+                      ->afterStateUpdated(function ($state, callable $set) {
+                        if ($state) {
+                          $city = \App\Models\City::where('name', $state)->first();
+                          if ($city) {
+                            $set('city_code', $city->code);
+                            $set('state', $city->state);
+                          }
+                        }
+                      }),
 
-                        Forms\Components\TextInput::make('code')
-                          ->maxLength(10)
-                          ->unique()
-                          ->helperText('Leave empty to auto-generate from name')
-                          ->placeholder('Auto-generated if empty')
-                          ->uppercase(),
+                    Forms\Components\Hidden::make('city_code'),
 
-                        Forms\Components\Select::make('country_code')
-                          ->relationship('country', 'name')
-                          ->required()
-                          ->preload()
-                          ->searchable(),
-
-                        Forms\Components\TextInput::make('state')
-                          ->maxLength(255),
-                      ]),
+                    Forms\Components\TextInput::make('state')
+                      ->required()
+                      ->maxLength(255),
 
                     Forms\Components\Textarea::make('description')
                       ->maxLength(65535)
