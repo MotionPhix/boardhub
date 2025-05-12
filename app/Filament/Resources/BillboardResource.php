@@ -34,9 +34,11 @@ class BillboardResource extends Resource
             Forms\Components\Section::make('Basic Information')
               ->schema([
                 Forms\Components\TextInput::make('name')
+                  ->label('Site')
                   ->required()
                   ->maxLength(255)
                   ->columnSpanFull()
+                  ->placeholder('This defines the exact placement of the billboard')
                   ->live(onBlur: true),
 
                 Forms\Components\TextInput::make('code')
@@ -58,12 +60,8 @@ class BillboardResource extends Resource
                   ->searchable()
                   ->preload()
                   ->createOptionForm([
-                    Forms\Components\TextInput::make('name')
-                      ->required()
-                      ->maxLength(255),
-
                     // Get countries from Settings model
-                    Forms\Components\Select::make('country')
+                    Forms\Components\Select::make('country_code')
                       ->label('Country')
                       ->required()
                       ->options(function () {
@@ -101,18 +99,26 @@ class BillboardResource extends Resource
                         }
                       }),
 
-                    Forms\Components\Hidden::make('city_code'),
-
                     Forms\Components\TextInput::make('state')
                       ->required()
+                      ->placeholder('Define the side of the country')
+                      ->maxLength(255),
+
+                    Forms\Components\Hidden::make('city_code'),
+
+                    Forms\Components\TextInput::make('name')
+                      ->required()
+                      ->placeholder('Area or part of the city, e.g. Area 25')
                       ->maxLength(255),
 
                     Forms\Components\Textarea::make('description')
+                      ->label('Notes')
                       ->maxLength(65535)
                       ->columnSpanFull(),
                   ]),
 
                 Forms\Components\TextInput::make('size')
+                  ->placeholder('The format should be Wm x Hm')
                   ->maxLength(255),
               ])
               ->columns(2),
@@ -138,7 +144,7 @@ class BillboardResource extends Resource
             Forms\Components\Section::make('Pricing')
               ->schema([
                 Forms\Components\TextInput::make('base_price')
-                  ->label('Base Price')
+                  ->label('Monthly Fee')
                   ->numeric()
                   ->rules(['required', 'numeric', 'min:0'])
                   ->prefix($currency['symbol'])
