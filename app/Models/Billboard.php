@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Traits\HasMoney;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -119,15 +120,15 @@ class Billboard extends Model implements HasMedia
   }
 
   #[Scope]
-  public function active($query)
+  protected function active(Builder $query): void
   {
-    return $query->where('is_active', true);
+    $query->where('is_active', true);
   }
 
   #[Scope]
-  public function available($query, $startDate, $endDate)
+  protected function available(Builder $query, $startDate, $endDate): void
   {
-    return $query->whereDoesntHave('contracts', function ($query) use ($startDate, $endDate) {
+    $query->whereDoesntHave('contracts', function ($query) use ($startDate, $endDate) {
       $query->where('booking_status', 'in_use')
         ->where(function ($q) use ($startDate, $endDate) {
           $q->whereBetween('start_date', [$startDate, $endDate])
@@ -141,9 +142,9 @@ class Billboard extends Model implements HasMedia
   }
 
   #[Scope]
-  public function withinRadius($query, $lat, $lng, $radius)
+  protected function withinRadius(Builder $query, $lat, $lng, $radius): void
   {
-    return $query->whereRaw("
+    $query->whereRaw("
       ST_Distance_Sphere(
         point(longitude, latitude),
         point(?, ?)
