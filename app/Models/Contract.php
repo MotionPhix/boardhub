@@ -210,6 +210,15 @@ class Contract extends Model implements HasMedia
     return $this->last_notification_sent_at->diffInHours(now()) >= 24;
   }
 
+  #[Scope]
+  public function expiringWithin(Builder $query, int $days): void
+  {
+    $query
+      ->where('agreement_status', self::STATUS_ACTIVE)
+      ->whereDate('end_date', '<=', now()->addDays($days))
+      ->whereDate('end_date', '>', now());
+  }
+
   // Query scopes
   #[Scope]
   public function active(Builder $query): void
@@ -248,14 +257,6 @@ class Contract extends Model implements HasMedia
       'contract_discount' => $billboardTotals->total_discount ?? 0,
       'contract_final_amount' => $billboardTotals->total_final ?? 0,
     ]);
-  }
-
-  public function scopeExpiringWithin($query, int $days)
-  {
-    return $query
-      ->where('agreement_status', self::STATUS_ACTIVE)
-      ->whereDate('end_date', '<=', now()->addDays($days))
-      ->whereDate('end_date', '>', now());
   }
 
   // Static methods
