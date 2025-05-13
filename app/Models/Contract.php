@@ -19,7 +19,11 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Contract extends Model implements HasMedia
 {
-  use HasFactory, SoftDeletes, InteractsWithMedia, HasUuid, HasMoney;
+  use HasFactory,
+    SoftDeletes,
+    InteractsWithMedia,
+    HasUuid,
+    HasMoney;
 
   protected $fillable = [
     'client_id',
@@ -47,59 +51,106 @@ class Contract extends Model implements HasMedia
     'notification_count' => 'integer',
   ];
 
-  // Agreement status constants
+  // Status Constants
   const STATUS_DRAFT = 'draft';
   const STATUS_ACTIVE = 'active';
   const STATUS_COMPLETED = 'completed';
   const STATUS_CANCELLED = 'cancelled';
   const STATUS_EXPIRED = 'expired';
 
-  // Notification thresholds in days
   const NOTIFICATION_THRESHOLDS = [30, 14, 7, 3, 1];
 
+  /**
+   * Boot the model.
+   */
   protected static function boot()
   {
     parent::boot();
 
     static::creating(function ($contract) {
-      // Generate contract number
       if (!$contract->contract_number) {
-        $contract->contract_number = 'CNT-' . date('Y') . '-' .
-          str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT);
+        $contract->contract_number = static::generateContractNumber();
       }
 
-      // Set default currency if not set
       if (!$contract->currency_code) {
         $contract->currency_code = Settings::getDefaultCurrency()['code'] ?? 'MWK';
       }
     });
 
     static::saved(function ($contract) {
-      // Update billboard pivot data if billboards are attached
-      if ($contract->billboards) {
-        $billboardCount = $contract->billboards->count();
-        $discountPerBillboard = $billboardCount > 0 ? $contract->contract_discount / $billboardCount : 0;
-
-        foreach ($contract->billboards as $billboard) {
-          $contract->billboards()->updateExistingPivot($billboard->id, [
-            'billboard_base_price' => $billboard->base_price,
-            'billboard_discount' => $discountPerBillboard,
-            'billboard_final_price' => $billboard->base_price - $discountPerBillboard,
-          ]);
-        }
-      }
+      $contract->updateBillboardPivots();
     });
   }
 
-  // Relationships
+  /**
+   * Generate a unique contract number.
+   */
+  protected static function generateContractNumber(): string
+  {
+    return 'CNT-' . date('Y') . '-' . str_pad(
+        (static::count() + 1),
+        5,
+        '0',
+        STR_PAD_LEFT
+      );
+  }
+
+  /**
+   * Update billboard pivot records with calculated prices.
+   */
+  protected function updateBillboardPivots(): void
+  {
+    if (!$this->billboards()->exists()) {
+      return;
+    }
+
+    $billboardCount = $this->billboards->count();
+    $discountPerBillboard = $billboardCount > 0
+      ? $this->contract_discount / $billboardCount
+      : 0;
+
+    $this->billboards->each(function ($billboard) use ($discountPerBillboard) {
+      $this->billboards()->updateExistingPivot($billboard->id, [
+        'billboard_base_price' => $billboard->base_price,
+        'billboard_discount_amount' => $discountPerBillboard,
+        'billboard_final_price' => $billboard->base_price - $discountPerBillboard,
+      ]);
+    });
+
+    $this->calculateTotals();
+  }
+
+  /**
+   * Calculate contract totals from billboard pivot data.
+   */
+  public function calculateTotals(): void
+  {
+    $totals = $this->billboards()
+      ->selectRaw('
+        SUM(billboard_contract.billboard_base_price) as total_base,
+        SUM(billboard_contract.billboard_discount_amount) as total_discount,
+        SUM(billboard_contract.billboard_final_price) as total_final
+      ')
+      ->first();
+
+    $this->update([
+      'contract_total' => $totals->total_base ?? 0,
+      'contract_discount' => $totals->total_discount ?? 0,
+      'contract_final_amount' => $totals->total_final ?? 0,
+    ]);
+  }
+
+  /**
+   * Relationships
+   */
   public function parentContract(): BelongsTo
   {
-    return $this->belongsTo(Contract::class, 'parent_contract_id');
+    return $this->belongsTo(static::class, 'parent_contract_id');
   }
 
   public function renewals(): HasMany
   {
-    return $this->hasMany(Contract::class, 'parent_contract_id');
+    return $this->hasMany(static::class, 'parent_contract_id');
   }
 
   public function billboards(): BelongsToMany
@@ -107,9 +158,9 @@ class Contract extends Model implements HasMedia
     return $this->belongsToMany(Billboard::class, 'billboard_contract')
       ->using(BillboardContract::class)
       ->withPivot([
-        'base_price',
-        'discount_amount',
-        'final_price',
+        'billboard_base_price',
+        'billboard_discount_amount',
+        'billboard_final_price',
         'booking_status',
         'notes'
       ])
@@ -119,13 +170,6 @@ class Contract extends Model implements HasMedia
   public function client(): BelongsTo
   {
     return $this->belongsTo(Client::class);
-  }
-
-  public function users(): BelongsToMany
-  {
-    return $this->belongsToMany(User::class, 'contract_user')
-      ->withTimestamps()
-      ->withPivot(['role']);
   }
 
   // Media collections
@@ -151,10 +195,13 @@ class Contract extends Model implements HasMedia
     ];
   }
 
+  /**
+   * Status and Expiry Methods
+   */
   public function getStatusAttribute(): string
   {
     if ($this->agreement_status !== self::STATUS_ACTIVE) {
-      return self::getAgreementStatuses()[$this->agreement_status];
+      return static::getAgreementStatuses()[$this->agreement_status];
     }
 
     if ($this->end_date->isPast()) {
@@ -181,16 +228,16 @@ class Contract extends Model implements HasMedia
       $this->agreement_status === self::STATUS_ACTIVE;
   }
 
-  // Notification related methods
+  /**
+   * Notification Methods
+   */
   public function getNotificationRecipients(): Collection
   {
-    return $this->users
-      ->merge(
-        User::role(['admin', 'manager'])
-          ->where('is_active', true)
-          ->whereNotIn('id', $this->users->pluck('id'))
-          ->get()
-      );
+    return
+      User::role(['admin', 'manager'])
+        ->where('is_active', true)
+        ->whereNotIn('id', [auth()->id])
+        ->get();
   }
 
   public function recordNotificationSent(): void
@@ -203,11 +250,22 @@ class Contract extends Model implements HasMedia
 
   public function shouldSendNotification(): bool
   {
-    if (!$this->last_notification_sent_at) {
-      return true;
-    }
+    return !$this->last_notification_sent_at
+      || $this->last_notification_sent_at->diffInHours(now()) >= 24;
+  }
 
-    return $this->last_notification_sent_at->diffInHours(now()) >= 24;
+  /**
+   * Query Scopes
+   */
+
+  #[Scope]
+  public function active(Builder $query, bool $withExpired = false): void
+  {
+    $baseQuery = $query->where('agreement_status', self::STATUS_ACTIVE);
+
+    if (!$withExpired) {
+      $baseQuery->whereDate('end_date', '>=', now());
+    }
   }
 
   #[Scope]
@@ -219,22 +277,8 @@ class Contract extends Model implements HasMedia
       ->whereDate('end_date', '>', now());
   }
 
-  // Query scopes
   #[Scope]
-  public function active(Builder $query): void
-  {
-    $query->where('agreement_status', self::STATUS_ACTIVE);
-  }
-
-  public function needsRenewal(): bool
-  {
-    return $this->isExpiringWithinDays(30) &&
-      !$this->renewals()->exists() &&
-      $this->agreement_status === self::STATUS_ACTIVE;
-  }
-
-  #[Scope]
-  protected function needsRenewal(Builder $query): void
+  public function needsRenewal(Builder $query): void
   {
     $query
       ->active()
@@ -242,25 +286,36 @@ class Contract extends Model implements HasMedia
       ->whereDoesntHave('renewals');
   }
 
-  public function calculateTotals()
+  #[Scope]
+  public function upcoming(Builder $query): void
   {
-    $billboardTotals = $this->billboards()
-      ->select(DB::raw('
-        SUM(billboard_contract.billboard_base_price) as total_base,
-        SUM(billboard_contract.billboard_discount) as total_discount,
-        SUM(billboard_contract.billboard_final_price) as total_final
-      '))
-      ->first();
-
-    $this->update([
-      'contract_total' => $billboardTotals->total_base ?? 0,
-      'contract_discount' => $billboardTotals->total_discount ?? 0,
-      'contract_final_amount' => $billboardTotals->total_final ?? 0,
-    ]);
+    $query
+      ->where('agreement_status', self::STATUS_DRAFT)
+      ->orWhere(function ($query) {
+        $query->where('agreement_status', self::STATUS_ACTIVE)
+          ->where('start_date', '>', now());
+      });
   }
 
-  // Static methods
-  public static function getExpiringContracts(array $days = null): Collection
+  #[Scope]
+  public function expired(Builder $query): void
+  {
+    $query
+      ->where('agreement_status', self::STATUS_ACTIVE)
+      ->whereDate('end_date', '<', now());
+  }
+
+  public function needsRenewalCheck(): bool
+  {
+    return $this->isExpiringWithinDays(30) &&
+      !$this->renewals()->exists() &&
+      $this->agreement_status === self::STATUS_ACTIVE;
+  }
+
+  /**
+   * Static Methods
+   */
+  public static function getExpiringContracts(?array $days = null): Collection
   {
     $days = $days ?? self::NOTIFICATION_THRESHOLDS;
 
@@ -271,7 +326,7 @@ class Contract extends Model implements HasMedia
       ->where('end_date', '>', now())
       ->where('end_date', '<=', now()->addDays(max($days)))
       ->get()
-      ->filter(fn ($contract) => in_array($contract->days_until_expiry, $days));
+      ->filter(fn($contract) => in_array($contract->days_until_expiry, $days));
   }
 
   // Price calculation methods
