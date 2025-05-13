@@ -64,4 +64,9 @@ class BillboardStatusChart extends ChartWidget
       ],
     ];
   }
+
+  public function getColumnSpan(): int|array
+  {
+    return 2;
+  }
 }

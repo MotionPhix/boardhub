@@ -23,9 +23,9 @@ class Dashboard extends BaseDashboard
   {
     return [
       LocationStatsWidget::class,
-      BillboardStatusChart::class,
       RecentLocationsWidget::class,
       PopularLocationsWidget::class,
+      BillboardStatusChart::class,
       ContractExpiryWidget::class,
     ];
   }

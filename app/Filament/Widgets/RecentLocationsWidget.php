@@ -26,8 +26,8 @@ class RecentLocationsWidget extends TableWidget
   {
     return [
       TextColumn::make('name')
-        ->searchable()
         ->description(fn (Location $record): string => $record->full_address),
+
       TextColumn::make('created_at')
         ->dateTime()
         ->sortable(),
