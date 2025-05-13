@@ -160,27 +160,39 @@ class Billboard extends Model implements HasMedia
         $billboard->currency_code = Settings::getDefaultCurrency()['currency_code'] ?? 'MWK';
       }
 
-      // Generate billboard code
-      $format = Settings::get('billboard_code_format');
-      $location = Location::find($billboard->location_id);
-
-      // Get city code from location
-      $cityCode = $location->city_code;
-
-      // Get the last billboard number
-      $lastBillboard = static::orderByDesc('id')->first();
-      $counter = $lastBillboard
-        ? (int) substr($lastBillboard->code, -$format['counter_length']) + 1
-        : 1;
-
-      // Generate the code: PREFIX-CITYCODE-NUMBER
-      $billboard->code = implode($format['separator'], [
-        $format['prefix'],
-        $cityCode,
-        str_pad($counter, $format['counter_length'], '0', STR_PAD_LEFT)
-      ]);
+      if (!$billboard->code) {
+        $billboard->code = static::generateBillboardCode($billboard->location->city);
+      }
 
     });
 
+  }
+
+  public static function generateBillboardCode(City $city): string
+  {
+    $settings = Settings::get('billboard_code_format');
+    $prefix = $settings['prefix'];
+    $separator = $settings['separator'];
+    $counterLength = $settings['counter_length'];
+
+    // Get the last billboard number for this city
+    $lastBillboard = static::where('code', 'like', "{$prefix}{$separator}{$city->code}{$separator}%")
+      ->orderByRaw('CONVERT(SUBSTRING_INDEX(code, ?, -1), SIGNED) DESC', [$separator])
+      ->first();
+
+    $counter = 1;
+    if ($lastBillboard) {
+      $parts = explode($separator, $lastBillboard->code);
+      $counter = (int)end($parts) + 1;
+    }
+
+    return sprintf(
+      '%s%s%s%s%0' . $counterLength . 'd',
+      $prefix,
+      $separator,
+      $city->code,
+      $separator,
+      $counter
+    );
   }
 }

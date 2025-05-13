@@ -5,15 +5,19 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\BillboardResource\Pages;
 use App\Filament\Resources\BillboardResource\RelationManagers\ContractsRelationManager;
 use App\Models\Billboard;
+use App\Models\City;
+use App\Models\Country;
+use App\Models\Location;
 use App\Models\Settings;
+use App\Models\State;
 use Filament\Forms;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
-use Filament\Support\Enums\MaxWidth;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Collection;
 
 class BillboardResource extends Resource
 {
@@ -56,69 +60,6 @@ class BillboardResource extends Resource
                     return $state;
                   }),
 
-                /*Forms\Components\Select::make('location_id')
-                  ->relationship('location', 'name')
-                  ->required()
-                  ->searchable()
-                  ->preload()
-                  ->createOptionForm([
-                    // Get countries from Settings model
-                    Forms\Components\Select::make('country_code')
-                      ->label('Country')
-                      ->required()
-                      ->options(function () {
-                        $countries = \App\Models\Settings::getAvailableCountries();
-                        return collect($countries)->pluck('name', 'code')->toArray();
-                      })
-                      ->default(function () {
-                        $defaultCountry = \App\Models\Settings::getDefaultCountry();
-                        return $defaultCountry['code'];
-                      })
-                      ->live(),
-
-                    Forms\Components\Select::make('city')
-                      ->label('City')
-                      ->required()
-                      ->options(function (callable $get) {
-                        $country = $get('country');
-                        if (!$country) return [];
-
-                        return \App\Models\City::query()
-                          ->where('country_code', $country)
-                          ->pluck('name', 'name')
-                          ->toArray();
-                      })
-                      ->searchable()
-                      ->preload()
-                      ->live()
-                      ->afterStateUpdated(function ($state, callable $set) {
-                        if ($state) {
-                          $city = \App\Models\City::where('name', $state)->first();
-                          if ($city) {
-                            $set('city_code', $city->code);
-                            $set('state', $city->state);
-                          }
-                        }
-                      }),
-
-                    Forms\Components\TextInput::make('state')
-                      ->required()
-                      ->placeholder('Define the side of the country')
-                      ->maxLength(255),
-
-                    Forms\Components\Hidden::make('city_code'),
-
-                    Forms\Components\TextInput::make('name')
-                      ->required()
-                      ->placeholder('Area or part of the city, e.g. Area 25')
-                      ->maxLength(255),
-
-                    Forms\Components\Textarea::make('description')
-                      ->label('Notes')
-                      ->maxLength(65535)
-                      ->columnSpanFull(),
-                  ])->maxWidth('md'),*/
-
                 Forms\Components\Select::make('location_id')
                   ->relationship('location', 'name')
                   ->required()
@@ -127,64 +68,71 @@ class BillboardResource extends Resource
                   ->createOptionForm([
                     Forms\Components\Select::make('country_code')
                       ->label('Country')
+                      ->options(Country::query()
+                        ->where('is_active', true)
+                        ->pluck('name', 'code'))
                       ->required()
-                      ->options(function () {
-                        return \App\Models\Country::query()
-                          ->where('is_active', true)
-                          ->pluck('name', 'code');
-                      })
-                      ->default(function () {
-                        return \App\Models\Country::where('is_default', true)
-                          ->first()?->code;
-                      })
-                      ->live(),
-
-                    Forms\Components\Select::make('city_code')
-                      ->label('City')
-                      ->required()
-                      ->options(function (callable $get) {
-                        $countryCode = $get('country_code');
-                        if (!$countryCode) return [];
-
-                        return \App\Models\City::query()
-                          ->where('country_code', $countryCode)
-                          ->where('is_active', true)
-                          ->pluck('name', 'code');
-                      })
                       ->searchable()
                       ->preload()
                       ->live()
-                      ->afterStateUpdated(function ($state, callable $set) {
-                        if ($state) {
-                          $city = \App\Models\City::where('code', $state)->first();
-                          if ($city) {
-                            $set('state', $city->state);
-                          }
-                        }
-                      }),
+                      ->afterStateUpdated(fn (callable $set) => $set('state_code', null)),
 
-                    Forms\Components\TextInput::make('state')
+                    Forms\Components\Select::make('state_code')
+                      ->label('State/Region')
+                      ->options(fn (callable $get): Collection => State::query()
+                        ->where('country_code', $get('country_code'))
+                        ->where('is_active', true)
+                        ->pluck('name', 'code'))
                       ->required()
-                      ->label('Province/State/Region')
-                      ->placeholder('Define the side of the country')
-                      ->maxLength(255),
+                      ->searchable()
+                      ->preload()
+                      ->live()
+                      ->visible(fn (callable $get) => filled($get('country_code')))
+                      ->afterStateUpdated(fn (callable $set) => $set('city_code', null)),
+
+                    Forms\Components\Select::make('city_code')
+                      ->label('City')
+                      ->options(fn (callable $get): Collection => City::query()
+                        ->where('state_code', $get('state_code'))
+                        ->where('is_active', true)
+                        ->pluck('name', 'code'))
+                      ->required()
+                      ->searchable()
+                      ->preload()
+                      ->live()
+                      ->visible(fn (callable $get) => filled($get('state_code'))),
 
                     Forms\Components\TextInput::make('name')
                       ->label('Area/Township')
                       ->placeholder('Area or part of the city, e.g. Area 25')
+                      ->helperText('Specific area, neighborhood, or landmark within the city')
                       ->required()
                       ->maxLength(255),
 
-                    Forms\Components\Textarea::make('description')
-                      ->label('Notes')
-                      ->maxLength(65535)
+                    Forms\Components\MarkdownEditor::make('description')
+                      ->label('Description')
+                      ->placeholder('Additional details about this location')
+                      ->helperText('Include any relevant information about accessibility, surroundings, or special characteristics')
                       ->columnSpanFull(),
-                  ])->createOptionAction(function (Action $action) {
-                    $action
-                      ->modalWidth(MaxWidth::Medium)
-                      ->modalHeading('New Location')
-                      ->modalDescription('Enter details for the new location')
+
+                    Forms\Components\Toggle::make('is_active')
+                      ->label('Active')
+                      ->helperText('Inactive locations will not be available for billboard placement')
+                      ->default(true),
+                  ])
+                  ->createOptionAction(function (Action $action) {
+                    return $action
+                      ->modalWidth('lg')
+                      ->modalHeading('Add New Location')
+                      ->modalDescription('Create a new location for billboard placement')
+                      ->modalIcon('heroicon-o-map-pin')
                       ->closeModalByClickingAway(false);
+                  })
+                  ->createOptionUsing(function (array $data): Model {
+                    return Location::create([
+                      ...$data,
+                      'code' => Location::generateLocationCode($data['city_code']),
+                    ]);
                   }),
 
                 Forms\Components\TextInput::make('size')

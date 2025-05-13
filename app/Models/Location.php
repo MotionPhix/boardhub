@@ -58,4 +58,19 @@ class Location extends Model
       $this->loadMissing('country')->country?->name,
     ]));
   }
+
+  public static function generateLocationCode(string $cityCode): string
+  {
+    $lastLocation = static::where('code', 'like', "{$cityCode}-%")
+      ->orderByRaw('CONVERT(SUBSTRING_INDEX(code, "-", -1), SIGNED) DESC')
+      ->first();
+
+    $counter = 1;
+    if ($lastLocation) {
+      $parts = explode('-', $lastLocation->code);
+      $counter = (int)end($parts) + 1;
+    }
+
+    return sprintf('%s-%03d', $cityCode, $counter);
+  }
 }

@@ -57,12 +57,6 @@ class SettingsSeeder extends Seeder
     // Billboard Code Settings
     Settings::set('billboard_code_format', [
       'prefix' => 'BH',
-      'cities' => [
-        ['code' => 'LL', 'name' => 'Lilongwe'],
-        ['code' => 'BT', 'name' => 'Blantyre'],
-        ['code' => 'MZ', 'name' => 'Mzuzu'],
-        ['code' => 'ZA', 'name' => 'Zomba'],
-      ],
       'separator' => '-',
       'counter_length' => 5,
     ], 'billboards');

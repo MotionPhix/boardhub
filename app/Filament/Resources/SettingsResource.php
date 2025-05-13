@@ -169,23 +169,6 @@ class SettingsResource extends Resource
                       ->maxLength(10)
                       ->helperText('Company initials or short code (e.g., BH, FM)'),
 
-                    Forms\Components\Repeater::make('value.cities')
-                      ->label('Cities')
-                      ->schema([
-                        Forms\Components\TextInput::make('code')
-                          ->required()
-                          ->maxLength(5)
-                          ->helperText('Short code (e.g., LL, BT)'),
-                        Forms\Components\TextInput::make('name')
-                          ->required()
-                          ->maxLength(255)
-                          ->helperText('Full city name'),
-                      ])
-                      ->columns(2)
-                      ->defaultItems(0)
-                      ->reorderable(false)
-                      ->columnSpanFull(),
-
                     Forms\Components\TextInput::make('value.separator')
                       ->label('Code Separator')
                       ->required()
@@ -202,7 +185,9 @@ class SettingsResource extends Resource
                       ->maxValue(10)
                       ->helperText('Number of digits for the sequence number (e.g., 5 for 00001)'),
                   ])
-                  ->columns(2),
+                  ->columns(2)
+                  ->description('Billboard codes will be generated in the format: PREFIX-CITYCODE-SEQUENCE
+                For example: BH-BT-00001 (for a billboard in Blantyre)'),
               ])
               ->hidden(fn ($record) => $record?->key !== 'billboard_code_format'),
           ])
