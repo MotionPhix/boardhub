@@ -183,7 +183,8 @@ class BillboardResource extends Resource
                     $action
                       ->modalWidth(MaxWidth::Medium)
                       ->modalHeading('New Location')
-                      ->isModalClosedByClickingAway(false);
+                      ->modalDescription('Enter details for the new location')
+                      ->closeModalByClickingAway(false);
                   }),
 
                 Forms\Components\TextInput::make('size')

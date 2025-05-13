@@ -12,11 +12,11 @@ return new class extends Migration {
   {
     Schema::create('billboards', function (Blueprint $table) {
       $table->id();
-      $table->uuid('uuid')->unique()->nullable();
+      $table->uuid('uuid')->unique();
       $table->string('name');
+      $table->string('code')->unique()->nullable();
       $table->foreignId('location_id')->constrained()->onDelete('cascade');
       $table->string('size');
-      $table->string('type');
       $table->decimal('base_price', 10, 2);
       $table->string('currency_code')->default('MWK');
       $table->string('physical_status');

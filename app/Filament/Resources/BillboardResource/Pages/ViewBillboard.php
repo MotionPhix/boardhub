@@ -48,12 +48,12 @@ class ViewBillboard extends ViewRecord
             TextEntry::make('current_contract.end_date')
               ->label('End Date')
               ->date(),
-            TextEntry::make('current_contract.base_price')
+            TextEntry::make('current_contract.pivot.billboard_base_price')
               ->label('Base Price')
-              ->money(),
-            TextEntry::make('current_contract.final_price')
+              ->money('MWK'),
+            TextEntry::make('current_contract.pivot.billboard_final_price')
               ->label('Final Price')
-              ->money(),
+              ->money('MWK'),
           ])
         ])
         ->visible(fn () => $this->record->current_contract !== null)

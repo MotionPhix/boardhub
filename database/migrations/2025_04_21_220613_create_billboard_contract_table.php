@@ -13,9 +13,9 @@ return new class extends Migration {
       $table->foreignId('contract_id')->constrained()->onDelete('cascade');
 
       // Pricing information
-      $table->decimal('base_price', 10, 2);
-      $table->decimal('discount_amount', 10, 2)->default(0);
-      $table->decimal('final_price', 10, 2);
+      $table->decimal('billboard_base_price', 10, 2);
+      $table->decimal('billboard_discount_amount', 10, 2)->default(0);
+      $table->decimal('billboard_final_price', 10, 2);
 
       // Status and notes
       $table->enum('booking_status', ['available', 'in_use', 'completed', 'cancelled'])->default('available');

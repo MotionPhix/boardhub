@@ -22,9 +22,9 @@ class Billboard extends Model implements HasMedia
 
   protected $fillable = [
     'name',
+    'code',
     'location_id',
     'size',
-    'type',
     'base_price',
     'physical_status',
     'description',

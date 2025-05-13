@@ -273,7 +273,7 @@ class Contract extends Model implements HasMedia
   public function calculateBaseAmount(): void
   {
     $this->base_amount = $this->billboards()
-      ->sum('billboard_contract.base_price');
+      ->sum('billboard_contract.billboard_base_price');
   }
 
   public function updatePricing(float $discountAmount = 0): void

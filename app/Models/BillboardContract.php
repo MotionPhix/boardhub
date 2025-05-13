@@ -42,13 +42,13 @@ class BillboardContract extends Pivot
     parent::boot();
 
     static::creating(function ($pivot) {
-      // If base_price is not set, get it from the billboard
+      // If billboard_base_price is not set, get it from the billboard
       if (!$pivot->billboard_base_price) {
         $pivot->billboard_base_price = Billboard::find($pivot->billboard_id)->base_price;
       }
 
-      // Calculate final price
-      $pivot->final_price = $pivot->billboard_base_price - ($pivot->billboard_discount_amount ?? 0);
+      // Calculate billboard_final_price
+      $pivot->billboard_final_price = $pivot->billboard_base_price - ($pivot->billboard_discount_amount ?? 0);
     });
 
     static::updating(function ($pivot) {

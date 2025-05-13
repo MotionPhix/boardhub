@@ -6,7 +6,7 @@ use Illuminate\Support\Str;
 
 trait HasUuid
 {
-  public static function bootBootUuid()
+  public static function bootHasUuid()
   {
     static::creating(function ($model) {
       $model->uuid = Str::orderedUuid();
