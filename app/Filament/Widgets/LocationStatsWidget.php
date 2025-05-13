@@ -34,9 +34,9 @@ class LocationStatsWidget extends StatsOverviewWidget
         ->color('info')
         ->chart([2, 4, 6, 8, 5, 3, 7, 9]),
 
-      Stat::make('Active Contracts', Contract::where('booking_status', 'in_use')->count())
+      Stat::make('Active Contracts', Contract::where('agreement_status', Contract::STATUS_ACTIVE)->count())
         ->description(Contract::where([
-            ['booking_status', 'in_use'],
+            ['agreement_status', Contract::STATUS_ACTIVE],
             ['created_at', '>=', $lastMonth]
           ])->count() . ' new this month')
         ->descriptionIcon('heroicon-m-arrow-trending-up')

@@ -3,6 +3,7 @@
 namespace App\Filament\Widgets;
 
 use App\Models\Billboard;
+use App\Models\Contract;
 use Filament\Support\Colors\Color;
 use Filament\Widgets\ChartWidget;
 
@@ -19,13 +20,21 @@ class BillboardStatusChart extends ChartWidget
     $statuses = [
       'Available' => Billboard::where('is_active', true)
         ->whereDoesntHave('contracts', function ($query) {
-          $query->where('booking_status', 'in_use');
+          $query->where('agreement_status', Contract::STATUS_ACTIVE)
+            ->where('billboard_contract.booking_status', 'in_use');
         })->count(),
       'In Use' => Billboard::where('is_active', true)
         ->whereHas('contracts', function ($query) {
-          $query->where('booking_status', 'in_use');
+          $query->where('agreement_status', Contract::STATUS_ACTIVE)
+            ->where('billboard_contract.booking_status', 'in_use');
         })->count(),
       'Inactive' => Billboard::where('is_active', false)->count(),
+    ];
+
+    $colors = [
+      'Available' => Color::hex('#22c55e'), // Green 500
+      'In Use' => Color::hex('#3b82f6'), // Blue 500
+      'Inactive' => Color::hex('#ef4444'), // Red 500
     ];
 
     return [
@@ -33,11 +42,7 @@ class BillboardStatusChart extends ChartWidget
         [
           'label' => 'Billboards',
           'data' => array_values($statuses),
-          'backgroundColor' => [
-            Color::Green->tone(500),
-            Color::Blue->tone(500),
-            Color::Red->tone(500),
-          ],
+          'backgroundColor' => array_map(fn ($status) => $colors[$status], array_keys($statuses)),
         ],
       ],
       'labels' => array_keys($statuses),
@@ -47,5 +52,16 @@ class BillboardStatusChart extends ChartWidget
   protected function getType(): string
   {
     return 'doughnut';
+  }
+
+  protected function getOptions(): array
+  {
+    return [
+      'plugins' => [
+        'legend' => [
+          'position' => 'bottom',
+        ],
+      ],
+    ];
   }
 }
