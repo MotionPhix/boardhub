@@ -51,9 +51,9 @@ class Location extends Model
   public function getFullAddressAttribute(): string
   {
     return implode(', ', array_filter([
-      $this->getAttribute('city')?->name,
-      $this->getAttribute('state')?->name,
-      $this->getAttribute('country')?->name,
+      $this->city?->name,
+      $this->state?->name,
+      $this->country?->name,
     ]));
   }
 }

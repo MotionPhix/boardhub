@@ -13,19 +13,19 @@ class CitySeeder extends Seeder
       [
         'name' => 'Blantyre',
         'code' => 'BT',
-        'state' => 'Southern Region',
+        'state_code' => 'MW-S',
         'country_code' => 'MW',
       ],
       [
         'name' => 'Lilongwe',
         'code' => 'LL',
-        'state' => 'Central Region',
+        'state_code' => 'MW-C',
         'country_code' => 'MW',
       ],
       [
         'name' => 'Mzuzu',
         'code' => 'MZ',
-        'state' => 'Northern Region',
+        'state_code' => 'MW-N',
         'country_code' => 'MW',
       ],
     ];

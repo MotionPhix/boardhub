@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
   {
     $this->call([
       CountrySeeder::class,
+      StateSeeder::class,
       CitySeeder::class,
       SettingsSeeder::class,
       NotificationSettingsSeeder::class,

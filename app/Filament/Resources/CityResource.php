@@ -27,8 +27,7 @@ class CityResource extends Resource
           ->maxLength(10)
           ->unique(ignoreRecord: true)
           ->helperText('Leave empty to auto-generate from name')
-          ->placeholder('Auto-generated if empty')
-          ->uppercase(),
+          ->placeholder('Auto-generated if empty'),
 
         Forms\Components\Select::make('country_code')
           ->relationship('country', 'name')
