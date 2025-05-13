@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Spatie\Image\Enums\Fit;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class Billboard extends Model implements HasMedia
 {
@@ -99,7 +100,7 @@ class Billboard extends Model implements HasMedia
     );
   }
 
-  public function registerMediaCollections(): void
+  /*public function registerMediaCollections(): void
   {
     $this->addMediaCollection('billboard-images')
       ->useDisk('public')
@@ -115,6 +116,43 @@ class Billboard extends Model implements HasMedia
           ->fit(Fit::Contain, 800, 600)
           ->sharpen(10)
           ->optimize();
+      });
+  }*/
+
+  public function registerMediaCollections(): void
+  {
+    $this->addMediaCollection('billboard_images')
+      ->useDisk('public')
+      ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
+      ->registerMediaConversions(function (Media $media = null) {
+        // Thumbnail for admin panel
+        $this->addMediaConversion('thumb')
+          ->fit(Fit::Contain, 300, 200)
+          ->optimize()
+          ->keepOriginalImageFormat()
+          ->nonQueued();
+
+        // Preview size
+        $this->addMediaConversion('preview')
+          ->fit(Fit::Contain, 800, 450)
+          ->optimize()
+          ->keepOriginalImageFormat()
+          ->nonQueued();
+
+        // Full size with optimization
+        $this->addMediaConversion('full')
+          ->fit(Fit::Contain, 1920, 1080)
+          ->optimize()
+          ->keepOriginalImageFormat()
+          ->withResponsiveImages()
+          ->nonQueued();
+
+        // Social media sharing optimized
+        $this->addMediaConversion('social')
+          ->fit(Fit::Contain, 1200, 630)
+          ->optimize()
+          ->keepOriginalImageFormat()
+          ->nonQueued();
       });
   }
 

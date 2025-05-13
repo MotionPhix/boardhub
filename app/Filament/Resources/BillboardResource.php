@@ -18,6 +18,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class BillboardResource extends Resource
 {
@@ -60,7 +61,7 @@ class BillboardResource extends Resource
                     return $state;
                   }),
 
-                Forms\Components\Select::make('location_id')
+                /*Forms\Components\Select::make('location_id')
                   ->relationship(
                     'location',
                     'name',
@@ -159,7 +160,100 @@ class BillboardResource extends Resource
                       ->toArray();
                   })
                   ->getOptionLabelUsing(fn ($value): ?string => Location::find($value)?->name)
-                  ->live(),
+                  ->live(),*/
+
+                Forms\Components\Select::make('location_id')
+                  ->relationship('location', 'name')
+                  ->required()
+                  ->searchable()
+                  ->preload()
+                  ->live()
+                  ->afterStateUpdated(function ($state, Forms\Set $set) {
+                    // Clear dependent fields if location is changed/cleared
+                    if (blank($state)) {
+                      $set('code', null);
+                      return;
+                    }
+                  })
+                  ->createOptionForm([
+                    Forms\Components\Select::make('country_code')
+                      ->label('Country')
+                      ->options(Country::query()
+                        ->where('is_active', true)
+                        ->pluck('name', 'code'))
+                      ->required()
+                      ->searchable()
+                      ->preload()
+                      ->live()
+                      ->afterStateUpdated(fn (Forms\Set $set) => $set('state_code', null)),
+
+                    Forms\Components\Select::make('state_code')
+                      ->label('State/Region')
+                      ->options(fn (Forms\Get $get): Collection => State::query()
+                        ->where('country_code', $get('country_code'))
+                        ->where('is_active', true)
+                        ->pluck('name', 'code'))
+                      ->required()
+                      ->searchable()
+                      ->preload()
+                      ->live()
+                      ->visible(fn (Forms\Get $get) => filled($get('country_code')))
+                      ->afterStateUpdated(fn (Forms\Set $set) => $set('city_code', null)),
+
+                    Forms\Components\Select::make('city_code')
+                      ->label('City')
+                      ->options(fn (Forms\Get $get): Collection => City::query()
+                        ->where('state_code', $get('state_code'))
+                        ->where('is_active', true)
+                        ->pluck('name', 'code'))
+                      ->required()
+                      ->searchable()
+                      ->preload()
+                      ->live()
+                      ->visible(fn (Forms\Get $get) => filled($get('state_code'))),
+
+                    Forms\Components\TextInput::make('name')
+                      ->label('Area/Township')
+                      ->placeholder('Area or part of the city, e.g. Area 25')
+                      ->helperText('Specific area, neighborhood, or landmark within the city')
+                      ->required()
+                      ->maxLength(255),
+
+                    Forms\Components\MarkdownEditor::make('description')
+                      ->label('Description')
+                      ->placeholder('Additional details about this location')
+                      ->helperText('Include any relevant information about accessibility, surroundings, or special characteristics')
+                      ->columnSpanFull(),
+
+                    Forms\Components\Toggle::make('is_active')
+                      ->label('Active')
+                      ->helperText('Inactive locations will not be available for billboard placement')
+                      ->default(true),
+                  ])
+                  ->createOptionAction(function (Action $action) {
+                    return $action
+                      ->modalWidth('lg')
+                      ->modalHeading('Add New Location')
+                      ->modalDescription('Create a new location for billboard placement')
+                      ->modalIcon('heroicon-o-map-pin')
+                      ->closeModalByClickingAway(false);
+                  })
+                  ->createOptionUsing(function (array $data, Forms\Set $set): Model {
+                    return DB::transaction(function () use ($data, $set) {
+                      $location = Location::create([
+                        ...array_filter($data),
+                        'code' => Location::generateLocationCode($data['city_code']),
+                      ]);
+
+                      // Set the newly created location ID in the form state
+                      $set('location_id', $location->id);
+
+                      return $location;
+                    });
+                  })
+                  ->optionsLimit(15)
+                  ->prefixIcon('heroicon-m-map-pin')
+                  ->helperText('Select an existing location or create a new one'),
 
                 Forms\Components\TextInput::make('size')
                   ->placeholder('The format should be Wm x Hm')
@@ -245,9 +339,9 @@ class BillboardResource extends Resource
                   ->imageEditor()
                   ->columnSpanFull(),
               ])
-              ->collapsible(),
+              ->collapsible()
 
-            Forms\Components\Section::make('Current Revenue')
+            /*Forms\Components\Section::make('Current Revenue')
               ->schema([
                 Forms\Components\Placeholder::make('current_revenue')
                   ->label('Current Monthly Revenue')
@@ -271,7 +365,7 @@ class BillboardResource extends Resource
                       ->count();
                   }),
               ])
-              ->collapsible(),
+              ->collapsible(),*/
           ])
           ->columnSpan(['lg' => 1]),
       ])
@@ -285,9 +379,11 @@ class BillboardResource extends Resource
         Tables\Columns\SpatieMediaLibraryImageColumn::make('billboard_images')
           ->label('Image')
           ->collection('billboard_images')
-          ->circular()
+          ->square()
           ->stacked()
-          ->limit(3),
+          ->height(50)
+          ->limit(2)
+          ->limitedRemainingText(size: 'md'),
 
         Tables\Columns\TextColumn::make('size')
           ->searchable()
