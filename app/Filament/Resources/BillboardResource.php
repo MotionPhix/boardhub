@@ -61,7 +61,11 @@ class BillboardResource extends Resource
                   }),
 
                 Forms\Components\Select::make('location_id')
-                  ->relationship('location', 'name')
+                  ->relationship(
+                    'location',
+                    'name',
+                    fn ($query) => $query->with(['city', 'state', 'country'])
+                  )
                   ->required()
                   ->searchable()
                   ->preload()
@@ -128,12 +132,34 @@ class BillboardResource extends Resource
                       ->modalIcon('heroicon-o-map-pin')
                       ->closeModalByClickingAway(false);
                   })
-                  ->createOptionUsing(function (array $data): Model {
-                    return Location::create([
-                      ...$data,
+                  ->createOptionUsing(function (array $data, Forms\Set $set): Model {
+                    $location = Location::create([
+                      ...array_filter($data), // Remove any null values
                       'code' => Location::generateLocationCode($data['city_code']),
                     ]);
-                  }),
+
+                    // Ensure the new location is selected
+                    $set('location_id', $location->id);
+
+                    return $location;
+                  })
+                  ->getSearchResultsUsing(function (string $search): array {
+                    return Location::query()
+                      ->where('is_active', true)
+                      ->where('name', 'like', "%{$search}%")
+                      ->with(['city', 'state', 'country'])
+                      ->limit(50)
+                      ->get()
+                      ->map(function ($location) {
+                        return [
+                          'id' => $location->id,
+                          'name' => $location->name . ' - ' . $location->city?->name,
+                        ];
+                      })
+                      ->toArray();
+                  })
+                  ->getOptionLabelUsing(fn ($value): ?string => Location::find($value)?->name)
+                  ->live(),
 
                 Forms\Components\TextInput::make('size')
                   ->placeholder('The format should be Wm x Hm')
@@ -263,7 +289,7 @@ class BillboardResource extends Resource
           ->stacked()
           ->limit(3),
 
-        Tables\Columns\TextColumn::make('name')
+        Tables\Columns\TextColumn::make('size')
           ->searchable()
           ->sortable(),
 
@@ -277,6 +303,7 @@ class BillboardResource extends Resource
           ->sortable(),
 
         Tables\Columns\TextColumn::make('base_price')
+          ->label('Booking Fee')
           ->money(fn($record) => $record->currency_code)
           ->sortable(),
 
@@ -291,7 +318,7 @@ class BillboardResource extends Resource
           ->formatStateUsing(fn(string $state): string => Billboard::getPhysicalStatuses()[strtolower($state)])
           ->sortable(),
 
-        Tables\Columns\TextColumn::make('current_revenue')
+        /*Tables\Columns\TextColumn::make('current_revenue')
           ->money(fn($record) => $record->currency_code)
           ->state(function (Billboard $record): float {
             return $record->contracts()
@@ -299,7 +326,7 @@ class BillboardResource extends Resource
               ->whereDate('end_date', '>=', now())
               ->sum('contract_final_amount');
           })
-          ->sortable(),
+          ->sortable(),*/
 
         Tables\Columns\IconColumn::make('is_active')
           ->label('Active')
