@@ -4,6 +4,8 @@ namespace App\Models;
 
 use App\Traits\HasMoney;
 use App\Traits\HasUuid;
+use Illuminate\Database\Eloquent\Attributes\Scope;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -179,13 +181,6 @@ class Contract extends Model implements HasMedia
       $this->agreement_status === self::STATUS_ACTIVE;
   }
 
-  public function needsRenewal(): bool
-  {
-    return $this->isExpiringWithinDays(30) &&
-      !$this->renewals()->exists() &&
-      $this->agreement_status === self::STATUS_ACTIVE;
-  }
-
   // Notification related methods
   public function getNotificationRecipients(): Collection
   {
@@ -216,9 +211,26 @@ class Contract extends Model implements HasMedia
   }
 
   // Query scopes
-  public function scopeActive($query)
+  #[Scope]
+  public function active(Builder $query): void
   {
-    return $query->where('agreement_status', self::STATUS_ACTIVE);
+    $query->where('agreement_status', self::STATUS_ACTIVE);
+  }
+
+  public function needsRenewal(): bool
+  {
+    return $this->isExpiringWithinDays(30) &&
+      !$this->renewals()->exists() &&
+      $this->agreement_status === self::STATUS_ACTIVE;
+  }
+
+  #[Scope]
+  protected function needsRenewal(Builder $query): void
+  {
+    $query
+      ->active()
+      ->expiringWithin(30)
+      ->whereDoesntHave('renewals');
   }
 
   public function calculateTotals()
@@ -246,14 +258,6 @@ class Contract extends Model implements HasMedia
       ->whereDate('end_date', '>', now());
   }
 
-  public function scopeNeedsRenewal($query)
-  {
-    return $query
-      ->active()
-      ->expiringWithin(30)
-      ->whereDoesntHave('renewals');
-  }
-
   // Static methods
   public static function getExpiringContracts(array $days = null): Collection
   {
@@ -274,13 +278,5 @@ class Contract extends Model implements HasMedia
   {
     $this->base_amount = $this->billboards()
       ->sum('billboard_contract.billboard_base_price');
-  }
-
-  public function updatePricing(float $discountAmount = 0): void
-  {
-    $this->discount_amount = $discountAmount;
-    $this->calculateBaseAmount();
-    $this->total_amount = $this->base_amount - $this->discount_amount;
-    $this->save();
   }
 }
