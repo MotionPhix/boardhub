@@ -33,8 +33,20 @@ class AuthPanelProvider extends PanelProvider
       ->login()
       ->colors([
         'primary' => '#6366f1',
-        'muted' => '#dcdcdc'
+        'danger' => Color::Rose,
+        'success' => Color::Emerald,
+        'warning' => Color::Orange,
+        'info' => Color::Blue,
       ])
+      ->brandName('BoardHub')
+      ->navigationGroups([
+        'Location Management',
+        'Billboard Management',
+        'Customer Management',
+        'System',
+      ]) // up to here
+      ->sidebarCollapsibleOnDesktop()
+      ->favicon(asset('images/favicon.png'))
       ->font('Geist Mono', provider: GoogleFontProvider::class)
       ->assets([
         Css::make('custom-stylesheet', resource_path('css/custom.css')),

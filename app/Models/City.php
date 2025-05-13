@@ -32,7 +32,7 @@ class City extends Model
 
   public function locations(): HasMany
   {
-    return $this->hasMany(Location::class, 'city', 'code');
+    return $this->hasMany(Location::class, 'city_code', 'code');
   }
 
   protected static function boot()

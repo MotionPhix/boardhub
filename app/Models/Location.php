@@ -25,6 +25,8 @@ class Location extends Model
     'is_active' => 'boolean',
   ];
 
+  protected $with = ['city', 'state', 'country'];
+
   public function billboards(): HasMany
   {
     return $this->hasMany(Billboard::class);
@@ -51,9 +53,9 @@ class Location extends Model
   public function getFullAddressAttribute(): string
   {
     return implode(', ', array_filter([
-      $this->city?->name,
-      $this->state?->name,
-      $this->country?->name,
+      $this->loadMissing('city')->city?->name,
+      $this->loadMissing('state')->state?->name,
+      $this->loadMissing('country')->country?->name,
     ]));
   }
 }
