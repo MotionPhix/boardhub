@@ -13,7 +13,7 @@ return new class extends Migration {
       $table->string('name');
       $table->string('description')->nullable();
       $table->string('city_code');
-      $table->string('state');
+      $table->string('state_code');
       $table->string('country_code');
       $table->boolean('is_active')->default(true);
       $table->timestamps();
@@ -22,6 +22,12 @@ return new class extends Migration {
       $table->foreign('city_code')
         ->references('code')
         ->on('cities')
+        ->onDelete('restrict')
+        ->onUpdate('cascade');
+
+      $table->foreign('state_code')
+        ->references('code')
+        ->on('states')
         ->onDelete('restrict')
         ->onUpdate('cascade');
 

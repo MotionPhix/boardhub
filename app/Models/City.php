@@ -11,10 +11,9 @@ class City extends Model
   protected $fillable = [
     'name',
     'code',
-    'state',
+    'state_code',
     'country_code',
     'is_active',
-    'description',
   ];
 
   protected $casts = [
@@ -24,6 +23,11 @@ class City extends Model
   public function country(): BelongsTo
   {
     return $this->belongsTo(Country::class, 'country_code', 'code');
+  }
+
+  public function state(): BelongsTo
+  {
+    return $this->belongsTo(State::class, 'state_code', 'code');
   }
 
   public function locations(): HasMany

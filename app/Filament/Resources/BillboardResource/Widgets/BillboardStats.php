@@ -18,26 +18,16 @@ class BillboardStats extends BaseWidget
 
     // Calculate total revenue for this billboard
     $totalRevenue = $this->record->contracts()
-      ->select(DB::raw('SUM(billboard_contract.billboard_final_price) as total_revenue'))
-      ->join('billboard_contract', function ($join) {
-        $join->on('contracts.id', '=', 'billboard_contract.contract_id')
-          ->where('billboard_contract.billboard_id', '=', $this->record->id);
-      })
+      ->wherePivot('billboard_id', $this->record->id)
       ->where('contracts.start_date', '>=', now()->subYear())
-      ->first()
-      ->total_revenue ?? 0;
+      ->sum('billboard_contract.billboard_final_price');
 
     // Get the revenue chart data
     $revenueChart = $this->record->contracts()
-      ->select(DB::raw('
-                DATE_FORMAT(contracts.start_date, "%Y-%m") as month,
-                SUM(billboard_contract.billboard_final_price) as revenue
-            '))
-      ->join('billboard_contract', function ($join) {
-        $join->on('contracts.id', '=', 'billboard_contract.contract_id')
-          ->where('billboard_contract.billboard_id', '=', $this->record->id);
-      })
+      ->wherePivot('billboard_id', $this->record->id)
       ->where('contracts.start_date', '>=', now()->subMonths(12))
+      ->selectRaw('DATE_FORMAT(contracts.start_date, "%Y-%m") as month')
+      ->selectRaw('SUM(billboard_contract.billboard_final_price) as revenue')
       ->groupBy('month')
       ->orderBy('month')
       ->pluck('revenue')
@@ -50,8 +40,10 @@ class BillboardStats extends BaseWidget
 
     // Get active contracts trend
     $contractsTrend = $this->record->contracts()
-      ->select(DB::raw('DATE_FORMAT(start_date, "%Y-%m") as month'), DB::raw('COUNT(*) as total'))
+      ->wherePivot('billboard_id', $this->record->id)
       ->where('start_date', '>=', now()->subMonths(12))
+      ->selectRaw('DATE_FORMAT(start_date, "%Y-%m") as month')
+      ->selectRaw('COUNT(*) as total')
       ->groupBy('month')
       ->orderBy('month')
       ->pluck('total')
@@ -59,26 +51,16 @@ class BillboardStats extends BaseWidget
 
     // Calculate average contract value
     $averageValue = $this->record->contracts()
-      ->select(DB::raw('AVG(billboard_contract.billboard_final_price) as avg_value'))
-      ->join('billboard_contract', function ($join) {
-        $join->on('contracts.id', '=', 'billboard_contract.contract_id')
-          ->where('billboard_contract.billboard_id', '=', $this->record->id);
-      })
+      ->wherePivot('billboard_id', $this->record->id)
       ->where('contracts.start_date', '>=', now()->subYear())
-      ->first()
-      ->avg_value ?? 0;
+      ->avg('billboard_contract.billboard_final_price') ?? 0;
 
     // Get average value trend
     $averageValueTrend = $this->record->contracts()
-      ->select(DB::raw('
-                DATE_FORMAT(contracts.start_date, "%Y-%m") as month,
-                AVG(billboard_contract.billboard_final_price) as avg_value
-            '))
-      ->join('billboard_contract', function ($join) {
-        $join->on('contracts.id', '=', 'billboard_contract.contract_id')
-          ->where('billboard_contract.billboard_id', '=', $this->record->id);
-      })
+      ->wherePivot('billboard_id', $this->record->id)
       ->where('contracts.start_date', '>=', now()->subMonths(12))
+      ->selectRaw('DATE_FORMAT(contracts.start_date, "%Y-%m") as month')
+      ->selectRaw('AVG(billboard_contract.billboard_final_price) as avg_value')
       ->groupBy('month')
       ->orderBy('month')
       ->pluck('avg_value')

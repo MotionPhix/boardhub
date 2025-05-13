@@ -15,10 +15,10 @@ class Location extends Model
   protected $fillable = [
     'name',
     'description',
-    'state',
+    'city_code',
+    'state_code',
     'country_code',
-    'is_active',
-    'city_code'
+    'is_active'
   ];
 
   protected $casts = [
@@ -35,6 +35,11 @@ class Location extends Model
     return $this->belongsTo(City::class, 'city_code', 'code');
   }
 
+  public function state(): BelongsTo
+  {
+    return $this->belongsTo(State::class, 'state_code', 'code');
+  }
+
   public function country(): BelongsTo
   {
     return $this->belongsTo(Country::class, 'country_code', 'code');
@@ -46,9 +51,9 @@ class Location extends Model
   public function getFullAddressAttribute(): string
   {
     return implode(', ', array_filter([
-      $this->getAttribute('city')->name ?? '',
-      $this->getAttribute('state'),
-      $this->getAttribute('country')->name ?? '',
+      $this->getAttribute('city')?->name,
+      $this->getAttribute('state')?->name,
+      $this->getAttribute('country')?->name,
     ]));
   }
 }

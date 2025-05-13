@@ -5,8 +5,13 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\LocationResource\Pages;
 use App\Filament\Resources\LocationResource\RelationManagers\BillboardsRelationManager;
 use App\Models\Location;
+use App\Models\Country;
+use App\Models\State;
+use App\Models\City;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -55,18 +60,34 @@ class LocationResource extends Resource
 
             Forms\Components\Section::make('Address Details')
               ->schema([
-                Forms\Components\TextInput::make('city')
-                  ->required()
-                  ->maxLength(255),
-
-                Forms\Components\TextInput::make('state')
-                  ->required()
-                  ->maxLength(255),
-
-                Forms\Components\Select::make('country')
+                Forms\Components\Select::make('country_code')
+                  ->label('Country')
+                  ->options(fn () => Country::where('is_active', true)
+                    ->pluck('name', 'code'))
                   ->required()
                   ->searchable()
-                  ->options(self::getCountryOptions()),
+                  ->live()
+                  ->afterStateUpdated(fn (Set $set) => $set('state_code', null)),
+
+                Forms\Components\Select::make('state_code')
+                  ->label('State/Region')
+                  ->options(fn (Get $get) => State::where('country_code', $get('country_code'))
+                    ->where('is_active', true)
+                    ->pluck('name', 'code'))
+                  ->required()
+                  ->searchable()
+                  ->live()
+                  ->visible(fn (Get $get) => filled($get('country_code')))
+                  ->afterStateUpdated(fn (Set $set) => $set('city_code', null)),
+
+                Forms\Components\Select::make('city_code')
+                  ->label('City')
+                  ->options(fn (Get $get) => City::where('state_code', $get('state_code'))
+                    ->where('is_active', true)
+                    ->pluck('name', 'code'))
+                  ->required()
+                  ->searchable()
+                  ->visible(fn (Get $get) => filled($get('state_code'))),
               ])
               ->columns(2),
           ])
@@ -78,20 +99,16 @@ class LocationResource extends Resource
               ->schema([
                 Forms\Components\Placeholder::make('billboards_count')
                   ->label('Total Billboards')
-                  ->content(function (?Location $record): string {
-                    if (!$record) return '0';
-                    return (string)$record->billboards()->count();
-                  }),
+                  ->content(fn (?Location $record): string
+                  => $record ? (string) $record->billboards()->count() : '0'),
 
                 Forms\Components\Placeholder::make('active_billboards')
                   ->label('Active Billboards')
-                  ->content(function (?Location $record): string {
-                    if (!$record) return '0';
-                    return (string)$record->billboards()
-                      ->whereHas('contracts', fn($query) => $query
-                        ->where('billboard_contract.booking_status', 'in_use'))
-                      ->count();
-                  }),
+                  ->content(fn (?Location $record): string
+                  => $record ? (string) $record->billboards()
+                    ->whereHas('contracts', fn($query) => $query
+                      ->where('billboard_contract.booking_status', 'in_use'))
+                    ->count() : '0'),
               ])
               ->hidden(fn(?Location $record) => !$record)
               ->visibleOn(['edit', 'view']),
@@ -110,20 +127,20 @@ class LocationResource extends Resource
           ->sortable()
           ->description(fn (Location $record): string => $record->full_address),
 
-        Tables\Columns\TextColumn::make('city')
+        Tables\Columns\TextColumn::make('city.name')
+          ->label('City')
           ->searchable()
           ->sortable(),
 
-        Tables\Columns\TextColumn::make('state')
+        Tables\Columns\TextColumn::make('state.name')
+          ->label('State/Region')
           ->searchable()
           ->sortable(),
 
-        Tables\Columns\TextColumn::make('country')
-          ->searchable(),
-
-        Tables\Columns\TextColumn::make('postal_code')
+        Tables\Columns\TextColumn::make('country.name')
+          ->label('Country')
           ->searchable()
-          ->toggleable(isToggledHiddenByDefault: true),
+          ->sortable(),
 
         Tables\Columns\TextColumn::make('billboards_count')
           ->counts('billboards')
@@ -135,8 +152,10 @@ class LocationResource extends Resource
           ->sortable(),
       ])
       ->filters([
-        Tables\Filters\SelectFilter::make('country')
-          ->options(self::getCountryOptions())
+        Tables\Filters\SelectFilter::make('country_code')
+          ->label('Country')
+          ->options(fn () => Country::where('is_active', true)
+            ->pluck('name', 'code'))
           ->searchable(),
 
         Tables\Filters\Filter::make('has_billboards')
@@ -182,14 +201,5 @@ class LocationResource extends Resource
   public static function getNavigationBadge(): ?string
   {
     return static::getModel()::count();
-  }
-
-  private static function getCountryOptions(): array
-  {
-    return [
-      'MW' => 'Malawi',
-      'ZM' => 'Zambia',
-      'ZW' => 'Zimbabwe'
-    ];
   }
 }

@@ -250,7 +250,7 @@ class BillboardResource extends Resource
                   ->selectablePlaceholder(false)
                   ->native(false) // This enables custom styling
                   ->formatStateUsing(function (?string $state): string {
-                    return Billboard::getPhysicalStatuses()[$state] ?? '';
+                    return Billboard::getPhysicalStatuses()[$state] ?? $state;
                   })
                   ->columnSpan(2)
               ])
@@ -334,13 +334,13 @@ class BillboardResource extends Resource
 
         Tables\Columns\TextColumn::make('physical_status')
           ->badge()
-          ->color(fn(string $state): string => match ($state) {
+          ->color(fn(string $state): string => match (strtolower($state)) {
             Billboard::PHYSICAL_STATUS_OPERATIONAL => 'success',
             Billboard::PHYSICAL_STATUS_MAINTENANCE => 'warning',
             Billboard::PHYSICAL_STATUS_DAMAGED => 'danger',
             default => 'gray',
           })
-          ->formatStateUsing(fn(string $state): string => Billboard::getPhysicalStatuses()[$state])
+          ->formatStateUsing(fn(string $state): string => Billboard::getPhysicalStatuses()[strtolower($state)])
           ->sortable(),
 
         Tables\Columns\TextColumn::make('current_revenue')
