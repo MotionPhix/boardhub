@@ -26,6 +26,24 @@ class SettingsSeeder extends Seeder
       'name' => 'Malawian Kwacha',
     ], 'currency');
 
+    Settings::set('currency_settings', [
+      'MWK' => [
+        'code' => 'MWK',
+        'symbol' => 'MK',
+        'name' => 'Malawian Kwacha',
+      ],
+      'USD' => [
+        'code' => 'USD',
+        'symbol' => '$',
+        'name' => 'US Dollar',
+      ],
+      'ZMW' => [
+        'code' => 'ZMW',
+        'symbol' => 'ZK',
+        'name' => 'Zambian Kwacha',
+      ],
+    ], 'currency');
+
     // Localization Settings
     Settings::set('localization', [
       'timezone' => 'Africa/Blantyre',

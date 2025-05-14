@@ -71,8 +71,6 @@ class Settings extends Model implements HasMedia
   public static function getDocumentSettings(): array
   {
     return static::get('document_settings', [
-      'invoice_prefix' => 'INV-',
-      'invoice_footer_text' => null,
       'contract_footer_text' => null,
       'default_payment_terms' => [
         ['days' => 30, 'description' => 'Net 30'],
@@ -84,7 +82,7 @@ class Settings extends Model implements HasMedia
 
   public static function getAvailableCurrencies(): array
   {
-    return [
+    return static::get('currency_settings', [
       'MWK' => [
         'code' => 'MWK',
         'symbol' => 'MK',
@@ -100,7 +98,7 @@ class Settings extends Model implements HasMedia
         'symbol' => 'ZK',
         'name' => 'Zambian Kwacha',
       ],
-    ];
+    ]);
   }
 
   public static function getAvailableCountries(): array

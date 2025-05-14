@@ -53,9 +53,9 @@ class Billboard extends Model implements HasMedia
     return $this->belongsToMany(Contract::class, 'billboard_contract')
       ->using(BillboardContract::class)
       ->withPivot([
-        'base_price',
-        'discount_amount',
-        'final_price',
+        'billboard_base_price',
+        'billboard_discount_amount',
+        'billboard_final_price',
         'booking_status',
         'notes'
       ])

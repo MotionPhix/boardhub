@@ -2,6 +2,7 @@
 
 namespace App\Filament\Resources\LocationResource\RelationManagers;
 
+use App\Models\Settings;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
@@ -19,16 +20,15 @@ class BillboardsRelationManager extends RelationManager
     return $form
       ->schema([
         Forms\Components\TextInput::make('name')
+          ->label('Site')
           ->required()
-          ->maxLength(255),
+          ->maxLength(255)
+          ->columnSpanFull(),
+
         Forms\Components\TextInput::make('size')
+          ->helperText('The format should be Wm x Hm e.g. 12m x 6m')
           ->required(),
-        Forms\Components\TextInput::make('type')
-          ->required(),
-        Forms\Components\TextInput::make('base_price')
-          ->required()
-          ->numeric()
-          ->prefix('MK'),
+
         Forms\Components\Select::make('physical_status')
           ->options([
             'operational' => 'Operational',
@@ -37,9 +37,22 @@ class BillboardsRelationManager extends RelationManager
           ])
           ->required()
           ->default('operational'),
-        Forms\Components\Textarea::make('description')
-          ->maxLength(65535)
-          ->columnSpanFull(),
+
+        Forms\Components\TextInput::make('base_price')
+          ->label('Booking Fee')
+          ->required()
+          ->numeric()
+          ->prefix(fn($record) => $record?->currency_code
+            ?? Settings::getDefaultCurrency()['code']
+            ?? 'MWK'),
+
+        Forms\Components\Select::make('currency_code')
+          ->label('Currency')
+          ->options(fn() => collect(Settings::getAvailableCurrencies())
+            ->pluck('code', 'code')
+            ->toArray())
+          ->default(fn() => Settings::getDefaultCurrency()['code'] ?? 'MWK')
+          ->required(),
       ]);
   }
 
@@ -48,14 +61,18 @@ class BillboardsRelationManager extends RelationManager
     return $table
       ->columns([
         Tables\Columns\TextColumn::make('name')
+          ->label('Site')
           ->searchable(),
+
         Tables\Columns\TextColumn::make('size')
           ->searchable(),
-        Tables\Columns\TextColumn::make('type')
-          ->searchable(),
+        
         Tables\Columns\TextColumn::make('base_price')
-          ->money()
+          ->label('Booking Fee')
+          ->money(fn ($record) => $record->currency_code
+            ?? Settings::getDefaultCurrency()['code'] ?? 'MWK')
           ->sortable(),
+
         Tables\Columns\TextColumn::make('physical_status')
           ->badge()
           ->colors([
@@ -63,9 +80,10 @@ class BillboardsRelationManager extends RelationManager
             'warning' => 'maintenance',
             'danger' => 'damaged',
           ]),
+
         Tables\Columns\TextColumn::make('current_contract.contract_number')
           ->label('Active Contract')
-          ->placeholder('-'),
+          ->placeholder('Not on contract'),
       ])
       ->filters([
         Tables\Filters\SelectFilter::make('physical_status')
@@ -79,8 +97,10 @@ class BillboardsRelationManager extends RelationManager
         Tables\Actions\CreateAction::make(),
       ])
       ->actions([
-        Tables\Actions\EditAction::make(),
-        Tables\Actions\DeleteAction::make(),
+        Tables\Actions\ActionGroup::make([
+          Tables\Actions\EditAction::make(),
+          Tables\Actions\DeleteAction::make(),
+        ]),
       ])
       ->bulkActions([
         Tables\Actions\BulkActionGroup::make([
