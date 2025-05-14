@@ -38,13 +38,20 @@ class ViewLocation extends ViewRecord
 
           Infolists\Components\Grid::make(3)
             ->schema([
-              Infolists\Components\TextEntry::make('city')
-                ->icon('heroicon-m-building-office-2'),
-              Infolists\Components\TextEntry::make('state')
-                ->icon('heroicon-m-map'),
-              Infolists\Components\TextEntry::make('country')
-                ->formatStateUsing(fn ($record) => $record->getCountryName())
-                ->icon('heroicon-m-globe-alt'),
+              Infolists\Components\TextEntry::make('city.name')
+                ->label('City')
+                ->icon('heroicon-m-building-office-2')
+                ->color('gray'),
+
+              Infolists\Components\TextEntry::make('state.name')
+                ->label('State/Region')
+                ->icon('heroicon-m-map')
+                ->color('gray'),
+
+              Infolists\Components\TextEntry::make('country.name')
+                ->label('Country')
+                ->icon('heroicon-m-globe-alt')
+                ->color('gray'),
             ]),
 
           // Record History Section
@@ -144,15 +151,6 @@ class ViewLocation extends ViewRecord
                   ->copyable()
                   ->copyMessage('Billboard name copied!')
                   ->copyMessageDuration(1500),
-
-                Infolists\Components\TextEntry::make('type')
-                  ->badge()
-                  ->color(fn (string $state): string => match ($state) {
-                    'static' => 'gray',
-                    'digital' => 'success',
-                    'mobile' => 'warning',
-                    default => 'gray',
-                  }),
 
                 Infolists\Components\TextEntry::make('size')
                   ->icon('heroicon-m-arrows-pointing-out')

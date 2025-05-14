@@ -13,7 +13,10 @@ use App\Models\State;
 use Filament\Forms;
 use Filament\Forms\Components\Actions\Action;
 use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 use Filament\Resources\Resource;
+use Filament\Support\Enums\MaxWidth;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
@@ -61,131 +64,35 @@ class BillboardResource extends Resource
                     return $state;
                   }),
 
-                /*Forms\Components\Select::make('location_id')
-                  ->relationship(
-                    'location',
-                    'name',
-                    fn ($query) => $query->with(['city', 'state', 'country'])
-                  )
-                  ->required()
-                  ->searchable()
-                  ->preload()
-                  ->createOptionForm([
-                    Forms\Components\Select::make('country_code')
-                      ->label('Country')
-                      ->options(Country::query()
-                        ->where('is_active', true)
-                        ->pluck('name', 'code'))
-                      ->required()
-                      ->searchable()
-                      ->preload()
-                      ->live()
-                      ->afterStateUpdated(fn (callable $set) => $set('state_code', null)),
-
-                    Forms\Components\Select::make('state_code')
-                      ->label('State/Region')
-                      ->options(fn (callable $get): Collection => State::query()
-                        ->where('country_code', $get('country_code'))
-                        ->where('is_active', true)
-                        ->pluck('name', 'code'))
-                      ->required()
-                      ->searchable()
-                      ->preload()
-                      ->live()
-                      ->visible(fn (callable $get) => filled($get('country_code')))
-                      ->afterStateUpdated(fn (callable $set) => $set('city_code', null)),
-
-                    Forms\Components\Select::make('city_code')
-                      ->label('City')
-                      ->options(fn (callable $get): Collection => City::query()
-                        ->where('state_code', $get('state_code'))
-                        ->where('is_active', true)
-                        ->pluck('name', 'code'))
-                      ->required()
-                      ->searchable()
-                      ->preload()
-                      ->live()
-                      ->visible(fn (callable $get) => filled($get('state_code'))),
-
-                    Forms\Components\TextInput::make('name')
-                      ->label('Area/Township')
-                      ->placeholder('Area or part of the city, e.g. Area 25')
-                      ->helperText('Specific area, neighborhood, or landmark within the city')
-                      ->required()
-                      ->maxLength(255),
-
-                    Forms\Components\MarkdownEditor::make('description')
-                      ->label('Description')
-                      ->placeholder('Additional details about this location')
-                      ->helperText('Include any relevant information about accessibility, surroundings, or special characteristics')
-                      ->columnSpanFull(),
-
-                    Forms\Components\Toggle::make('is_active')
-                      ->label('Active')
-                      ->helperText('Inactive locations will not be available for billboard placement')
-                      ->default(true),
-                  ])
-                  ->createOptionAction(function (Action $action) {
-                    return $action
-                      ->modalWidth('lg')
-                      ->modalHeading('Add New Location')
-                      ->modalDescription('Create a new location for billboard placement')
-                      ->modalIcon('heroicon-o-map-pin')
-                      ->closeModalByClickingAway(false);
-                  })
-                  ->createOptionUsing(function (array $data, Forms\Set $set): Model {
-                    $location = Location::create([
-                      ...array_filter($data), // Remove any null values
-                      'code' => Location::generateLocationCode($data['city_code']),
-                    ]);
-
-                    // Ensure the new location is selected
-                    $set('location_id', $location->id);
-
-                    return $location;
-                  })
-                  ->getSearchResultsUsing(function (string $search): array {
-                    return Location::query()
-                      ->where('is_active', true)
-                      ->where('name', 'like', "%{$search}%")
-                      ->with(['city', 'state', 'country'])
-                      ->limit(50)
-                      ->get()
-                      ->map(function ($location) {
-                        return [
-                          'id' => $location->id,
-                          'name' => $location->name . ' - ' . $location->city?->name,
-                        ];
-                      })
-                      ->toArray();
-                  })
-                  ->getOptionLabelUsing(fn ($value): ?string => Location::find($value)?->name)
-                  ->live(),*/
-
                 Forms\Components\Select::make('location_id')
                   ->relationship('location', 'name')
                   ->required()
                   ->searchable()
                   ->preload()
-                  ->live()
-                  ->afterStateUpdated(function ($state, Forms\Set $set) {
-                    // Clear dependent fields if location is changed/cleared
-                    if (blank($state)) {
-                      $set('code', null);
-                      return;
-                    }
+                  ->createOptionAction(function (Action $action) {
+                    return $action
+                      ->modalWidth(MaxWidth::Large)
+                      ->stickyModalHeader()
+                      ->modalHeading('Add New Location')
+                      ->modalDescription('Create a new location for billboard placement')
+                      ->modalIcon('heroicon-o-map-pin')
+                      ->closeModalByClickingAway(false);
                   })
                   ->createOptionForm([
                     Forms\Components\Select::make('country_code')
                       ->label('Country')
-                      ->options(Country::query()
-                        ->where('is_active', true)
-                        ->pluck('name', 'code'))
                       ->required()
-                      ->searchable()
                       ->preload()
-                      ->live()
-                      ->afterStateUpdated(fn (Forms\Set $set) => $set('state_code', null)),
+                      ->options(function () {
+                        return \App\Models\Country::query()
+                          ->where('is_active', true)
+                          ->pluck('name', 'code');
+                      })
+                      ->default(function () {
+                        return \App\Models\Country::where('is_default', true)
+                          ->first()?->code;
+                      })
+                      ->live(),
 
                     Forms\Components\Select::make('state_code')
                       ->label('State/Region')
@@ -202,15 +109,28 @@ class BillboardResource extends Resource
 
                     Forms\Components\Select::make('city_code')
                       ->label('City')
-                      ->options(fn (Forms\Get $get): Collection => City::query()
-                        ->where('state_code', $get('state_code'))
-                        ->where('is_active', true)
-                        ->pluck('name', 'code'))
                       ->required()
+                      ->options(function (callable $get) {
+                        $stateCode = $get('state_code');
+                        if (!$stateCode) return [];
+
+                        return \App\Models\City::query()
+                          ->where('state_code', $stateCode)
+                          ->where('is_active', true)
+                          ->pluck('name', 'code');
+                      })
                       ->searchable()
                       ->preload()
                       ->live()
-                      ->visible(fn (Forms\Get $get) => filled($get('state_code'))),
+                      ->visible(fn (Forms\Get $get) => filled($get('state_code')))
+                      ->afterStateUpdated(function ($state, callable $set) {
+                        if ($state) {
+                          $city = \App\Models\City::where('code', $state)->first();
+                          if ($city) {
+                            $set('name', "Enter a township within {$city->name} city");
+                          }
+                        }
+                      }),
 
                     Forms\Components\TextInput::make('name')
                       ->label('Area/Township')
@@ -219,41 +139,11 @@ class BillboardResource extends Resource
                       ->required()
                       ->maxLength(255),
 
-                    Forms\Components\MarkdownEditor::make('description')
-                      ->label('Description')
-                      ->placeholder('Additional details about this location')
-                      ->helperText('Include any relevant information about accessibility, surroundings, or special characteristics')
-                      ->columnSpanFull(),
-
                     Forms\Components\Toggle::make('is_active')
                       ->label('Active')
                       ->helperText('Inactive locations will not be available for billboard placement')
                       ->default(true),
-                  ])
-                  ->createOptionAction(function (Action $action) {
-                    return $action
-                      ->modalWidth('lg')
-                      ->modalHeading('Add New Location')
-                      ->modalDescription('Create a new location for billboard placement')
-                      ->modalIcon('heroicon-o-map-pin')
-                      ->closeModalByClickingAway(false);
-                  })
-                  ->createOptionUsing(function (array $data, Forms\Set $set): Model {
-                    return DB::transaction(function () use ($data, $set) {
-                      $location = Location::create([
-                        ...array_filter($data),
-                        'code' => Location::generateLocationCode($data['city_code']),
-                      ]);
-
-                      // Set the newly created location ID in the form state
-                      $set('location_id', $location->id);
-
-                      return $location;
-                    });
-                  })
-                  ->optionsLimit(15)
-                  ->prefixIcon('heroicon-m-map-pin')
-                  ->helperText('Select an existing location or create a new one'),
+                  ]),
 
                 Forms\Components\TextInput::make('size')
                   ->placeholder('The format should be Wm x Hm')
