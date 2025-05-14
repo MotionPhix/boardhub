@@ -96,7 +96,7 @@ class BillboardResource extends Resource
 
                     Forms\Components\Select::make('state_code')
                       ->label('State/Region')
-                      ->options(fn (Forms\Get $get): Collection => State::query()
+                      ->options(fn(Forms\Get $get): Collection => State::query()
                         ->where('country_code', $get('country_code'))
                         ->where('is_active', true)
                         ->pluck('name', 'code'))
@@ -104,8 +104,8 @@ class BillboardResource extends Resource
                       ->searchable()
                       ->preload()
                       ->live()
-                      ->visible(fn (Forms\Get $get) => filled($get('country_code')))
-                      ->afterStateUpdated(fn (Forms\Set $set) => $set('city_code', null)),
+                      ->visible(fn(Forms\Get $get) => filled($get('country_code')))
+                      ->afterStateUpdated(fn(Forms\Set $set) => $set('city_code', null)),
 
                     Forms\Components\Select::make('city_code')
                       ->label('City')
@@ -122,7 +122,7 @@ class BillboardResource extends Resource
                       ->searchable()
                       ->preload()
                       ->live()
-                      ->visible(fn (Forms\Get $get) => filled($get('state_code')))
+                      ->visible(fn(Forms\Get $get) => filled($get('state_code')))
                       ->afterStateUpdated(function ($state, callable $set) {
                         if ($state) {
                           $city = \App\Models\City::where('code', $state)->first();
@@ -200,15 +200,17 @@ class BillboardResource extends Resource
                   ->inline(),*/
 
                 Forms\Components\Radio::make('is_active')
-                  ->label('The billboard is')
+                  ->label('Is the billboard available for booking')
                   ->boolean()
                   ->inline()
                   ->inlineLabel(false)
                   ->columnSpanFull()
                   ->descriptions([
-                    true => 'Ready for booking.',
-                    false => 'Has issues that needs fixing',
-                  ]),
+                    true => 'It is ready for booking.',
+                    false => 'It has issues that needs fixing',
+                  ])
+                  ->disableOptionWhen(fn($get) => $get('physical_status') !== 'operational')
+                  ->live(),
 
                 Forms\Components\Select::make('physical_status')
                   ->label('Physical Status')
@@ -221,6 +223,10 @@ class BillboardResource extends Resource
                   ->formatStateUsing(function (?string $state): string {
                     return Billboard::getPhysicalStatuses()[$state] ?? $state;
                   })
+                  ->live()
+                  ->afterStateUpdated(
+                    fn($state, $set) => $set('is_active', !($state !== 'operational'))
+                  )
                   ->columnSpan(2)
               ])
               ->columns(3),

@@ -114,12 +114,15 @@ class ContractsRelationManager extends RelationManager
         Tables\Columns\TextColumn::make('contract_number')
           ->searchable()
           ->sortable(),
+
         Tables\Columns\TextColumn::make('client.name')
           ->searchable()
           ->sortable(),
+
         Tables\Columns\TextColumn::make('total_amount')
           ->money()
           ->sortable(),
+
         Tables\Columns\TextColumn::make('agreement_status')
           ->badge()
           ->colors([
@@ -128,10 +131,12 @@ class ContractsRelationManager extends RelationManager
             'success' => 'active',
             'gray' => 'completed',
           ]),
+
         Tables\Columns\TextColumn::make('pivot.price')
           ->money()
           ->label('Billboard Price')
           ->sortable(),
+
         Tables\Columns\TextColumn::make('pivot.booking_status')
           ->badge()
           ->color(fn (string $state) => match ($state) {
@@ -152,12 +157,16 @@ class ContractsRelationManager extends RelationManager
             'completed' => 'Completed',
             'cancelled' => 'Cancelled',
           ]),
+
         Tables\Filters\SelectFilter::make('booking_status')
-          ->options(collect(BookingStatus::cases())->pluck('value', 'value')),
+          ->options(
+            collect(BookingStatus::cases())->pluck('value', 'value')
+          ),
+
         Tables\Filters\Filter::make('active')
           ->query(fn (Builder $query): Builder => $query
             ->where('agreement_status', 'active')
-            ->wherePivot('booking_status', BookingStatus::IN_USE->value))
+            ->where('booking_status', BookingStatus::IN_USE->value))
           ->toggle(),
       ])
       ->headerActions([
