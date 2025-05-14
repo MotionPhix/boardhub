@@ -18,7 +18,10 @@ return new class extends Migration {
       $table->decimal('billboard_final_price', 10, 2);
 
       // Status and notes
-      $table->enum('booking_status', ['available', 'in_use', 'completed', 'cancelled'])->default('available');
+      $table->enum('booking_status', [
+        'pending', 'confirmed', 'in_use', 'completed', 'cancelled'
+      ])->default('pending');
+
       $table->text('notes')->nullable();
 
       $table->timestamps();
