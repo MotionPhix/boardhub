@@ -49,7 +49,7 @@ class Billboard extends Model implements HasMedia
   const PHYSICAL_STATUS_DAMAGED = 'damaged';
   const PHYSICAL_STATUS_REMOVED = 'removed';
   const PHYSICAL_STATUS_STOLEN = 'stolen';
-  
+
   public function contracts(): BelongsToMany
   {
     return $this->belongsToMany(Contract::class, 'billboard_contract')
@@ -96,8 +96,8 @@ class Billboard extends Model implements HasMedia
     }
 
     return Attribute::make(
-      get: fn() => $this->getAttribute('current_contract') ? 'occupied' : 'available';
-    )
+      get: fn() => $this->getAttribute('current_contract') ? 'occupied' : 'available',
+    );
   }
 
   // Price-related methods
