@@ -66,19 +66,35 @@ class BillboardsRelationManager extends RelationManager
 
         Tables\Columns\TextColumn::make('size')
           ->searchable(),
-        
+
         Tables\Columns\TextColumn::make('base_price')
           ->label('Booking Fee')
-          ->money(fn ($record) => $record->currency_code
+          ->money(fn($record) => $record->currency_code
             ?? Settings::getDefaultCurrency()['code'] ?? 'MWK')
           ->sortable(),
 
         Tables\Columns\TextColumn::make('physical_status')
           ->badge()
+          ->formatStateUsing(fn(string $state): string => match ($state) {
+            'operational' => 'Operational',
+            'maintenance' => 'Under Maintenance',
+            'damaged' => 'Damaged',
+            'removed' => 'Removed',
+            'stolen' => 'Stolen',
+          })
+          ->icon(fn(string $state): string => match ($state) {
+            'operational' => 'heroicon-m-check-circle',
+            'maintenance' => 'heroicon-m-wrench-screwdriver',
+            'damaged' => 'heroicon-m-exclamation-triangle',
+            'removed' => 'heroicon-m-question-mark-circle',
+            'stolen' => 'heroicon-m-question-mark-circle',
+          })
           ->colors([
             'success' => 'operational',
             'warning' => 'maintenance',
             'danger' => 'damaged',
+            'gray' => 'removed',
+            'pink' => 'stolen',
           ]),
 
         Tables\Columns\TextColumn::make('current_contract.contract_number')

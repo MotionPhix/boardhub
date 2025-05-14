@@ -47,7 +47,9 @@ class Billboard extends Model implements HasMedia
   const PHYSICAL_STATUS_OPERATIONAL = 'operational';
   const PHYSICAL_STATUS_MAINTENANCE = 'maintenance';
   const PHYSICAL_STATUS_DAMAGED = 'damaged';
-
+  const PHYSICAL_STATUS_REMOVED = 'removed';
+  const PHYSICAL_STATUS_STOLEN = 'stolen';
+  
   public function contracts(): BelongsToMany
   {
     return $this->belongsToMany(Contract::class, 'billboard_contract')
@@ -73,30 +75,36 @@ class Billboard extends Model implements HasMedia
       self::PHYSICAL_STATUS_OPERATIONAL => 'Operational',
       self::PHYSICAL_STATUS_MAINTENANCE => 'Under Maintenance',
       self::PHYSICAL_STATUS_DAMAGED => 'Damaged',
+      self::PHYSICAL_STATUS_REMOVED => 'Removed',
+      self::PHYSICAL_STATUS_STOLEN => 'Stolen',
     ];
   }
 
-  public function getCurrentContractAttribute()
+  public function currentContract(): Attribute
   {
-    return $this->contracts()
-      ->wherePivot('booking_status', 'in_use')
-      ->first();
+    return Attribute::get(
+      fn() => $this->contracts()
+        ->wherePivot('booking_status', 'in_use')
+        ->first()
+    );
   }
 
-  public function getAvailabilityStatusAttribute(): string
+  public function availabilityStatus(): Attribute
   {
-    if ($this->physical_status !== self::PHYSICAL_STATUS_OPERATIONAL) {
-      return $this->physical_status;
+    if ($this->getAttribute('physical_status') !== self::PHYSICAL_STATUS_OPERATIONAL) {
+      return Attribute::get(fn() => $this->getAttribute('physical_status'));
     }
 
-    return $this->current_contract ? 'occupied' : 'available';
+    return Attribute::make(
+      get: fn() => $this->getAttribute('current_contract') ? 'occupied' : 'available';
+    )
   }
 
   // Price-related methods
   public function formattedBasePrice(): Attribute
   {
     return Attribute::make(
-      get: fn() => $this->formatMoney($this->base_price)
+      get: fn() => $this->formatMoney($this->getAttribute('base_price'))
     );
   }
 
