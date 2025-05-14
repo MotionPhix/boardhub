@@ -36,29 +36,20 @@ class LocationResource extends Resource
       ->schema([
         Forms\Components\Group::make()
           ->schema([
-            Forms\Components\Section::make('Basic Information')
+            Forms\Components\Section::make('Location Status')
               ->schema([
-                Forms\Components\TextInput::make('name')
-                  ->required()
-                  ->maxLength(255)
-                  ->live(onBlur: true)
-                  ->afterStateUpdated(function (string $operation, $state, Forms\Set $set) {
-                    if ($operation === 'create') {
-                      $set('slug', Str::slug($state));
-                    }
-                  }),
-
                 Forms\Components\Toggle::make('is_active')
                   ->label('Council Cleared')
                   ->default(true)
+                  ->columnSpanFull()
                   ->helperText('Uncleared locations will not be available for new billboards'),
 
-                Forms\Components\MarkdownEditor::make('description')
-                  ->columnSpanFull(),
+                /*Forms\Components\MarkdownEditor::make('description')
+                  ->columnSpanFull(),*/
               ])
               ->columns(2),
 
-            Forms\Components\Section::make('Address Details')
+            Forms\Components\Section::make('Location Details')
               ->schema([
                 Forms\Components\Select::make('country_code')
                   ->label('Country')
@@ -88,6 +79,17 @@ class LocationResource extends Resource
                   ->required()
                   ->searchable()
                   ->visible(fn (Get $get) => filled($get('state_code'))),
+
+                Forms\Components\TextInput::make('name')
+                  ->required()
+                  ->label('Area/Township')
+                  ->maxLength(255)
+                  ->live(onBlur: true)
+                  ->afterStateUpdated(function (string $operation, $state, Forms\Set $set) {
+                    if ($operation === 'create') {
+                      $set('slug', Str::slug($state));
+                    }
+                  }),
               ])
               ->columns(2),
           ])
@@ -95,7 +97,7 @@ class LocationResource extends Resource
 
         Forms\Components\Group::make()
           ->schema([
-            Forms\Components\Section::make('Status')
+            Forms\Components\Section::make('Quick Stats')
               ->schema([
                 Forms\Components\Placeholder::make('billboards_count')
                   ->label('Total Billboards')

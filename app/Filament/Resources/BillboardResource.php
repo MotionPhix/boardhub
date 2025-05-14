@@ -192,12 +192,23 @@ class BillboardResource extends Resource
               ])
               ->columns(2),
 
-            Forms\Components\Section::make('Status')
+            Forms\Components\Section::make('Billboard Status')
               ->schema([
-                Forms\Components\Toggle::make('is_active')
+                /*Forms\Components\Toggle::make('is_active')
                   ->label('Active')
                   ->default(true)
-                  ->inline(),
+                  ->inline(),*/
+
+                Forms\Components\Radio::make('is_active')
+                  ->label('The billboard is')
+                  ->boolean()
+                  ->inline()
+                  ->inlineLabel(false)
+                  ->columnSpanFull()
+                  ->descriptions([
+                    true => 'Ready for booking.',
+                    false => 'Has issues that needs fixing',
+                  ]),
 
                 Forms\Components\Select::make('physical_status')
                   ->label('Physical Status')

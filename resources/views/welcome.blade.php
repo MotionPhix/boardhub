@@ -1,4 +1,4 @@
-<x-app>
+<x-layouts.app>
 
   <div x-data="{ mobileMenuOpen: false }">
     <!-- Navigation -->
@@ -366,4 +366,4 @@
     </footer>
   </div>
 
-</x-app>
+</x-layouts.app>

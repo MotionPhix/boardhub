@@ -40,17 +40,22 @@ class ViewBillboard extends ViewRecord
           Grid::make(2)->schema([
             TextEntry::make('current_contract.contract_number')
               ->label('Contract Number'),
+
             TextEntry::make('current_contract.client.name')
               ->label('Client'),
+
             TextEntry::make('current_contract.start_date')
               ->label('Start Date')
               ->date(),
+
             TextEntry::make('current_contract.end_date')
               ->label('End Date')
               ->date(),
+
             TextEntry::make('current_contract.pivot.billboard_base_price')
               ->label('Base Price')
               ->money('MWK'),
+
             TextEntry::make('current_contract.pivot.billboard_final_price')
               ->label('Final Price')
               ->money('MWK'),

@@ -50,6 +50,9 @@ class Billboard extends Model implements HasMedia
   const PHYSICAL_STATUS_REMOVED = 'removed';
   const PHYSICAL_STATUS_STOLEN = 'stolen';
 
+  /**
+   * Get the contracts associated with the billboard
+   */
   public function contracts(): BelongsToMany
   {
     return $this->belongsToMany(Contract::class, 'billboard_contract')
@@ -64,11 +67,17 @@ class Billboard extends Model implements HasMedia
       ->withTimestamps();
   }
 
+  /**
+   * Get the location that owns the billboard
+   */
   public function location(): BelongsTo
   {
     return $this->belongsTo(Location::class);
   }
 
+  /**
+   * Get the physical statuses with their labels
+   */
   public static function getPhysicalStatuses(): array
   {
     return [
@@ -80,53 +89,58 @@ class Billboard extends Model implements HasMedia
     ];
   }
 
+  /**
+   * Get/Set the physical status (ensuring lowercase)
+   */
+  protected function physicalStatus(): Attribute
+  {
+    return Attribute::make(
+      get: fn (string $value) => strtolower($value),
+      set: fn (string $value) => strtolower($value)
+    );
+  }
+
+  /**
+   * Get the current contract for the billboard
+   */
   public function currentContract(): Attribute
   {
-    return Attribute::get(
-      fn() => $this->contracts()
+    return Attribute::make(
+      get: fn () => $this->contracts()
         ->wherePivot('booking_status', 'in_use')
         ->first()
     );
   }
 
+  /**
+   * Get the availability status of the billboard
+   */
   public function availabilityStatus(): Attribute
   {
-    if ($this->getAttribute('physical_status') !== self::PHYSICAL_STATUS_OPERATIONAL) {
-      return Attribute::get(fn() => $this->getAttribute('physical_status'));
-    }
-
     return Attribute::make(
-      get: fn() => $this->getAttribute('current_contract') ? 'occupied' : 'available',
+      get: function () {
+        if ($this->physical_status !== self::PHYSICAL_STATUS_OPERATIONAL) {
+          return $this->physical_status;
+        }
+
+        return $this->current_contract ? 'occupied' : 'available';
+      }
     );
   }
 
-  // Price-related methods
+  /**
+   * Get the formatted base price
+   */
   public function formattedBasePrice(): Attribute
   {
     return Attribute::make(
-      get: fn() => $this->formatMoney($this->getAttribute('base_price'))
+      get: fn () => $this->formatMoney($this->base_price)
     );
   }
 
-  /*public function registerMediaCollections(): void
-  {
-    $this->addMediaCollection('billboard-images')
-      ->useDisk('public')
-      ->registerMediaConversions(function () {
-        $this
-          ->addMediaConversion('thumb')
-          ->fit(Fit::Crop, 300, 200)
-          ->sharpen(10)
-          ->optimize();
-
-        $this
-          ->addMediaConversion('preview')
-          ->fit(Fit::Contain, 800, 600)
-          ->sharpen(10)
-          ->optimize();
-      });
-  }*/
-
+  /**
+   * Register media collections and conversions
+   */
   public function registerMediaCollections(): void
   {
     $this->addMediaCollection('billboard_images')
@@ -202,12 +216,18 @@ class Billboard extends Model implements HasMedia
     parent::boot();
 
     static::creating(function ($billboard) {
+
       if (!$billboard->currency_code) {
         $billboard->currency_code = Settings::getDefaultCurrency()['currency_code'] ?? 'MWK';
       }
 
       if (!$billboard->code) {
         $billboard->code = static::generateBillboardCode($billboard->location->city);
+      }
+
+      // Ensure physical_status is set to a valid value
+      if (!$billboard->physical_status) {
+        $billboard->physical_status = self::PHYSICAL_STATUS_OPERATIONAL;
       }
 
     });

@@ -140,7 +140,7 @@ class ViewLocation extends ViewRecord
           ->columnSpan(['lg' => 1]),
 
         // Billboards List Section
-        Infolists\Components\Section::make('Billboards')
+        /*Infolists\Components\Section::make('Billboards')
           ->description('List of all billboards in this location')
           ->icon('heroicon-m-rectangle-stack')
           ->schema([
@@ -181,7 +181,7 @@ class ViewLocation extends ViewRecord
           ])
           ->collapsible()
           ->columnSpan('full')
-          ->hidden(fn($record) => $record->billboards()->count() === 0),
+          ->hidden(fn($record) => $record->billboards()->count() === 0),*/
       ])
       ->columns(3);
   }
