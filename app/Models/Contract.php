@@ -49,6 +49,9 @@ class Contract extends Model implements HasMedia
     'contract_final_amount' => 'decimal:2',
     'last_notification_sent_at' => 'datetime',
     'notification_count' => 'integer',
+    'signed_at' => 'datetime',
+    'signatures' => 'array',
+    'metadata' => 'array',
   ];
 
   // Status Constants
