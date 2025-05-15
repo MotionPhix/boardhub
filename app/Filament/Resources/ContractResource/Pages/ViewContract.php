@@ -33,6 +33,9 @@ class ViewContract extends ViewRecord
   public function infolist(Infolist $infolist): Infolist
   {
     $currency = Settings::getDefaultCurrency();
+    $documentSettings = Settings::get('document_settings');
+    $paymentTerms = collect($documentSettings['default_payment_terms'] ?? [])
+      ->firstWhere('days', $this->record->payment_terms);
 
     return $infolist
       ->schema([
@@ -66,7 +69,7 @@ class ViewContract extends ViewRecord
               ->schema([
                 Components\TextEntry::make('client.name')
                   ->label('Client')
-                  ->url(fn ($record) => route('filament.admin.resources.clients.view', $record->client))
+                  ->url(fn ($record) => route('filament.auth.resources.clients.view', $record->client))
                   ->openUrlInNewTab(),
 
                 Components\TextEntry::make('client.company')
@@ -94,7 +97,13 @@ class ViewContract extends ViewRecord
                   ->weight(FontWeight::Bold),
 
                 Components\TextEntry::make('payment_terms')
-                  ->label('Payment Terms'),
+                  ->label('Payment Terms')
+                  ->formatStateUsing(function ($state) use ($paymentTerms) {
+                    if ($paymentTerms) {
+                      return "{$paymentTerms['description']} ({$paymentTerms['days']} days)";
+                    }
+                    return $state ? "{$state} days" : 'Not specified';
+                  }),
               ]),
 
             Components\Grid::make(1)
@@ -144,8 +153,7 @@ class ViewContract extends ViewRecord
               ]),
           ])
           ->collapsible()
-          ->collapsed()
-          ->columnSpan(['lg' => 1]),
+          ->columnSpan(2),
       ])
       ->columns(3);
   }

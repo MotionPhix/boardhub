@@ -71,18 +71,35 @@ class BillboardContract extends Pivot
       // Calculate billboard_final_price
       $pivot->billboard_final_price = $pivot->billboard_base_price - ($pivot->billboard_discount_amount ?? 0);
 
-      // Always set booking_status to IN_USE when creating
-      $pivot->booking_status = BookingStatus::IN_USE;
+      // Get the contract
+      $contract = Contract::find($pivot->contract_id);
 
-      // Check if billboard is already in use
+      // Set initial booking status based on contract status
+      $pivot->booking_status = $contract->agreement_status === 'active'
+        ? BookingStatus::IN_USE
+        : BookingStatus::PENDING;
+
+      // Check if billboard is already in use or pending
       $existingBooking = static::where('billboard_id', $pivot->billboard_id)
+        ->where('id', '!=', $pivot->id)
         ->whereIn('booking_status', [BookingStatus::IN_USE->value, BookingStatus::PENDING->value])
-        ->whereHas('contract', function ($query) use ($pivot) {
-          $query->where('id', '!=', $pivot->contract_id)
-            ->whereIn('agreement_status', ['draft', 'active'])
+        ->whereHas('contract', function ($query) use ($contract) {
+          $query->where('id', '!=', $contract->id)
             ->where(function ($q) {
-              $q->whereDate('end_date', '>=', now())
-                ->orWhereNull('end_date');
+              $q->where('agreement_status', 'active')
+                ->orWhere('agreement_status', 'draft');
+            })
+            ->where(function ($q) use ($contract) {
+              if ($contract->start_date && $contract->end_date) {
+                $q->where(function ($q) use ($contract) {
+                  $q->whereBetween('start_date', [$contract->start_date, $contract->end_date])
+                    ->orWhereBetween('end_date', [$contract->start_date, $contract->end_date])
+                    ->orWhere(function ($q) use ($contract) {
+                      $q->where('start_date', '<=', $contract->start_date)
+                        ->where('end_date', '>=', $contract->end_date);
+                    });
+                });
+              }
             });
         })
         ->first();
@@ -99,22 +116,21 @@ class BillboardContract extends Pivot
         $pivot->billboard_final_price = $pivot->billboard_base_price - ($pivot->billboard_discount_amount ?? 0);
       }
 
-      // If trying to change status from IN_USE to anything else
-      if ($pivot->isDirty('booking_status') && $pivot->getOriginal('booking_status') === BookingStatus::IN_USE) {
-        // Only allow if contract is expired or cancelled
+      // Handle status changes based on contract status
+      if ($pivot->isDirty('booking_status')) {
         $contract = Contract::find($pivot->contract_id);
-        if (!$contract || (!$contract->end_date?->isPast() && $contract->agreement_status !== 'cancelled')) {
-          throw new \Exception("Cannot change booking status while contract is active.");
-        }
-      }
-    });
 
-    static::updated(function ($pivot) {
-      // If status changed to COMPLETED or CANCELLED, update billboard availability
-      if ($pivot->isDirty('booking_status') &&
-        in_array($pivot->booking_status, [BookingStatus::COMPLETED, BookingStatus::CANCELLED])) {
-        Billboard::where('id', $pivot->billboard_id)
-          ->update(['is_active' => true]);
+        // If contract is active, booking must be IN_USE
+        if ($contract->agreement_status === 'active' &&
+          $pivot->booking_status !== BookingStatus::IN_USE) {
+          throw new \Exception("Billboards in active contracts must have 'In Use' status.");
+        }
+
+        // If contract is draft, booking must be PENDING
+        if ($contract->agreement_status === 'draft' &&
+          !in_array($pivot->booking_status, [BookingStatus::PENDING->value, BookingStatus::CANCELLED->value])) {
+          throw new \Exception("Billboards in draft contracts can only be 'Pending' or 'Cancelled'.");
+        }
       }
     });
   }
