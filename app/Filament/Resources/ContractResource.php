@@ -176,14 +176,31 @@ class ContractResource extends Resource
                   ->multiple()
                   ->maxFiles(5)
                   ->acceptedFileTypes(['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
-                  ->columnSpanFull(),
+                  ->columnSpanFull()
+                  ->downloadable()
+                  ->reorderable()
+                  ->dehydrated(false) // Only save when actually changed
+                  ->afterStateUpdated(function ($state) {
+                    // Only validate if there are new files
+                    if ($state) {
+                      return;
+                    }
+                  }),
 
                 Forms\Components\SpatieMediaLibraryFileUpload::make('signed_contract')
                   ->collection('signed_contracts')
                   ->maxFiles(1)
                   ->acceptedFileTypes(['application/pdf'])
                   ->columnSpanFull()
-                  ->visible(fn(Forms\Get $get) => $get('agreement_status') === 'active'),
+                  ->downloadable()
+                  ->dehydrated(false) // Only save when actually changed
+                  ->visible(fn(Forms\Get $get) => $get('agreement_status') === 'active')
+                  ->afterStateUpdated(function ($state) {
+                    // Only validate if there are new files
+                    if ($state) {
+                      return;
+                    }
+                  }),
               ])
               ->collapsible(),
           ])

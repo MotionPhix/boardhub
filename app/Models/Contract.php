@@ -125,14 +125,17 @@ class Contract extends Model implements HasMedia
    */
   public function calculateTotals(): void
   {
-    $totals = $this->billboards()
-      ->selectRaw('
-        SUM(billboard_contract.billboard_base_price) as total_base,
-        SUM(billboard_contract.billboard_discount_amount) as total_discount,
-        SUM(billboard_contract.billboard_final_price) as total_final
-      ')
+    // Using a subquery to get the aggregates
+    $totals = DB::table('billboard_contract')
+      ->select(
+        DB::raw('SUM(billboard_base_price) as total_base'),
+        DB::raw('SUM(billboard_discount_amount) as total_discount'),
+        DB::raw('SUM(billboard_final_price) as total_final')
+      )
+      ->where('contract_id', $this->id)
       ->first();
 
+    // Update the contract with the new totals
     $this->update([
       'contract_total' => $totals->total_base ?? 0,
       'contract_discount' => $totals->total_discount ?? 0,
