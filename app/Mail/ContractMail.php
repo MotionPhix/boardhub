@@ -2,52 +2,29 @@
 
 namespace App\Mail;
 
+use App\Models\Contract;
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
-use Illuminate\Mail\Mailables\Content;
-use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
+use Spatie\MediaLibrary\MediaCollections\Models\Media;
 
 class ContractMail extends Mailable
 {
-    use Queueable, SerializesModels;
+  use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     */
-    public function __construct()
-    {
-        //
-    }
+  public function __construct(
+    public Contract $contract,
+    public Media $contractFile
+  ) {}
 
-    /**
-     * Get the message envelope.
-     */
-    public function envelope(): Envelope
-    {
-        return new Envelope(
-            subject: 'Contract Mail',
-        );
-    }
-
-    /**
-     * Get the message content definition.
-     */
-    public function content(): Content
-    {
-        return new Content(
-            view: 'view.name',
-        );
-    }
-
-    /**
-     * Get the attachments for the message.
-     *
-     * @return array<int, \Illuminate\Mail\Mailables\Attachment>
-     */
-    public function attachments(): array
-    {
-        return [];
-    }
+  public function build()
+  {
+    return $this->markdown('emails.contract-mail')
+      ->subject("Contract #{$this->contract->contract_number} - Ready for Review")
+      ->attachFromStorageDisk(
+        $this->contractFile->disk,
+        $this->contractFile->getPath(),
+        $this->contract->contract_number . '.pdf'
+      );
+  }
 }
