@@ -15,6 +15,7 @@ use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Filament\Support\Enums\FontWeight;
 
 class ContractResource extends Resource
 {
@@ -37,35 +38,19 @@ class ContractResource extends Resource
             Forms\Components\Section::make('Contract Details')
               ->schema([
                 Forms\Components\TextInput::make('contract_number')
-                  ->default(fn() => 'CNT-' . date('Y') . '-' .
-                    str_pad((Contract::count() + 1), 5, '0', STR_PAD_LEFT))
+                  ->maxLength(255)
                   ->disabled()
-                  ->dehydrated()
-                  ->required(),
+                  ->dehydrated(),
 
                 Forms\Components\Select::make('client_id')
                   ->relationship('client', 'name')
                   ->required()
                   ->searchable()
-                  ->preload()
-                  ->createOptionForm([
-                    Forms\Components\TextInput::make('name')
-                      ->required()
-                      ->maxLength(255),
-                    Forms\Components\TextInput::make('email')
-                      ->email()
-                      ->required()
-                      ->maxLength(255),
-                    Forms\Components\TextInput::make('phone')
-                      ->tel()
-                      ->maxLength(255),
-                    Forms\Components\TextInput::make('company')
-                      ->maxLength(255),
-                  ]),
+                  ->preload(),
 
                 Forms\Components\DatePicker::make('start_date')
                   ->required()
-                  ->default(now())
+                  ->afterOrEqual('today')
                   ->live()
                   ->afterStateUpdated(fn ($state, Forms\Set $set) =>
                   $set('end_date', $state ? date('Y-m-d', strtotime($state . ' +1 month')) : null)),
@@ -98,73 +83,22 @@ class ContractResource extends Resource
                     'billboards',
                     'name',
                     function ($query) {
-                      return $query->select([
-                        'billboards.id',
-                        'billboards.name',
-                        'billboards.base_price'
-                      ]);
+                      return $query->whereDoesntHave('contracts', function ($q) {
+                        $q->whereIn('agreement_status', ['active', 'pending'])
+                          ->where(function ($q) {
+                            $q->where('start_date', '<=', request('end_date'))
+                              ->where('end_date', '>=', request('start_date'));
+                          });
+                      });
                     }
                   )
                   ->multiple()
+                  ->required()
                   ->preload()
                   ->searchable()
-                  ->required()
-                  ->live()
-                  ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                    if (empty($state)) {
-                      $set('contract_total', 0);
-                      $set('contract_discount', 0);
-                      $set('contract_final_amount', 0);
-                      return;
-                    }
-
-                    $baseAmount = \App\Models\Billboard::whereIn('billboards.id', $state)
-                      ->sum('billboards.base_price');
-
-                    $set('contract_total', $baseAmount);
-
-                    // Recalculate total with any existing discount
-                    $discountAmount = $get('contract_discount') ?? 0;
-                    $set('contract_final_amount', $baseAmount - $discountAmount);
-                  }),
-
-                Forms\Components\Grid::make(3)
-                  ->schema([
-                    Forms\Components\TextInput::make('contract_total')
-                      ->label('Total Price')
-                      ->numeric()
-                      ->prefix($currency['symbol'])
-                      ->disabled()
-                      ->dehydrated()
-                      ->required(),
-
-                    Forms\Components\TextInput::make('contract_discount')
-                      ->label('Discount Amount')
-                      ->numeric()
-                      ->prefix($currency['symbol'])
-                      ->default(0)
-                      ->live()
-                      ->afterStateUpdated(function ($state, Forms\Get $get, Forms\Set $set) {
-                        $totalAmount = $get('contract_total') ?? 0;
-                        $discountAmount = $state ?? 0;
-
-                        if ($discountAmount > $totalAmount) {
-                          $set('contract_discount', $totalAmount);
-                          $discountAmount = $totalAmount;
-                        }
-
-                        $set('contract_final_amount', $totalAmount - $discountAmount);
-                      }),
-
-                    Forms\Components\TextInput::make('contract_final_amount')
-                      ->label('Final Amount')
-                      ->numeric()
-                      ->prefix($currency['symbol'])
-                      ->required()
-                      ->disabled()
-                      ->dehydrated(),
-                  ]),
-              ]),
+                  ->live(),
+              ])
+              ->collapsible(),
           ])
           ->columnSpan(['lg' => 2]),
 
@@ -176,17 +110,11 @@ class ContractResource extends Resource
                   ->collection('contract_documents')
                   ->multiple()
                   ->maxFiles(5)
-                  ->acceptedFileTypes(['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'])
+                  ->acceptedFileTypes(['application/pdf', 'image/*'])
                   ->columnSpanFull()
                   ->downloadable()
                   ->reorderable()
-                  ->dehydrated(false) // Only save when actually changed
-                  ->afterStateUpdated(function ($state) {
-                    // Only validate if there are new files
-                    if ($state) {
-                      return;
-                    }
-                  }),
+                  ->dehydrated(false),
 
                 Forms\Components\SpatieMediaLibraryFileUpload::make('signed_contract')
                   ->collection('signed_contracts')
@@ -194,14 +122,8 @@ class ContractResource extends Resource
                   ->acceptedFileTypes(['application/pdf'])
                   ->columnSpanFull()
                   ->downloadable()
-                  ->dehydrated(false) // Only save when actually changed
-                  ->visible(fn(Forms\Get $get) => $get('agreement_status') === 'active')
-                  ->afterStateUpdated(function ($state) {
-                    // Only validate if there are new files
-                    if ($state) {
-                      return;
-                    }
-                  }),
+                  ->dehydrated(false)
+                  ->visible(fn(Forms\Get $get) => $get('agreement_status') === 'active'),
               ])
               ->collapsible(),
           ])
@@ -226,38 +148,27 @@ class ContractResource extends Resource
           ->money(fn ($record) => $record->currency_code)
           ->sortable(),
 
-        Tables\Columns\TextColumn::make('contract_discount')
-          ->money(fn ($record) => $record->currency_code)
-          ->sortable(),
-
         Tables\Columns\TextColumn::make('contract_final_amount')
           ->money(fn ($record) => $record->currency_code)
-          ->sortable(),
+          ->sortable()
+          ->weight(FontWeight::Bold),
 
         Tables\Columns\TextColumn::make('agreement_status')
           ->badge()
           ->color(fn (string $state): string => match ($state) {
-            'draft' => 'warning',
+            'draft' => 'gray',
             'active' => 'success',
-            'completed' => 'gray',
+            'completed' => 'info',
             'cancelled' => 'danger',
-            default => 'gray',
           }),
-
-        Tables\Columns\TextColumn::make('billboards_count')
-          ->counts('billboards')
-          ->label('Billboards')
-          ->sortable(),
 
         Tables\Columns\TextColumn::make('start_date')
           ->date()
-          ->sortable()
-          ->toggleable(),
+          ->sortable(),
 
         Tables\Columns\TextColumn::make('end_date')
           ->date()
-          ->sortable()
-          ->toggleable(),
+          ->sortable(),
       ])
       ->filters([
         Tables\Filters\SelectFilter::make('agreement_status')
@@ -268,22 +179,10 @@ class ContractResource extends Resource
             'cancelled' => 'Cancelled',
           ]),
 
-        Tables\Filters\SelectFilter::make('booking_status')
-          ->options(collect(BookingStatus::cases())->pluck('value', 'value'))
-          ->query(function (Builder $query, array $data) {
-            if (!$data['value']) return $query;
-
-            return $query->whereHas('billboards', function ($query) use ($data) {
-              $query->where('billboard_contract.booking_status', $data['value']);
-            });
-          }),
-
         Tables\Filters\Filter::make('date_range')
           ->form([
-            Forms\Components\DatePicker::make('start_from')
-              ->label('Start Date From'),
-            Forms\Components\DatePicker::make('start_until')
-              ->label('Start Date Until'),
+            Forms\Components\DatePicker::make('start_from'),
+            Forms\Components\DatePicker::make('start_until'),
           ])
           ->query(function (Builder $query, array $data): Builder {
             return $query
@@ -298,14 +197,73 @@ class ContractResource extends Resource
           }),
       ])
       ->actions([
-        Tables\Actions\ViewAction::make(),
-        Tables\Actions\EditAction::make(),
-        Tables\Actions\Action::make('download_contract')
-          ->icon('heroicon-m-arrow-down-on-square')
-          ->label('Download')
-          ->visible(fn(Contract $record) => $record->hasMedia('signed_contracts'))
-          ->url(fn(Contract $record) => $record->getFirstMediaUrl('signed_contracts'))
-          ->openUrlInNewTab(),
+        Tables\Actions\ActionGroup::make([
+          Tables\Actions\ViewAction::make(),
+          Tables\Actions\EditAction::make(),
+          Tables\Actions\Action::make('generate_pdf')
+            ->icon('heroicon-o-document-arrow-down')
+            ->label('Generate PDF')
+            ->action(function (Contract $record) {
+              try {
+                $pdf = $record->generatePdf();
+
+                // Store the generated PDF
+                $record->addMediaFromString($pdf)
+                  ->usingName("Contract {$record->contract_number}")
+                  ->usingFileName("{$record->contract_number}.pdf")
+                  ->toMediaCollection('contract_documents');
+
+                $record->markAsGenerated();
+
+                Notification::make()
+                  ->success()
+                  ->title('PDF Generated')
+                  ->body('The contract PDF has been generated successfully.')
+                  ->send();
+
+                return response()->streamDownload(
+                  fn () => print($pdf),
+                  "{$record->contract_number}.pdf"
+                );
+              } catch (\Exception $e) {
+                Notification::make()
+                  ->danger()
+                  ->title('Error Generating PDF')
+                  ->body($e->getMessage())
+                  ->send();
+              }
+            }),
+          Tables\Actions\Action::make('email_contract')
+            ->icon('heroicon-o-envelope')
+            ->label('Email to Client')
+            ->action(function (Contract $record) {
+              try {
+                $record->emailToClient();
+
+                Notification::make()
+                  ->success()
+                  ->title('Contract Emailed')
+                  ->body('The contract has been emailed to the client successfully.')
+                  ->send();
+              } catch (\Exception $e) {
+                Notification::make()
+                  ->danger()
+                  ->title('Error Sending Email')
+                  ->body($e->getMessage())
+                  ->send();
+              }
+            })
+            ->requiresConfirmation()
+            ->visible(fn (Contract $record) => $record->hasMedia('contract_documents')),
+          Tables\Actions\Action::make('download_contract')
+            ->icon('heroicon-m-arrow-down-square')
+            ->label('Download Contract')
+            ->visible(fn(Contract $record) => $record->hasMedia('signed_contracts'))
+            ->url(fn(Contract $record) => $record->getFirstMediaUrl('signed_contracts'))
+            ->openUrlInNewTab(),
+        ])
+          ->tooltip('Actions')
+          ->iconButton()
       ])
       ->bulkActions([
         Tables\Actions\BulkActionGroup::make([
@@ -343,73 +301,8 @@ class ContractResource extends Resource
                 );
               });
             }),
-
-          /*Tables\Actions\BulkAction::make('generate_pdf')
-            ->icon('heroicon-o-document-arrow-down')
-            ->label('Generate PDF')
-            ->action(function ($records) {
-              $records->each(function ($record) {
-                return response()->streamDownload(
-                  fn () => print($record->generatePdf()),
-                  "{$record->contract_number}.pdf"
-                );
-              });
-            }),*/
-
-          Tables\Actions\Action::make('generate_pdf')
-            ->icon('heroicon-o-document-arrow-down')
-            ->label('Generate PDF')
-            ->action(function (Contract $record) {
-              try {
-                $pdf = $record->generatePdf();
-
-                // Store the generated PDF
-                $record->addMediaFromString($pdf)
-                  ->usingName("Contract {$record->contract_number}")
-                  ->usingFileName("{$record->contract_number}.pdf")
-                  ->toMediaCollection('contract_documents');
-
-                $record->markAsGenerated();
-
-                Notification::make()
-                  ->success()
-                  ->title('PDF Generated')
-                  ->body('The contract PDF has been generated successfully.')
-                  ->send();
-
-                return response()->streamDownload(
-                  fn () => print($pdf),
-                  "{$record->contract_number}.pdf"
-                );
-              } catch (\Exception $e) {
-                Notification::make()
-                  ->danger()
-                  ->title('Error Generating PDF')
-                  ->body($e->getMessage())
-                  ->send();
-              }
-            }),
-
-          Tables\Actions\BulkAction::make('email_contract')
-            ->icon('heroicon-o-envelope')
-            ->label('Email to Client')
-            ->action(function ($records) {
-              $records->each(function ($record) {
-                if ($record->client->email) {
-                  $record->emailToClient();
-                }
-              });
-
-              Notification::make()
-                ->title('Contracts Emailed')
-                ->success()
-                ->send();
-            })
-            ->requiresConfirmation()
-            ->deselectRecordsAfterCompletion(),
         ]),
-      ])
-      ->defaultSort('created_at', 'desc');
+      ]);
   }
 
   public static function getRelations(): array
@@ -424,8 +317,9 @@ class ContractResource extends Resource
     return [
       'index' => Pages\ListContracts::route('/'),
       'create' => Pages\CreateContract::route('/create'),
-      'view' => Pages\ViewContract::route('/{record}'),
       'edit' => Pages\EditContract::route('/{record}/edit'),
+      'view' => Pages\ViewContract::route('/{record}'),
+      'preview' => Pages\PreviewContract::route('/{record}/preview'),
     ];
   }
 }
