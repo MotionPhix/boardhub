@@ -343,7 +343,8 @@ class ContractResource extends Resource
                 );
               });
             }),
-          Tables\Actions\BulkAction::make('generate_pdf')
+
+          /*Tables\Actions\BulkAction::make('generate_pdf')
             ->icon('heroicon-o-document-arrow-down')
             ->label('Generate PDF')
             ->action(function ($records) {
@@ -353,32 +354,42 @@ class ContractResource extends Resource
                   "{$record->contract_number}.pdf"
                 );
               });
-            }),
-          /*Tables\Actions\Action::make('generate_pdf')
+            }),*/
+
+          Tables\Actions\Action::make('generate_pdf')
             ->icon('heroicon-o-document-arrow-down')
             ->label('Generate PDF')
             ->action(function (Contract $record) {
-              $pdf = $record->generatePdf();
+              try {
+                $pdf = $record->generatePdf();
 
-              // Store the generated PDF
-              $record->addMediaFromString($pdf)
-                ->usingName("Contract {$record->contract_number}")
-                ->usingFileName("{$record->contract_number}.pdf")
-                ->toMediaCollection('contract_documents');
+                // Store the generated PDF
+                $record->addMediaFromString($pdf)
+                  ->usingName("Contract {$record->contract_number}")
+                  ->usingFileName("{$record->contract_number}.pdf")
+                  ->toMediaCollection('contract_documents');
 
-              $record->markAsGenerated();
+                $record->markAsGenerated();
 
-              return response()->streamDownload(
-                fn () => print($pdf),
-                "{$record->contract_number}.pdf"
-              );
-            })
-            ->successNotification(
-              Notification::make()
-                ->success()
-                ->title('Contract Generated')
-                ->body('The contract has been generated successfully.')
-            ),*/
+                Notification::make()
+                  ->success()
+                  ->title('PDF Generated')
+                  ->body('The contract PDF has been generated successfully.')
+                  ->send();
+
+                return response()->streamDownload(
+                  fn () => print($pdf),
+                  "{$record->contract_number}.pdf"
+                );
+              } catch (\Exception $e) {
+                Notification::make()
+                  ->danger()
+                  ->title('Error Generating PDF')
+                  ->body($e->getMessage())
+                  ->send();
+              }
+            }),
+
           Tables\Actions\BulkAction::make('email_contract')
             ->icon('heroicon-o-envelope')
             ->label('Email to Client')
