@@ -105,10 +105,10 @@ class ContractExpirations extends TableWidget
       ])
       ->actions([
         Tables\Actions\Action::make('view')
-          ->url(fn (Contract $record) => route('filament.admin.resources.contracts.view', $record))
+          ->url(fn (Contract $record) => route('filament.resources.contracts.view', $record))
           ->icon('heroicon-m-eye'),
         Tables\Actions\Action::make('edit')
-          ->url(fn (Contract $record) => route('filament.admin.resources.contracts.edit', $record))
+          ->url(fn (Contract $record) => route('filament.resources.contracts.edit', $record))
           ->icon('heroicon-m-pencil'),
       ])
       ->defaultSort('end_date', 'asc')

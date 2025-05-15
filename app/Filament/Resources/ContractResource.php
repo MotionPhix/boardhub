@@ -308,29 +308,6 @@ class ContractResource extends Resource
           ->openUrlInNewTab(),
       ])
       ->bulkActions([
-        Tables\Actions\Action::make('generate_pdf')
-          ->icon('heroicon-o-document-arrow-down')
-          ->label('Generate PDF')
-          ->action(function (Contract $record) {
-            return response()->streamDownload(
-              fn () => print($record->generatePdf()),
-              "{$record->contract_number}.pdf"
-            );
-          }),
-
-        Tables\Actions\Action::make('email_contract')
-          ->icon('heroicon-o-envelope')
-          ->label('Email to Client')
-          ->action(function (Contract $record) {
-            $record->emailToClient();
-            Notification::make()
-              ->title('Contract Emailed')
-              ->success()
-              ->send();
-          })
-          ->requiresConfirmation()
-          ->visible(fn (Contract $record) => $record->client->email !== null),
-
         Tables\Actions\BulkActionGroup::make([
           Tables\Actions\DeleteBulkAction::make(),
           Tables\Actions\BulkAction::make('updateStatus')
@@ -366,6 +343,34 @@ class ContractResource extends Resource
                 );
               });
             }),
+          Tables\Actions\BulkAction::make('generate_pdf')
+            ->icon('heroicon-o-document-arrow-down')
+            ->label('Generate PDF')
+            ->action(function ($records) {
+              $records->each(function ($record) {
+                return response()->streamDownload(
+                  fn () => print($record->generatePdf()),
+                  "{$record->contract_number}.pdf"
+                );
+              });
+            }),
+          Tables\Actions\BulkAction::make('email_contract')
+            ->icon('heroicon-o-envelope')
+            ->label('Email to Client')
+            ->action(function ($records) {
+              $records->each(function ($record) {
+                if ($record->client->email) {
+                  $record->emailToClient();
+                }
+              });
+
+              Notification::make()
+                ->title('Contracts Emailed')
+                ->success()
+                ->send();
+            })
+            ->requiresConfirmation()
+            ->deselectRecordsAfterCompletion(),
         ]),
       ])
       ->defaultSort('created_at', 'desc');

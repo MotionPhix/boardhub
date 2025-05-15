@@ -31,6 +31,7 @@ class PopularLocationsWidget extends TableWidget
     return [
       TextColumn::make('name')
         ->description(fn (Location $record): string => $record->full_address),
+
       TextColumn::make('billboards_count')
         ->label('Active Billboards')
         ->sortable(),

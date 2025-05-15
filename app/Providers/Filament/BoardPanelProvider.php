@@ -22,14 +22,14 @@ use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Leandrocfe\FilamentApexCharts\FilamentApexChartsPlugin;
 use App\Filament\Pages\Dashboard;
 
-class AuthPanelProvider extends PanelProvider
+class BoardPanelProvider extends PanelProvider
 {
   public function panel(Panel $panel): Panel
   {
     return $panel
       ->default()
-      ->id('auth')
-      ->path('auth')
+      ->id('admin')
+      ->path('')
       ->login()
       ->colors([
         'primary' => '#6366f1',
@@ -39,12 +39,6 @@ class AuthPanelProvider extends PanelProvider
         'info' => Color::Blue,
       ])
       ->brandName('BoardHub')
-      ->navigationGroups([
-        'Location Management',
-        'Billboard Management',
-        'Customer Management',
-        'System',
-      ]) // up to here
       ->sidebarCollapsibleOnDesktop()
       ->favicon(asset('images/favicon.png'))
       ->font('Geist Mono', provider: GoogleFontProvider::class)

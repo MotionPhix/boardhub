@@ -69,7 +69,7 @@ class ViewContract extends ViewRecord
               ->schema([
                 Components\TextEntry::make('client.name')
                   ->label('Client')
-                  ->url(fn ($record) => route('filament.auth.resources.clients.view', $record->client))
+                  ->url(fn ($record) => '/clients/' . $record->client->uuid)
                   ->openUrlInNewTab(),
 
                 Components\TextEntry::make('client.company')
