@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BookingStatus;
 use App\Traits\HasMoney;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -178,26 +179,42 @@ class Billboard extends Model implements HasMedia
       });
   }
 
+  /**
+   * Check if the billboard is available for booking
+   */
+  public function isAvailable(): bool
+  {
+    return !$this->contracts()
+      ->wherePivot('booking_status', BookingStatus::IN_USE->value)
+      ->whereHas('contract', function ($query) {
+        $query->whereIn('agreement_status', ['draft', 'active'])
+          ->where(function ($q) {
+            $q->whereDate('end_date', '>=', now())
+              ->orWhereNull('end_date');
+          });
+      })
+      ->exists();
+  }
+
+  #[Scope]
+  protected function available(Builder $query): void
+  {
+    $query->whereDoesntHave('contracts', function ($query) {
+      $query->wherePivot('booking_status', BookingStatus::IN_USE->value)
+        ->whereHas('contract', function ($query) {
+          $query->whereIn('agreement_status', ['draft', 'active'])
+            ->where(function ($q) {
+              $q->whereDate('end_date', '>=', now())
+                ->orWhereNull('end_date');
+            });
+        });
+    });
+  }
+
   #[Scope]
   protected function active(Builder $query): void
   {
     $query->where('is_active', true);
-  }
-
-  #[Scope]
-  protected function available(Builder $query, $startDate, $endDate): void
-  {
-    $query->whereDoesntHave('contracts', function ($query) use ($startDate, $endDate) {
-      $query->where('booking_status', 'in_use')
-        ->where(function ($q) use ($startDate, $endDate) {
-          $q->whereBetween('start_date', [$startDate, $endDate])
-            ->orWhereBetween('end_date', [$startDate, $endDate])
-            ->orWhere(function ($q) use ($startDate, $endDate) {
-              $q->where('start_date', '<=', $startDate)
-                ->where('end_date', '>=', $endDate);
-            });
-        });
-    });
   }
 
   #[Scope]
@@ -209,29 +226,6 @@ class Billboard extends Model implements HasMedia
         point(?, ?)
       ) <= ?
     ", [$lng, $lat, $radius * 1000]);
-  }
-
-  protected static function boot()
-  {
-    parent::boot();
-
-    static::creating(function ($billboard) {
-
-      if (!$billboard->currency_code) {
-        $billboard->currency_code = Settings::getDefaultCurrency()['currency_code'] ?? 'MWK';
-      }
-
-      if (!$billboard->code) {
-        $billboard->code = static::generateBillboardCode($billboard->location->city);
-      }
-
-      // Ensure physical_status is set to a valid value
-      if (!$billboard->physical_status) {
-        $billboard->physical_status = self::PHYSICAL_STATUS_OPERATIONAL;
-      }
-
-    });
-
   }
 
   public static function generateBillboardCode(City $city): string
@@ -260,5 +254,37 @@ class Billboard extends Model implements HasMedia
       $separator,
       $counter
     );
+  }
+
+  protected static function boot()
+  {
+    parent::boot();
+
+    static::creating(function ($billboard) {
+
+      if (!$billboard->currency_code) {
+        $billboard->currency_code = Settings::getDefaultCurrency()['currency_code'] ?? 'MWK';
+      }
+
+      if (!$billboard->code) {
+        $billboard->code = static::generateBillboardCode($billboard->location->city);
+      }
+
+      // Ensure physical_status is set to a valid value
+      if (!$billboard->physical_status) {
+        $billboard->physical_status = self::PHYSICAL_STATUS_OPERATIONAL;
+      }
+
+    });
+
+    static::updating(function ($billboard) {
+      // Prevent changing is_active to true if billboard is in use
+      if ($billboard->isDirty('is_active') && $billboard->is_active) {
+        if (!$billboard->isAvailable()) {
+          throw new \Exception("Cannot activate billboard while it is in use.");
+        }
+      }
+    });
+
   }
 }
