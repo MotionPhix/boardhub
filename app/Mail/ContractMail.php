@@ -12,10 +12,14 @@ class ContractMail extends Mailable
 {
   use Queueable, SerializesModels;
 
+  public string $viewUrl;
+
   public function __construct(
     public Contract $contract,
     public Media $contractFile
-  ) {}
+  ) {
+    $this->viewUrl = route('filament.resources.contracts.view', ['record' => $contract->id]);
+  }
 
   public function build()
   {

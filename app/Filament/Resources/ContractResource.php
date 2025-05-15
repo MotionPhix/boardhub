@@ -354,6 +354,31 @@ class ContractResource extends Resource
                 );
               });
             }),
+          /*Tables\Actions\Action::make('generate_pdf')
+            ->icon('heroicon-o-document-arrow-down')
+            ->label('Generate PDF')
+            ->action(function (Contract $record) {
+              $pdf = $record->generatePdf();
+
+              // Store the generated PDF
+              $record->addMediaFromString($pdf)
+                ->usingName("Contract {$record->contract_number}")
+                ->usingFileName("{$record->contract_number}.pdf")
+                ->toMediaCollection('contract_documents');
+
+              $record->markAsGenerated();
+
+              return response()->streamDownload(
+                fn () => print($pdf),
+                "{$record->contract_number}.pdf"
+              );
+            })
+            ->successNotification(
+              Notification::make()
+                ->success()
+                ->title('Contract Generated')
+                ->body('The contract has been generated successfully.')
+            ),*/
           Tables\Actions\BulkAction::make('email_contract')
             ->icon('heroicon-o-envelope')
             ->label('Email to Client')

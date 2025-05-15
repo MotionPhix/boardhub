@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use App\Mail\ContractMail;
 use App\Traits\HasMoney;
 use App\Traits\HasUuid;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -14,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -98,6 +101,48 @@ class Contract extends Model implements HasMedia
       );
   }
 
+  public function generatePdf(): string
+  {
+    // Get the contract template content and replace variables
+    $content = $this->prepareContractContent();
+
+    // Generate PDF using the template
+    $pdf = PDF::loadView('contracts.template', [
+      'contract' => $this,
+      'content' => $content,
+      'date' => now()->format('F j, Y')
+    ]);
+
+    return $pdf->output();
+  }
+
+  public function markAsGenerated(): void
+  {
+    if ($this->agreement_status === 'draft') {
+      $this->update(['agreement_status' => 'active']);
+
+      // Update billboard booking statuses
+      $this->billboards()->updateExistingPivot(
+        $this->billboards->pluck('id'),
+        ['booking_status' => 'in_use']
+      );
+    }
+  }
+
+  public function emailToClient(): void
+  {
+    if (!$this->hasMedia('contract_documents')) {
+      throw new \Exception('No contract document available to email');
+    }
+
+    $contractFile = $this->getFirstMedia('contract_documents');
+
+    Mail::to($this->client->email)
+      ->send(new ContractMail($this, $contractFile));
+
+    $this->markAsGenerated();
+  }
+
   /**
    * Update billboard pivot records with calculated prices.
    */
@@ -121,6 +166,52 @@ class Contract extends Model implements HasMedia
     });
 
     $this->calculateTotals();
+  }
+
+  protected function prepareContractContent(): string
+  {
+    // Basic contract template structure
+    $content = "
+    <h2>ADVERTISING SPACE LEASE AGREEMENT</h2>
+
+    <p>This agreement is made on {$this->created_at->format('F j, Y')} between:</p>
+
+    <p><strong>" . config('app.name') . "</strong> (hereinafter referred to as 'the Company')</p>
+
+    <p>and</p>
+
+    <p><strong>{$this->client->name}</strong> of <strong>{$this->client->company}</strong> (hereinafter referred to as 'the Client')</p>
+
+    <h3>1. LEASE DETAILS</h3>
+    <p>The Company agrees to lease the following advertising space(s) to the Client:</p>
+    <ul>";
+
+    foreach ($this->billboards as $billboard) {
+      $content .= "
+        <li><strong>{$billboard->name}</strong> - {$billboard->location->name}<br>
+            Base Price: {$this->currency_code} " . number_format($billboard->pivot->billboard_base_price, 2) . "<br>
+            Discount: {$this->currency_code} " . number_format($billboard->pivot->billboard_discount_amount, 2) . "<br>
+            Final Price: {$this->currency_code} " . number_format($billboard->pivot->billboard_final_price, 2) . "
+        </li>";
+    }
+
+    $content .= "</ul>
+
+    <h3>2. TERM</h3>
+    <p>The lease term shall commence on {$this->start_date->format('F j, Y')} and end on {$this->end_date->format('F j, Y')}.</p>
+
+    <h3>3. PAYMENT TERMS</h3>
+    <p>Total Contract Value: {$this->currency_code} " . number_format($this->contract_total, 2) . "<br>
+    Applied Discount: {$this->currency_code} " . number_format($this->contract_discount, 2) . "<br>
+    Final Amount: {$this->currency_code} " . number_format($this->contract_final_amount, 2) . "</p>";
+
+    if ($this->notes) {
+      $content .= "
+        <h3>4. ADDITIONAL NOTES</h3>
+        <p>{$this->notes}</p>";
+    }
+
+    return $content;
   }
 
   /**
