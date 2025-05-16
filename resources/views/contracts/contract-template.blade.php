@@ -180,7 +180,8 @@ use App\Models\Settings;
   <div class="section-content">
     <p>This Billboard Advertising Agreement (hereinafter referred to as the "Agreement") is made on the {{ $date }} by {{ Settings::get('company_profile')['name'] }}, in the Republic of {{ Settings::get('company_profile')['address']['country'] }}, hereinafter referred to as “THE LANDLORD”.</p>
 
-    <p>{{ $contract->client->company }}, a company incorporated under the Companies Act No. 10 of 2017 and registered as a commercial bank under the Banking and Financial Services Act No. 7 of 2017 of the Laws of Zambia, having its registered office at {{ $client_address }}, hereinafter referred to as “THE TENANT”.</p>
+    <p>{{ $contract->client->company }}, a company incorporated under the Companies Act No. 10 of 2017 and registered as of the Laws of
+      {{ $contract->client->country }}, having its registered office at {{ $contract->client->address }}, hereinafter referred to as “THE TENANT”.</p>
   </div>
 </div>
 
@@ -189,8 +190,8 @@ use App\Models\Settings;
   <h2 class="section-title">Recitals</h2>
   <div class="section-content">
     <ol class="clause-list">
-      <li>{{ $client_company_name }} is interested in renting advertising sites belonging to {{ $brand_name }} for advertising purposes.</li>
-      <li>{{ $brand_name }} agrees to make available the site(s) for use as advertising space.</li>
+      <li>{{ $contract->client->company }} is interested in renting advertising sites belonging to {{ Settings::get('company_profile')['name'] }} for advertising purposes.</li>
+      <li>{{ Settings::get('company_profile')['name'] }} agrees to make available the site(s) for use as advertising space.</li>
       <li>Both parties have agreed to enter into this agreement to record, clarify, and regulate their future relationship in accordance with the terms and conditions stated hereinafter.</li>
     </ol>
   </div>
