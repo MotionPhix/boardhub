@@ -51,6 +51,7 @@ class SettingsSeeder extends Seeder
       'timezone' => 'Africa/Blantyre',
       'locale' => 'en',
       'date_format' => 'Y-m-d',
+      'long_date_format' => 'jS F, Y',
       'time_format' => 'H:i',
     ], 'system');
 

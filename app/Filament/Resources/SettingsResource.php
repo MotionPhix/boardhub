@@ -159,10 +159,9 @@ class SettingsResource extends Resource
                           ->required()
                           ->maxLength(3)
                           ->rules(['alpha'])
-                          ->uppercase()
                           ->unique(
                             ignorable: fn ($record, $state) => $record && isset($record->value[$state]),
-                            callback: function (Forms\Components\TextInput $component, string $value, $record) {
+                            modifyRuleUsing: function (Forms\Components\TextInput $component, string $value, $record) {
                               $currentValues = collect($record?->value ?? []);
                               $count = $currentValues->where('code', $value)->count();
                               return $count === 0;
@@ -233,6 +232,7 @@ class SettingsResource extends Resource
                       ->label('Default Contract Terms')
                       ->maxLength(65535)
                       ->columnSpanFull(),
+
                     Forms\Components\RichEditor::make('value.contract_footer_text')
                       ->label('Contract Footer Text')
                       ->maxLength(65535)

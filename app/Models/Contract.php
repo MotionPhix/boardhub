@@ -112,6 +112,7 @@ class Contract extends Model implements HasMedia
     // Generate PDF using the template
     $pdf = PDF::loadView('contracts.contract-template', [
       'contract' => $this,
+      'localization' => $localization,
       // 'content' => $content,
       'settings' => $settings,
       'generatedBy' => $generatedBy ?? auth()->user()->name ?? 'System',

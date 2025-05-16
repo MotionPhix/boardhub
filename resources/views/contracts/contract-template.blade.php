@@ -5,11 +5,11 @@
   <style>
     @page {
       margin: 2.5cm 2cm;
-      font-family: 'DejaVu Sans', sans-serif;
+      font-family: 'Roboto Condensed', sans-serif;
     }
 
     body {
-      font-size: 12pt;
+      font-size: 10pt;
       line-height: 1.6;
       color: #1f2937;
     }
@@ -23,7 +23,7 @@
     }
 
     .logo {
-      max-width: 200px;
+      max-width: 100px;
       margin-bottom: 20px;
     }
 
@@ -84,9 +84,11 @@
     }
 
     th, td {
-      padding: 10px;
-      border: 1px solid #d1d5db;
+      border: 0;
+      padding: 5px 10px;
+      border-top: 1px solid #d1d5db;
       text-align: left;
+      white-space: nowrap;
     }
 
     th {
@@ -109,20 +111,25 @@
 <body>
 <div class="header">
   @if($settings->getFirstMedia('logo'))
-    <img src="{{ $settings->getFirstMedia('logo')->getPath() }}" class="logo" alt="{{ $settings->get('company_profile.name') }}">
+    <img src="{{ $settings->getFirstMedia('logo')->getPath() }}" class="logo"
+         alt="{{ $settings->get('company_profile.name') }}">
+  @else
+    <img src="{{ public_path('images/logo.png') }}" class="logo"
+         alt="{{ $settings->get('company_profile.name') }} Logo">
   @endif
 </div>
 
 <div class="company-info">
+  <strong>By:</strong><br>
   <h1>{{ $settings->get('company_profile.name') }}</h1>
   <p>
     {{ $settings->get('company_profile.address.street') }}<br>
     {{ $settings->get('company_profile.address.city') }}, {{ $settings->get('company_profile.address.state') }}<br>
     {{ $settings->get('company_profile.address.country') }}<br>
     @if($settings->get('company_profile.phone'))
-      Phone: {{ $settings->get('company_profile.phone') }}<br>
+      p: {{ $settings->get('company_profile.phone') }}<br>
     @endif
-    Email: {{ $settings->get('company_profile.email') }}<br>
+    E: {{ $settings->get('company_profile.email') }}<br>
     @if($settings->get('company_profile.registration_number'))
       Reg. No: {{ $settings->get('company_profile.registration_number') }}<br>
     @endif
@@ -133,13 +140,13 @@
 </div>
 
 <div class="contract-number">
-  Contract Agreement #{{ $contract->contract_number }}
+  Contract Number #{{ $contract->contract_number }}
 </div>
 
 <div class="section">
   <div class="grid">
     <div>
-      <strong>Client Information:</strong><br>
+      <strong>For:</strong><br>
       {{ $contract->client->name }}<br>
       @if($contract->client->company)
         {{ $contract->client->company }}<br>
@@ -147,41 +154,78 @@
       {{ $contract->client->street }}<br>
       {{ $contract->client->city }}, {{ $contract->client->state }}<br>
       {{ $contract->client->country }}<br>
+
       @if($contract->client->phone)
-        Phone: {{ $contract->client->phone }}<br>
+        P: {{ $contract->client->phone }}<br>
       @endif
-      Email: {{ $contract->client->email }}
+      E: {{ $contract->client->email }}
     </div>
+
     <div>
-      <strong>Contract Details:</strong><br>
-      @php
-        $localization = \App\Models\Settings::getLocalization();
-      @endphp
-      Start Date: {{ $contract->start_date->format($localization['date_format']) }}<br>
-      End Date: {{ $contract->end_date->format($localization['date_format']) }}<br>
-      Duration: {{ $contract->start_date->diffInMonths($contract->end_date) }} months<br>
-      Status: {{ ucfirst($contract->agreement_status) }}
+      <br><br>
+      <strong>Contract Agreement Length:</strong><br>
+
+      <table>
+        <tbody>
+        <tr>
+          <td>Start date</td>
+
+          <td>
+            {{ $contract->start_date->format('jS F, Y') }}
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            End Date
+          </td>
+
+          <td>
+            {{ $contract->end_date->format('jS F, Y') }}
+          </td>
+        </tr>
+        </tbody>
+
+        <tfoot>
+        <tr>
+          <td colspan="2">
+            The contract will be run for
+            <strong>
+              {{ $contract->start_date->diffInMonths($contract->end_date) }} months
+            </strong>
+          </td>
+        </tr>
+        </tfoot>
+      </table>
     </div>
   </div>
 </div>
 
 <div class="section">
-  <h2 class="section-title">Billboard Details</h2>
+  <h2 class="section-title">Billboards Booked</h2>
   <table>
     <thead>
     <tr>
-      <th>Billboard</th>
-      <th>Location</th>
-      <th>Dimensions</th>
-      <th class="amount">Base Price</th>
+      <th>Site Code</th>
+      <th>Site Details</th>
+      <th class="amount">Monthly Rental</th>
     </tr>
     </thead>
     <tbody>
     @foreach($contract->billboards as $billboard)
       <tr>
-        <td>{{ $billboard->name }}</td>
-        <td>{{ $billboard->location->name }}</td>
-        <td>{{ $billboard->dimensions }}</td>
+        <td>{{ $billboard->code }}</td>
+
+        <td>
+          <strong>{{ $billboard->size }}</strong> <br>
+
+          <small>{{ $billboard->name }}, {{ $billboard->location->name }}</small> <br>
+          <small>
+            {{ $billboard->location->city->name }}, {{ $billboard->location->state->name }}
+            , {{ $billboard->location->country->name }}
+          </small>
+        </td>
+
         <td class="amount">
           @php
             $currency = \App\Models\Settings::getAvailableCurrencies()[$contract->currency_code] ?? null;
@@ -194,7 +238,8 @@
     </tbody>
     <tfoot>
     <tr>
-      <td colspan="3" class="amount"><strong>Total Amount:</strong></td>
+      <td colspan="2" class="amount"><strong>Total Amount:</strong></td>
+
       <td class="amount">
         <strong>
           {{ $currency['symbol'] ?? '' }}
@@ -202,16 +247,20 @@
         </strong>
       </td>
     </tr>
+
     @if($contract->contract_discount > 0)
       <tr>
-        <td colspan="3" class="amount">Discount:</td>
+        <td colspan="2" class="amount">Discount:</td>
+
         <td class="amount">
           {{ $currency['symbol'] ?? '' }}
           {{ number_format($contract->contract_discount, 2) }}
         </td>
       </tr>
+
       <tr>
-        <td colspan="3" class="amount"><strong>Final Amount:</strong></td>
+        <td colspan="2" class="amount"><strong>Final Amount:</strong></td>
+
         <td class="amount">
           <strong>
             {{ $currency['symbol'] ?? '' }}
@@ -242,6 +291,7 @@
       Title: ____________________<br>
       Date: ____________________
     </div>
+
     <div class="signature-box">
       <p><strong>For {{ $contract->client->company ?: $contract->client->name }}:</strong></p>
       @if(isset($contract->signatures['client']))
