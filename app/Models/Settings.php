@@ -18,7 +18,7 @@ class Settings extends Model implements HasMedia
   ];
 
   protected $casts = [
-    'value' => 'json',
+    'value' => 'array',
   ];
 
   protected function value(): Attribute
@@ -75,8 +75,7 @@ class Settings extends Model implements HasMedia
 
     if (str_contains($key, '.')) {
       $keys = explode('.', $key);
-      // Remove the first key as it's already used to fetch the setting
-      array_shift($keys);
+      array_shift($keys); // Remove the first key as it's already used for the query
       $value = $setting->value;
 
       foreach ($keys as $k) {
@@ -92,29 +91,8 @@ class Settings extends Model implements HasMedia
     return $setting->value ?? $default;
   }
 
-  /**
-   * Create or update a setting with proper structure
-   */
   public static function set(string $key, $value, string $group = 'general'): void
   {
-    if ($key === 'company_profile') {
-      $defaultStructure = [
-        'name' => null,
-        'email' => null,
-        'phone' => null,
-        'address' => [
-          'street' => null,
-          'city' => null,
-          'state' => null,
-          'country' => null,
-        ],
-        'registration_number' => null,
-        'tax_number' => null,
-      ];
-
-      $value = array_merge($defaultStructure, is_array($value) ? $value : []);
-    }
-
     static::updateOrCreate(
       ['key' => $key],
       [

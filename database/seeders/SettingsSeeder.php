@@ -10,76 +10,79 @@ class SettingsSeeder extends Seeder
   public function run(): void
   {
     // Company Profile Settings
-    Settings::set('company_profile', [
-      'name' => 'BoardHub',
-      'email' => 'info@boardhub.com',
-      'phone' => null,
-      'address' => [
-        'street' => 'Infinity Complex',
-        'city' => 'Lilongwe',
-        'state' => 'Central Region',
-        'country' => 'Malawi'
-      ],
-      'registration_number' => null,
-      'tax_number' => null,
-    ], 'company');
-
-    // Currency Settings
-    Settings::set('currency_settings', [
-      'MWK' => [
-        'code' => 'MWK',
-        'symbol' => 'MK',
-        'name' => 'Malawian Kwacha',
-        'is_default' => true,
-      ],
-      'USD' => [
-        'code' => 'USD',
-        'symbol' => '$',
-        'name' => 'US Dollar',
-        'is_default' => false,
-      ],
-      'ZMW' => [
-        'code' => 'ZMW',
-        'symbol' => 'ZK',
-        'name' => 'Zambian Kwacha',
-        'is_default' => false,
-      ],
-    ], 'currency');
-
-    // Localization Settings
-    Settings::set('localization', [
-      'timezone' => 'Africa/Blantyre',
-      'locale' => 'en',
-      'date_format' => 'Y-m-d',
-      'long_date_format' => 'jS F, Y',
-      'time_format' => 'H:i',
-    ], 'system');
+    Settings::updateOrCreate(
+      ['key' => 'company_profile'],
+      [
+        'value' => [
+          'name' => 'Your Company Name',
+          'email' => 'info@company.com',
+          'phone' => null,
+          'address' => [
+            'street' => null,
+            'city' => null,
+            'state' => null,
+            'country' => null,
+          ],
+          'registration_number' => null,
+          'tax_number' => null,
+        ],
+        'group' => 'company'
+      ]
+    );
 
     // Document Settings
-    Settings::set('document_settings', [
-      'contract_footer_text' => 'For any queries regarding this contract, please contact us.',
-      'default_payment_terms' => [
-        [
-          'days' => 30,
-          'description' => 'Net 30',
+    Settings::updateOrCreate(
+      ['key' => 'document_settings'],
+      [
+        'value' => [
+          'default_contract_terms' => null,
+          'contract_footer_text' => null,
         ],
-        [
-          'days' => 15,
-          'description' => 'Net 15',
-        ],
-        [
-          'days' => 7,
-          'description' => 'Net 7',
-        ],
-      ],
-      'default_contract_terms' => "1. Payment Terms\n2. Duration\n3. Responsibilities\n4. Termination Conditions",
-    ], 'documents');
+        'group' => 'documents'
+      ]
+    );
 
-    // Billboard Code Settings
-    Settings::set('billboard_code_format', [
-      'prefix' => 'BH',
-      'separator' => '-',
-      'counter_length' => 5,
-    ], 'billboards');
+    // Currency Settings
+    Settings::updateOrCreate(
+      ['key' => 'currency_settings'],
+      [
+        'value' => [
+          'MWK' => [
+            'code' => 'MWK',
+            'symbol' => 'MK',
+            'name' => 'Malawian Kwacha',
+            'is_default' => true,
+          ]
+        ],
+        'group' => 'system'
+      ]
+    );
+
+    // Localization Settings
+    Settings::updateOrCreate(
+      ['key' => 'localization'],
+      [
+        'value' => [
+          'timezone' => 'Africa/Blantyre',
+          'locale' => 'en',
+          'date_format' => 'Y-m-d',
+          'time_format' => 'H:i:s'
+        ],
+        'group' => 'system'
+      ]
+    );
+
+    // Billboard Code Format Settings
+    Settings::updateOrCreate(
+      ['key' => 'billboard_code_format'],
+      [
+        'value' => [
+          'prefix' => 'BH',
+          'separator' => '-',
+          'counter_length' => 5
+        ],
+        'group' => 'billboards'
+      ]
+    );
   }
 }

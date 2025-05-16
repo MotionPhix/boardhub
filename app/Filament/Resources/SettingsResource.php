@@ -55,46 +55,44 @@ class SettingsResource extends Resource
                     Forms\Components\TextInput::make('value.company_profile.name')
                       ->label('Company Name')
                       ->required()
-                      ->columnSpanFull()
                       ->maxLength(255),
 
-                    Forms\Components\TextInput::make('value.company_profile.email')
+                    Forms\Components\TextInput::make('value.email')
                       ->label('Company Email')
                       ->email()
                       ->required()
                       ->maxLength(255),
 
-                    Forms\Components\TextInput::make('value.company_profile.phone')
+                    Forms\Components\TextInput::make('value.phone')
                       ->label('Company Phone')
                       ->tel()
                       ->maxLength(255),
 
                     Forms\Components\Section::make('Company Address')
                       ->schema([
-                        Forms\Components\TextInput::make('value.company_profile.address.street')
+                        Forms\Components\TextInput::make('value.address.street')
                           ->label('Street Name')
                           ->maxLength(255),
 
-                        Forms\Components\TextInput::make('value.company_profile.address.city')
+                        Forms\Components\TextInput::make('value.address.city')
                           ->label('City')
-                          ->placeholder('Where the branch is located')
                           ->maxLength(255),
 
-                        Forms\Components\TextInput::make('value.company_profile.address.state')
+                        Forms\Components\TextInput::make('value.address.state')
                           ->label('State/Region/Province')
                           ->maxLength(255),
 
-                        Forms\Components\TextInput::make('value.company_profile.address.country')
+                        Forms\Components\TextInput::make('value.address.country')
                           ->label('Country')
                           ->maxLength(255),
                       ])
                       ->columns(2),
 
-                    Forms\Components\TextInput::make('value.company_profile.registration_number')
+                    Forms\Components\TextInput::make('value.registration_number')
                       ->label('Registration Number')
                       ->maxLength(255),
 
-                    Forms\Components\TextInput::make('value.company_profile.tax_number')
+                    Forms\Components\TextInput::make('value.tax_number')
                       ->label('Tax Number')
                       ->maxLength(255),
                   ])
@@ -273,8 +271,12 @@ class SettingsResource extends Resource
           ])
           ->columnSpanFull(),
 
-        Forms\Components\Hidden::make('key'),
-        Forms\Components\Hidden::make('group'),
+        Forms\Components\Hidden::make('key')
+          ->default(fn ($record) => $record?->key ?? 'company_profile')
+          ->required(),
+
+        Forms\Components\Hidden::make('group')
+          ->default(fn ($record) => $record?->group ?? 'company')
       ]);
   }
 
