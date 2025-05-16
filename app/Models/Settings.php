@@ -26,15 +26,27 @@ class Settings extends Model implements HasMedia
     return Attribute::make(
       get: fn ($value) => json_decode($value, true),
       set: function ($value) {
-        if ($this->key === 'currency_settings') {
-          // Convert array to associative array with currency code as key
-          $currencies = [];
-          foreach ($value as $currency) {
-            if (!isset($currency['code'])) continue;
-            $currencies[$currency['code']] = $currency;
-          }
-          $value = $currencies;
+        // Handle special cases for different setting types
+        if ($this->key === 'company_profile') {
+          // Ensure the value has all required fields
+          $defaultStructure = [
+            'name' => null,
+            'email' => null,
+            'phone' => null,
+            'address' => [
+              'street' => null,
+              'city' => null,
+              'state' => null,
+              'country' => null,
+            ],
+            'registration_number' => null,
+            'tax_number' => null,
+          ];
+
+          // Merge with defaults to ensure structure
+          $value = array_merge($defaultStructure, is_array($value) ? $value : []);
         }
+
         return json_encode($value);
       }
     );
@@ -46,11 +58,26 @@ class Settings extends Model implements HasMedia
     return $setting ? $setting->value : $default;
   }*/
 
-  public function get($key, $default = null)
+  /**
+   * Get a setting value by key with optional default value
+   *
+   * @param string $key
+   * @param mixed|null $default
+   * @return mixed
+   */
+  public static function get(string $key, $default = null)
   {
+    $setting = static::where('key', strstr($key, '.', true) ?: $key)->first();
+
+    if (!$setting) {
+      return $default;
+    }
+
     if (str_contains($key, '.')) {
       $keys = explode('.', $key);
-      $value = $this->value;
+      // Remove the first key as it's already used to fetch the setting
+      array_shift($keys);
+      $value = $setting->value;
 
       foreach ($keys as $k) {
         if (!is_array($value) || !array_key_exists($k, $value)) {
@@ -62,11 +89,32 @@ class Settings extends Model implements HasMedia
       return $value;
     }
 
-    return $this->value[$key] ?? $default;
+    return $setting->value ?? $default;
   }
 
+  /**
+   * Create or update a setting with proper structure
+   */
   public static function set(string $key, $value, string $group = 'general'): void
   {
+    if ($key === 'company_profile') {
+      $defaultStructure = [
+        'name' => null,
+        'email' => null,
+        'phone' => null,
+        'address' => [
+          'street' => null,
+          'city' => null,
+          'state' => null,
+          'country' => null,
+        ],
+        'registration_number' => null,
+        'tax_number' => null,
+      ];
+
+      $value = array_merge($defaultStructure, is_array($value) ? $value : []);
+    }
+
     static::updateOrCreate(
       ['key' => $key],
       [
@@ -184,13 +232,19 @@ class Settings extends Model implements HasMedia
   /**
    * Get all available currencies
    */
+  /**
+   * Get all available currencies
+   */
   public static function getAvailableCurrencies(): array
   {
     $settings = self::where('key', 'currency_settings')->first();
 
     if (!$settings || empty($settings->value)) {
       // Return default currency if no settings exist
-      return self::getDefaultCurrency();
+      $defaultCurrency = self::getDefaultCurrency();
+      return [
+        $defaultCurrency['code'] => $defaultCurrency
+      ];
     }
 
     $currencies = $settings->value;

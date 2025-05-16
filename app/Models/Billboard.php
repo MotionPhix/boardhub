@@ -230,10 +230,11 @@ class Billboard extends Model implements HasMedia
 
   public static function generateBillboardCode(City $city): string
   {
-    $settings = Settings::get('billboard_code_format');
-    $prefix = $settings['prefix'];
-    $separator = $settings['separator'];
-    $counterLength = $settings['counter_length'];
+    $settings = Settings::where('key', 'billboard_code_format')->first();
+
+    $prefix = $settings->value['prefix'];
+    $separator = $settings->value['separator'];
+    $counterLength = $settings->value['counter_length'];
 
     // Get the last billboard number for this city
     $lastBillboard = static::where('code', 'like', "{$prefix}{$separator}{$city->code}{$separator}%")

@@ -3,10 +3,10 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ClientResource\Pages;
-use App\Filament\Resources\ClientResource\RelationManagers;
-use App\Filament\Resources\ClientResource\RelationManagers\BillboardsRelationManager;
 use App\Filament\Resources\ClientResource\RelationManagers\ContractsRelationManager;
 use App\Models\Client;
+use Cheesegrits\FilamentPhoneNumbers;
+use Brick\PhoneNumber\PhoneNumberFormat;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -42,23 +42,24 @@ class ClientResource extends Resource
                   ->maxLength(255)
                   ->unique(ignoreRecord: true),
 
-                Forms\Components\TextInput::make('phone')
-                  ->tel()
-                  ->maxLength(255),
+                FilamentPhoneNumbers\Forms\Components\PhoneNumber::make('phone')
+                  ->displayFormat(PhoneNumberFormat::INTERNATIONAL)
+                  ->databaseFormat(PhoneNumberFormat::INTERNATIONAL)
+                  ->mask('+999 999 999 999 999'),
 
                 Forms\Components\TextInput::make('company')
                   ->maxLength(255),
 
-                Forms\Components\Textarea::make('street')
+                Forms\Components\TextInput::make('street')
                   ->maxLength(65535),
 
-                Forms\Components\Textarea::make('city')
+                Forms\Components\TextInput::make('city')
                   ->maxLength(65535),
 
-                Forms\Components\Textarea::make('state')
+                Forms\Components\TextInput::make('state')
                   ->maxLength(65535),
 
-                Forms\Components\Textarea::make('country')
+                Forms\Components\TextInput::make('country')
                   ->maxLength(65535)
               ])
               ->columns(2),
@@ -90,7 +91,7 @@ class ClientResource extends Resource
           ->searchable()
           ->sortable(),
 
-        Tables\Columns\TextColumn::make('phone')
+        FilamentPhoneNumbers\Columns\PhoneNumberColumn::make('phone')
           ->searchable(),
 
         Tables\Columns\TextColumn::make('company')

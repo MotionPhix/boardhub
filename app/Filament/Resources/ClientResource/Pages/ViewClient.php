@@ -31,14 +31,19 @@ class ViewClient extends ViewRecord
               ->schema([
                 TextEntry::make('name')
                   ->label('Client Name'),
+
                 TextEntry::make('email')
                   ->label('Email Address'),
+
                 TextEntry::make('phone')
                   ->label('Phone Number'),
+
                 TextEntry::make('company')
                   ->label('Company Name'),
+
                 TextEntry::make('address')
                   ->columnSpanFull(),
+
                 TextEntry::make('created_at')
                   ->dateTime()
                   ->label('Client Since'),
@@ -70,9 +75,11 @@ class ViewClient extends ViewRecord
               ->schema([
                 TextEntry::make('media.name')
                   ->label('File Name'),
+
                 TextEntry::make('media.size')
                   ->label('File Size')
                   ->formatStateUsing(fn ($state) => number_format($state / 1024, 2) . ' KB'),
+
                 TextEntry::make('media.created_at')
                   ->label('Upload Date')
                   ->dateTime(),

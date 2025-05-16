@@ -4,43 +4,46 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   <style>
     @page {
-      margin: 2.5cm 2cm;
-      font-family: 'Roboto Condensed', sans-serif;
+      margin: 2.5cm 1.75cm;
+      // font-family: 'Roboto Condensed', sans-serif;
+      font-family: 'Geist Mono', monospace;
     }
 
     body {
-      font-size: 10pt;
+      font-size: 12pt;
       line-height: 1.6;
       color: #1f2937;
     }
 
-    .header {
-      position: fixed;
-      top: -2cm;
-      left: 0;
-      right: 0;
+    .cover-page {
       text-align: center;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      page-break-after: always;
     }
 
-    .logo {
-      max-width: 100px;
-      margin-bottom: 20px;
+    .cover-title {
+      font-size: 36pt;
+      font-weight: bold;
+      margin-bottom: 2cm;
     }
 
-    .company-info {
-      text-align: left;
-      margin-bottom: 40px;
+    .party-name {
+      font-size: 18pt;
+      margin: 1cm 0;
+      font-weight: bold;
     }
 
     .contract-number {
-      font-size: 16pt;
-      font-weight: bold;
-      margin: 20px 0;
-      color: #4b5563;
+      margin-top: 4cm;
+      font-size: 14pt;
     }
 
     .section {
       margin: 20px 0;
+      page-break-inside: avoid;
     }
 
     .section-title {
@@ -50,21 +53,18 @@
       color: #374151;
     }
 
-    .grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-
     .signature-section {
-      margin-top: 60px;
+      // margin-top: 60px;
       page-break-inside: avoid;
     }
 
-    .signature-box {
-      margin: 20px 0;
+    .signature-box:not(:first-of-type) {
       border-top: 1px solid #9ca3af;
-      padding-top: 10px;
+    }
+
+    .company-info {
+      // font-size: 10pt;
+      color: #4b5563;
     }
 
     .footer {
@@ -84,11 +84,9 @@
     }
 
     th, td {
-      border: 0;
-      padding: 5px 10px;
-      border-top: 1px solid #d1d5db;
+      padding: 10px;
+      border: 1px solid #d1d5db;
       text-align: left;
-      white-space: nowrap;
     }
 
     th {
@@ -96,141 +94,77 @@
       font-weight: bold;
     }
 
+    .no_border {
+      border: none !important;
+    }
+
     .amount {
       text-align: right;
     }
 
     .meta-info {
-      font-size: 9pt;
+      border-top: 1px #f3f4f6 solid;
+      font-size: 8pt;
       color: #6b7280;
-      text-align: right;
+      text-align: center;
       margin-top: 5px;
     }
   </style>
 </head>
 <body>
-<div class="header">
-  @if($settings->getFirstMedia('logo'))
-    <img src="{{ $settings->getFirstMedia('logo')->getPath() }}" class="logo"
-         alt="{{ $settings->get('company_profile.name') }}">
-  @else
-    <img src="{{ public_path('images/logo.png') }}" class="logo"
-         alt="{{ $settings->get('company_profile.name') }} Logo">
-  @endif
-</div>
+<!-- Cover Page -->
+<div class="cover-page">
 
-<div class="company-info">
-  <strong>By:</strong><br>
-  <h1>{{ $settings->get('company_profile.name') }}</h1>
-  <p>
-    {{ $settings->get('company_profile.address.street') }}<br>
-    {{ $settings->get('company_profile.address.city') }}, {{ $settings->get('company_profile.address.state') }}<br>
-    {{ $settings->get('company_profile.address.country') }}<br>
-    @if($settings->get('company_profile.phone'))
-      p: {{ $settings->get('company_profile.phone') }}<br>
-    @endif
-    E: {{ $settings->get('company_profile.email') }}<br>
-    @if($settings->get('company_profile.registration_number'))
-      Reg. No: {{ $settings->get('company_profile.registration_number') }}<br>
-    @endif
-    @if($settings->get('company_profile.tax_number'))
-      Tax No: {{ $settings->get('company_profile.tax_number') }}
-    @endif
-  </p>
-</div>
+  <img
+    src="{{ public_path('images/logo.png') }}"
+    style="max-height: 100px; margin-bottom: 2rem"
+    alt="{{ $settings->get('company_profile.name') }} Logo"><br>
 
-<div class="contract-number">
-  Contract Number #{{ $contract->contract_number }}
-</div>
+  <div class="cover-title">
+    ADVERTISING <br> RENTAL AGREEMENT <br> BETWEEN
+  </div>
 
-<div class="section">
-  <div class="grid">
-    <div>
-      <strong>For:</strong><br>
-      {{ $contract->client->name }}<br>
-      @if($contract->client->company)
-        {{ $contract->client->company }}<br>
-      @endif
-      {{ $contract->client->street }}<br>
-      {{ $contract->client->city }}, {{ $contract->client->state }}<br>
-      {{ $contract->client->country }}<br>
+  <h3 class="party-name">
+    {{ $contract->client->company ?: $contract->client->name }}
+  </h3>
 
-      @if($contract->client->phone)
-        P: {{ $contract->client->phone }}<br>
-      @endif
-      E: {{ $contract->client->email }}
-    </div>
+  <h3 class="party-name">AND</h3>
 
-    <div>
-      <br><br>
-      <strong>Contract Agreement Length:</strong><br>
+  <h3 class="party-name">
+    {{ $settings->get('company_profile.name') }}
+  </h3>
 
-      <table>
-        <tbody>
-        <tr>
-          <td>Start date</td>
-
-          <td>
-            {{ $contract->start_date->format('jS F, Y') }}
-          </td>
-        </tr>
-
-        <tr>
-          <td>
-            End Date
-          </td>
-
-          <td>
-            {{ $contract->end_date->format('jS F, Y') }}
-          </td>
-        </tr>
-        </tbody>
-
-        <tfoot>
-        <tr>
-          <td colspan="2">
-            The contract will be run for
-            <strong>
-              {{ $contract->start_date->diffInMonths($contract->end_date) }} months
-            </strong>
-          </td>
-        </tr>
-        </tfoot>
-      </table>
-    </div>
+  <div class="contract-number">
+    Contract Serial No: <strong>{{ $contract->contract_number }}</strong>
   </div>
 </div>
 
+<!-- Main Content -->
 <div class="section">
-  <h2 class="section-title">Billboards Booked</h2>
+  <h2 class="section-title">1. THE AGREEMENT</h2>
+  <p>
+    This agreement is made on {{ $contract->start_date->format('jS F Y') }} between {{ $settings->get('company_profile.name') }}
+    (hereinafter referred to as "the Company") and {{ $contract->client->company ?: $contract->client->name }}
+    (hereinafter referred to as "the Client") for the rental of advertising space as detailed below:
+  </p>
+
   <table>
     <thead>
     <tr>
-      <th>Site Code</th>
-      <th>Site Details</th>
-      <th class="amount">Monthly Rental</th>
+      <th>Billboard</th>
+      <th>Location</th>
+      <th>Dimensions</th>
+      <th class="amount">Rate</th>
     </tr>
     </thead>
     <tbody>
     @foreach($contract->billboards as $billboard)
       <tr>
-        <td>{{ $billboard->code }}</td>
-
-        <td>
-          <strong>{{ $billboard->size }}</strong> <br>
-
-          <small>{{ $billboard->name }}, {{ $billboard->location->name }}</small> <br>
-          <small>
-            {{ $billboard->location->city->name }}, {{ $billboard->location->state->name }}
-            , {{ $billboard->location->country->name }}
-          </small>
-        </td>
-
+        <td>{{ $billboard->name }}</td>
+        <td>{{ $billboard->location->name }}</td>
+        <td>{{ $billboard->dimensions }}</td>
         <td class="amount">
-          @php
-            $currency = \App\Models\Settings::getAvailableCurrencies()[$contract->currency_code] ?? null;
-          @endphp
-          {{ $currency['symbol'] ?? '' }}
+          {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
           {{ number_format($billboard->pivot->billboard_base_price, 2) }}
         </td>
       </tr>
@@ -238,32 +172,27 @@
     </tbody>
     <tfoot>
     <tr>
-      <td colspan="2" class="amount"><strong>Total Amount:</strong></td>
-
+      <td colspan="3" class="amount"><strong>Total Amount:</strong></td>
       <td class="amount">
         <strong>
-          {{ $currency['symbol'] ?? '' }}
+          {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
           {{ number_format($contract->contract_total, 2) }}
         </strong>
       </td>
     </tr>
-
     @if($contract->contract_discount > 0)
       <tr>
-        <td colspan="2" class="amount">Discount:</td>
-
+        <td colspan="3" class="amount">Discount:</td>
         <td class="amount">
-          {{ $currency['symbol'] ?? '' }}
+          {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
           {{ number_format($contract->contract_discount, 2) }}
         </td>
       </tr>
-
       <tr>
-        <td colspan="2" class="amount"><strong>Final Amount:</strong></td>
-
+        <td colspan="3" class="amount"><strong>Final Amount:</strong></td>
         <td class="amount">
           <strong>
-            {{ $currency['symbol'] ?? '' }}
+            {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
             {{ number_format($contract->contract_final_amount, 2) }}
           </strong>
         </td>
@@ -271,37 +200,164 @@
     @endif
     </tfoot>
   </table>
+
+  <p>
+    The rental period shall commence on {{ $contract->start_date->format('jS F Y') }}
+    and end on {{ $contract->end_date->format('jS F Y') }}.
+  </p>
 </div>
 
 <div class="section">
-  <h2 class="section-title">Terms and Conditions</h2>
+  <h2 class="section-title">2. MAINTENANCE</h2>
+  <p>
+    The Company shall be responsible for the maintenance and repair of any damaged billboards during the rental period.
+    Any damage caused by natural wear and tear or weather conditions shall be repaired by the Company at no additional cost.
+    However, any damage caused by the Client's negligence or misuse shall be repaired at the Client's expense.
+  </p>
+</div>
+
+<div class="section">
+  <h2 class="section-title">3. DISPUTES</h2>
+  <p>
+    Any disputes arising from this agreement shall be resolved through amicable negotiation between both parties.
+    If no resolution can be reached, the matter shall be referred to arbitration in accordance with the laws of
+    {{ $settings->get('company_profile.address.country') }}.
+  </p>
+</div>
+
+<div class="section">
+  <h2 class="section-title">4. TERMINATION</h2>
+  <p>
+    Either party may terminate this agreement with a 30-day written notice. In case of early termination by the Client,
+    a cancellation fee equivalent to one month's rental shall be payable. The Company reserves the right to terminate
+    this agreement immediately in case of breach of contract terms by the Client.
+  </p>
+</div>
+
+<div class="section">
+  <h2 class="section-title">5. TERMS AND CONDITIONS</h2>
   {!! $settings->get('document_settings.default_contract_terms') !!}
 </div>
 
 <div class="signature-section">
-  <div class="grid">
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
     <div class="signature-box">
-      <p><strong>For {{ $settings->get('company_profile.name') }}:</strong></p>
+      <p>
+        <strong>
+          Signed on behalf of {{ $settings->get('company_profile.name') }} (“The Company”)
+        </strong>
+      </p>
+
       @if(isset($contract->signatures['company']))
         <img src="{{ $contract->signatures['company'] }}" alt="Company Signature" style="max-height: 100px"><br>
-      @else
-        <br><br><br>
       @endif
-      Name: ____________________<br>
-      Title: ____________________<br>
-      Date: ____________________
+
+      <table>
+        <tbody>
+          <tr>
+            <td class="no_border">Name</td>
+
+            <td class="no_border">
+              : __________________________________________
+            </td>
+          </tr>
+
+          <tr>
+            <td class="no_border">
+              Title
+            </td>
+
+            <td class="no_border">
+              : __________________________________________
+            </td>
+          </tr>
+
+          <tr>
+            <td class="no_border">
+              Date
+            </td>
+
+            <td class="no_border">
+              : __________________________________________
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="company-info">
+        {{ $settings->get('company_profile.address.street') }}<br>
+        {{ $settings->get('company_profile.address.city') }},
+        {{ $settings->get('company_profile.address.state') }}<br>
+        {{ $settings->get('company_profile.address.country') }}<br><br>
+
+        @if($settings->get('company_profile.phone'))
+          p: {{ $settings->get('company_profile.phone') }}<br>
+        @endif
+        E: {{ $settings->get('company_profile.email') }}<br>
+
+        @if($settings->get('company_profile.registration_number'))
+          Reg. No: {{ $settings->get('company_profile.registration_number') }}<br>
+        @endif
+
+        @if($settings->get('company_profile.tax_number'))
+          Tax No: {{ $settings->get('company_profile.tax_number') }}
+        @endif
+      </div>
     </div>
 
-    <div class="signature-box">
-      <p><strong>For {{ $contract->client->company ?: $contract->client->name }}:</strong></p>
+    <div class="signature-box" style="margin-top: 4rem; border-top: 1px solid #9ca3af; padding-top: 2.5rem">
+      <p>
+        <strong>
+          Signed on behalf of {{ $contract->client->company ?: $contract->client->name }} (“The Client”)
+        </strong>
+      </p>
+
       @if(isset($contract->signatures['client']))
         <img src="{{ $contract->signatures['client'] }}" alt="Client Signature" style="max-height: 100px"><br>
-      @else
-        <br><br><br>
       @endif
-      Name: ____________________<br>
-      Title: ____________________<br>
-      Date: ____________________
+
+      <table>
+        <tbody>
+        <tr>
+          <td class="no_border">Name</td>
+
+          <td class="no_border">
+            : __________________________________________
+          </td>
+        </tr>
+
+        <tr>
+          <td class="no_border">
+            Title
+          </td>
+
+          <td class="no_border">
+            : __________________________________________
+          </td>
+        </tr>
+
+        <tr>
+          <td class="no_border">
+            Date
+          </td>
+
+          <td class="no_border">
+            : __________________________________________
+          </td>
+        </tr>
+        </tbody>
+      </table>
+
+      <div class="company-info">
+        {{ $contract->client->street }}<br>
+        {{ $contract->client->city }}, {{ $contract->client->state }}<br>
+        {{ $contract->client->country }}<br><br>
+
+        @if($contract->client->phone)
+        P: {{ $contract->client->phone }}<br>
+        @endif
+        E: {{ $contract->client->email }}
+      </div>
     </div>
   </div>
 </div>
