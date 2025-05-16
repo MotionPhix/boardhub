@@ -140,12 +140,14 @@ class Settings extends Model implements HasMedia
 
   public static function getLocalization(): array
   {
-    return static::get('localization', [
-      'timezone' => 'Africa/Blantyre',
-      'locale' => 'en',
-      'date_format' => 'Y-m-d',
-      'time_format' => 'H:i',
-    ]);
+    $settings = self::where('key', 'localization')->first();
+
+    return [
+      'timezone' => $settings?->value['timezone'] ?? config('app.timezone', 'UTC'),
+      'locale' => $settings?->value['locale'] ?? config('app.locale', 'en'),
+      'date_format' => $settings?->value['date_format'] ?? 'Y-m-d',
+      'time_format' => $settings?->value['time_format'] ?? 'H:i:s'
+    ];
   }
 
   public static function getDocumentSettings(): array

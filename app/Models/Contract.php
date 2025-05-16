@@ -107,6 +107,7 @@ class Contract extends Model implements HasMedia
     // Get the contract template content and replace variables
     // $content = $this->prepareContractContent();
     $settings = app(Settings::class);
+    $localization = Settings::getLocalization();
 
     // Generate PDF using the template
     $pdf = PDF::loadView('contracts.contract-template', [
@@ -114,8 +115,9 @@ class Contract extends Model implements HasMedia
       // 'content' => $content,
       'settings' => $settings,
       'generatedBy' => $generatedBy ?? auth()->user()->name ?? 'System',
-      'date' => now($settings->get('localization')['timezone'])
-        ->format($settings->get('localization')['date_format'] . ' ' . $settings->get('localization')['time_format'])
+      'date' => now()
+        ->setTimezone($localization['timezone'])
+        ->format($localization['date_format'] . ' ' . $localization['time_format'])
     ]);
 
     // Set PDF options

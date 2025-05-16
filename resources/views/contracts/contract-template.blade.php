@@ -154,8 +154,8 @@
     </div>
     <div>
       <strong>Contract Details:</strong><br>
-      Start Date: {{ $contract->start_date->format($settings->get('localization.date_format')) }}<br>
-      End Date: {{ $contract->end_date->format($settings->get('localization.date_format')) }}<br>
+      Start Date: {{ $contract->start_date->format($settings->get('localization')['date_format']) }}<br>
+      End Date: {{ $contract->end_date->format($settings->get('localization')['date_format']) }}<br>
       Duration: {{ $contract->start_date->diffInMonths($contract->end_date) }} months<br>
       Status: {{ ucfirst($contract->agreement_status) }}
     </div>
@@ -251,9 +251,9 @@
 </div>
 
 <div class="footer">
-  {!! $settings->get('document_settings.contract_footer_text') !!}
+  {!! $settings->get('document_settings')['contract_footer_text'] !!}
   <div class="meta-info">
-    Generated on {{ now()->setTimezone($settings->get('localization.timezone'))->format($settings->get('localization.date_format') . ' ' . $settings->get('localization.time_format')) }} by {{ $generatedBy ?? 'System' }}
+    Generated on {{ now()->setTimezone($settings->get('localization')['timezone'])->format($settings->get('localization')['date_format'] . ' ' . $settings->get('localization')['time_format']) }} by {{ $generatedBy ?? 'System' }}
   </div>
 </div>
 </body>
