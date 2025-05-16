@@ -154,8 +154,11 @@
     </div>
     <div>
       <strong>Contract Details:</strong><br>
-      Start Date: {{ $contract->start_date->format($settings->get('localization')['date_format']) }}<br>
-      End Date: {{ $contract->end_date->format($settings->get('localization')['date_format']) }}<br>
+      @php
+        $localization = \App\Models\Settings::getLocalization();
+      @endphp
+      Start Date: {{ $contract->start_date->format($localization['date_format']) }}<br>
+      End Date: {{ $contract->end_date->format($localization['date_format']) }}<br>
       Duration: {{ $contract->start_date->diffInMonths($contract->end_date) }} months<br>
       Status: {{ ucfirst($contract->agreement_status) }}
     </div>
@@ -180,7 +183,10 @@
         <td>{{ $billboard->location->name }}</td>
         <td>{{ $billboard->dimensions }}</td>
         <td class="amount">
-          {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
+          @php
+            $currency = \App\Models\Settings::getAvailableCurrencies()[$contract->currency_code] ?? null;
+          @endphp
+          {{ $currency['symbol'] ?? '' }}
           {{ number_format($billboard->pivot->billboard_base_price, 2) }}
         </td>
       </tr>
@@ -191,7 +197,7 @@
       <td colspan="3" class="amount"><strong>Total Amount:</strong></td>
       <td class="amount">
         <strong>
-          {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
+          {{ $currency['symbol'] ?? '' }}
           {{ number_format($contract->contract_total, 2) }}
         </strong>
       </td>
@@ -200,7 +206,7 @@
       <tr>
         <td colspan="3" class="amount">Discount:</td>
         <td class="amount">
-          {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
+          {{ $currency['symbol'] ?? '' }}
           {{ number_format($contract->contract_discount, 2) }}
         </td>
       </tr>
@@ -208,7 +214,7 @@
         <td colspan="3" class="amount"><strong>Final Amount:</strong></td>
         <td class="amount">
           <strong>
-            {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
+            {{ $currency['symbol'] ?? '' }}
             {{ number_format($contract->contract_final_amount, 2) }}
           </strong>
         </td>
@@ -251,9 +257,9 @@
 </div>
 
 <div class="footer">
-  {!! $settings->get('document_settings')['contract_footer_text'] !!}
+  {!! $settings->get('document_settings.contract_footer_text') !!}
   <div class="meta-info">
-    Generated on {{ now()->setTimezone($settings->get('localization')['timezone'])->format($settings->get('localization')['date_format'] . ' ' . $settings->get('localization')['time_format']) }} by {{ $generatedBy ?? 'System' }}
+    Generated on {{ $date }} by {{ $generatedBy }}
   </div>
 </div>
 </body>

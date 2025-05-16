@@ -40,10 +40,29 @@ class Settings extends Model implements HasMedia
     );
   }
 
-  public static function get(string $key, $default = null)
+  /*public static function get(string $key, $default = null)
   {
     $setting = static::where('key', $key)->first();
     return $setting ? $setting->value : $default;
+  }*/
+
+  public function get($key, $default = null)
+  {
+    if (str_contains($key, '.')) {
+      $keys = explode('.', $key);
+      $value = $this->value;
+
+      foreach ($keys as $k) {
+        if (!is_array($value) || !array_key_exists($k, $value)) {
+          return $default;
+        }
+        $value = $value[$k];
+      }
+
+      return $value;
+    }
+
+    return $this->value[$key] ?? $default;
   }
 
   public static function set(string $key, $value, string $group = 'general'): void
