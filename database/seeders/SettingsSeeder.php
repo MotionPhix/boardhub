@@ -14,33 +14,35 @@ class SettingsSeeder extends Seeder
       'name' => 'BoardHub',
       'email' => 'info@boardhub.com',
       'phone' => null,
-      'address' => null,
+      'address' => [
+        'street' => 'Infinity Complex',
+        'city' => 'Lilongwe',
+        'state' => 'Central Region',
+        'country' => 'Malawi'
+      ],
       'registration_number' => null,
       'tax_number' => null,
     ], 'company');
 
     // Currency Settings
-    Settings::set('default_currency', [
-      'code' => 'MWK',
-      'symbol' => 'MK',
-      'name' => 'Malawian Kwacha',
-    ], 'currency');
-
     Settings::set('currency_settings', [
       'MWK' => [
         'code' => 'MWK',
         'symbol' => 'MK',
         'name' => 'Malawian Kwacha',
+        'is_default' => true,
       ],
       'USD' => [
         'code' => 'USD',
         'symbol' => '$',
         'name' => 'US Dollar',
+        'is_default' => false,
       ],
       'ZMW' => [
         'code' => 'ZMW',
         'symbol' => 'ZK',
         'name' => 'Zambian Kwacha',
+        'is_default' => false,
       ],
     ], 'currency');
 

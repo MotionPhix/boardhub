@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasUuid;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -19,7 +20,10 @@ class Client extends Model implements HasMedia
     'email',
     'phone',
     'company',
-    'address',
+    'street',
+    'city',
+    'state',
+    'country'
   ];
 
   public function contracts(): HasMany
@@ -33,18 +37,29 @@ class Client extends Model implements HasMedia
       ->useDisk('public');
   }
 
-  public function getTotalContractsValueAttribute()
+  public function totalContractsValue(): Attribute
   {
-    return $this->contracts()
-      ->where('agreement_status', 'active')
-      ->sum('total_amount');
+    return Attribute::make(
+      get: fn() => $this->contracts()
+        ->where('agreement_status', 'active')
+        ->sum('total_amount')
+    );
   }
 
-  public function getActiveContractsCountAttribute()
+  public function activeContractsCount(): Attribute
   {
-    return $this->contracts()
-      ->where('agreement_status', 'active')
-      ->where('end_date', '>=', now())
-      ->count();
+    return Attribute::make(
+      get: fn() => $this->contracts()
+        ->where('agreement_status', 'active')
+        ->where('end_date', '>=', now())
+        ->count(),
+    );
+  }
+
+  public function address(): Attribute
+  {
+    return Attribute::make(
+      get: fn() => $this->street . ', ' . $this->city . ', ' . $this->state . ', ' . $this->country
+    );
   }
 }

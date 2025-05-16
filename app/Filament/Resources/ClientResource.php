@@ -35,19 +35,31 @@ class ClientResource extends Resource
                 Forms\Components\TextInput::make('name')
                   ->required()
                   ->maxLength(255),
+
                 Forms\Components\TextInput::make('email')
                   ->email()
                   ->required()
                   ->maxLength(255)
                   ->unique(ignoreRecord: true),
+
                 Forms\Components\TextInput::make('phone')
                   ->tel()
                   ->maxLength(255),
+
                 Forms\Components\TextInput::make('company')
                   ->maxLength(255),
-                Forms\Components\Textarea::make('address')
+
+                Forms\Components\Textarea::make('street')
+                  ->maxLength(65535),
+
+                Forms\Components\Textarea::make('city')
+                  ->maxLength(65535),
+
+                Forms\Components\Textarea::make('state')
+                  ->maxLength(65535),
+
+                Forms\Components\Textarea::make('country')
                   ->maxLength(65535)
-                  ->columnSpanFull(),
               ])
               ->columns(2),
 
@@ -73,13 +85,17 @@ class ClientResource extends Resource
         Tables\Columns\TextColumn::make('name')
           ->searchable()
           ->sortable(),
+
         Tables\Columns\TextColumn::make('email')
           ->searchable()
           ->sortable(),
+
         Tables\Columns\TextColumn::make('phone')
           ->searchable(),
+
         Tables\Columns\TextColumn::make('company')
           ->searchable(),
+
         Tables\Columns\TextColumn::make('active_contracts_count')
           ->label('Active Contracts')
           ->counts('contracts', fn (Builder $query) => $query

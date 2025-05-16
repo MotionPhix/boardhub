@@ -107,7 +107,7 @@ class Contract extends Model implements HasMedia
     $content = $this->prepareContractContent();
 
     // Generate PDF using the template
-    $pdf = PDF::loadView('contracts.template', [
+    $pdf = PDF::loadView('contracts.contract-template', [
       'contract' => $this,
       'content' => $content,
       'date' => now()->format('F j, Y')

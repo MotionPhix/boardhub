@@ -55,23 +55,47 @@ class SettingsResource extends Resource
                     Forms\Components\TextInput::make('value.name')
                       ->label('Company Name')
                       ->required()
+                      ->columnSpanFull()
                       ->maxLength(255),
+
                     Forms\Components\TextInput::make('value.email')
                       ->label('Company Email')
                       ->email()
                       ->required()
                       ->maxLength(255),
+
                     Forms\Components\TextInput::make('value.phone')
                       ->label('Company Phone')
                       ->tel()
                       ->maxLength(255),
-                    Forms\Components\Textarea::make('value.address')
-                      ->label('Company Address')
-                      ->maxLength(65535)
-                      ->columnSpanFull(),
+
+                    Forms\Components\Section::make('Company Address')
+                      ->schema([
+
+                        Forms\Components\TextInput::make('value.address.street')
+                          ->label('Street Name')
+                          ->maxLength(255),
+
+                        Forms\Components\TextInput::make('value.address.city')
+                          ->label('City')
+                          ->placeholder('Where the branch is located')
+                          ->maxLength(255),
+
+                        Forms\Components\TextInput::make('value.address.state')
+                          ->label('State/Region/Province')
+                          ->maxLength(255),
+
+                        Forms\Components\TextInput::make('value.address.country')
+                          ->label('Country')
+                          ->maxLength(255),
+
+                      ])
+                      ->columns(2),
+
                     Forms\Components\TextInput::make('value.registration_number')
                       ->label('Registration Number')
                       ->maxLength(255),
+
                     Forms\Components\TextInput::make('value.tax_number')
                       ->label('Tax Number')
                       ->maxLength(255),
@@ -119,7 +143,7 @@ class SettingsResource extends Resource
 
             Forms\Components\Tabs\Tab::make('Currency')
               ->schema([
-                Forms\Components\Section::make('Default Currency')
+                Forms\Components\Section::make('Currency Settings')
                   ->schema([
                     Forms\Components\Select::make('value.code')
                       ->label('Currency')
@@ -127,21 +151,27 @@ class SettingsResource extends Resource
                         'MWK' => 'Malawian Kwacha (MWK)',
                         'USD' => 'US Dollar (USD)',
                         'ZMW' => 'Zambian Kwacha (ZMW)',
-                        // Add more currencies as needed
                       ])
                       ->required(),
+
                     Forms\Components\TextInput::make('value.symbol')
                       ->label('Symbol')
                       ->required()
                       ->maxLength(10),
+
                     Forms\Components\TextInput::make('value.name')
                       ->label('Currency Name')
                       ->required()
                       ->maxLength(255),
+
+                    Forms\Components\Radio::make('value.is_default')
+                      ->label('Make Default')
+                      ->default(false)
+                      ->required()
                   ])
                   ->columns(2),
               ])
-              ->hidden(fn ($record) => $record?->key !== 'default_currency'),
+              ->hidden(fn ($record) => $record?->key !== 'currency_settings'),
 
             Forms\Components\Tabs\Tab::make('Document Settings')
               ->schema([
