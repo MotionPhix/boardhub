@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -19,6 +20,25 @@ class Settings extends Model implements HasMedia
   protected $casts = [
     'value' => 'json',
   ];
+
+  protected function value(): Attribute
+  {
+    return Attribute::make(
+      get: fn ($value) => json_decode($value, true),
+      set: function ($value) {
+        if ($this->key === 'currency_settings') {
+          // Convert array to associative array with currency code as key
+          $currencies = [];
+          foreach ($value as $currency) {
+            if (!isset($currency['code'])) continue;
+            $currencies[$currency['code']] = $currency;
+          }
+          $value = $currencies;
+        }
+        return json_encode($value);
+      }
+    );
+  }
 
   public static function get(string $key, $default = null)
   {
@@ -49,13 +69,73 @@ class Settings extends Model implements HasMedia
     ]);
   }
 
-  public static function getDefaultCurrency(): array
+  /**
+   * Get the default currency settings
+   */
+  /*public static function getDefaultCurrency(): ?array
   {
-    return static::get('default_currency', [
+    $settings = self::where('key', 'currency_settings')->first();
+
+    if (!$settings) {
+      return [
+        'code' => 'MWK',
+        'symbol' => 'MK',
+        'name' => 'Malawian Kwacha',
+        'is_default' => true,
+      ];
+    }
+
+    // Find the default currency from the settings
+    foreach ($settings->value as $currency) {
+      if ($currency['is_default'] ?? false) {
+        return $currency;
+      }
+    }
+
+    // If no default is set, return the first currency or fallback
+    return array_values($settings->value)[0] ?? [
       'code' => 'MWK',
       'symbol' => 'MK',
       'name' => 'Malawian Kwacha',
-    ]);
+      'is_default' => true,
+    ];
+  }*/
+
+  public static function getDefaultCurrency(): ?array
+  {
+    $settings = self::where('key', 'currency_settings')->first();
+
+    if (!$settings || empty($settings->value)) {
+      return [
+        'code' => 'MWK',
+        'symbol' => 'MK',
+        'name' => 'Malawian Kwacha',
+        'is_default' => true,
+      ];
+    }
+
+    // Handle both array formats (indexed and associative)
+    $currencies = $settings->value;
+
+    // If indexed array
+    if (isset($currencies[0])) {
+      foreach ($currencies as $currency) {
+        if ($currency['is_default'] ?? false) {
+          return $currency;
+        }
+      }
+      return $currencies[0];
+    }
+
+    // If associative array
+    foreach ($currencies as $code => $currency) {
+      if ($currency['is_default'] ?? false) {
+        return $currency;
+      }
+    }
+
+    // Return first currency if no default is set
+    return reset($currencies);
   }
 
   public static function getLocalization(): array
@@ -80,25 +160,44 @@ class Settings extends Model implements HasMedia
     ]);
   }
 
+  /**
+   * Get all available currencies
+   */
   public static function getAvailableCurrencies(): array
   {
-    return static::get('currency_settings', [
-      'MWK' => [
-        'code' => 'MWK',
-        'symbol' => 'MK',
-        'name' => 'Malawian Kwacha',
-      ],
-      'USD' => [
-        'code' => 'USD',
-        'symbol' => '$',
-        'name' => 'US Dollar',
-      ],
-      'ZMW' => [
-        'code' => 'ZMW',
-        'symbol' => 'ZK',
-        'name' => 'Zambian Kwacha',
-      ],
-    ]);
+    $settings = self::where('key', 'currency_settings')->first();
+
+    if (!$settings || empty($settings->value)) {
+      // Return default currency if no settings exist
+      return self::getDefaultCurrency();
+    }
+
+    $currencies = $settings->value;
+
+    // If the currencies are in indexed array format, convert to associative
+    if (isset($currencies[0])) {
+      $formattedCurrencies = [];
+      foreach ($currencies as $currency) {
+        if (!isset($currency['code'])) continue;
+        $formattedCurrencies[$currency['code']] = [
+          'code' => $currency['code'],
+          'symbol' => $currency['symbol'] ?? '',
+          'name' => $currency['name'] ?? $currency['code'],
+          'is_default' => $currency['is_default'] ?? false,
+        ];
+      }
+      return $formattedCurrencies;
+    }
+
+    // If already in associative format, ensure all required keys exist
+    return collect($currencies)->map(function ($currency, $code) {
+      return [
+        'code' => $code,
+        'symbol' => $currency['symbol'] ?? '',
+        'name' => $currency['name'] ?? $code,
+        'is_default' => $currency['is_default'] ?? false,
+      ];
+    })->toArray();
   }
 
   public static function getAvailableCountries(): array

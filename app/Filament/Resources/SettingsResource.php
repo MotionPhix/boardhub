@@ -145,31 +145,83 @@ class SettingsResource extends Resource
               ->schema([
                 Forms\Components\Section::make('Currency Settings')
                   ->schema([
-                    Forms\Components\Select::make('value.code')
-                      ->label('Currency')
-                      ->options([
-                        'MWK' => 'Malawian Kwacha (MWK)',
-                        'USD' => 'US Dollar (USD)',
-                        'ZMW' => 'Zambian Kwacha (ZMW)',
+                    Forms\Components\Repeater::make('value')
+                      ->label('Currencies')
+                      ->defaultItems(0)
+                      ->reorderable(false)
+                      ->collapsible()
+                      ->itemLabel(fn (array $state): string =>
+                        ($state['name'] ?? 'New Currency') . ' (' . ($state['code'] ?? '') . ')'
+                      )
+                      ->schema([
+                        Forms\Components\TextInput::make('code')
+                          ->label('Currency Code')
+                          ->required()
+                          ->maxLength(3)
+                          ->rules(['alpha'])
+                          ->uppercase()
+                          ->unique(
+                            ignorable: fn ($record, $state) => $record && isset($record->value[$state]),
+                            callback: function (Forms\Components\TextInput $component, string $value, $record) {
+                              $currentValues = collect($record?->value ?? []);
+                              $count = $currentValues->where('code', $value)->count();
+                              return $count === 0;
+                            }
+                          ),
+
+                        Forms\Components\TextInput::make('symbol')
+                          ->label('Currency Symbol')
+                          ->required()
+                          ->maxLength(5),
+
+                        Forms\Components\TextInput::make('name')
+                          ->label('Currency Name')
+                          ->required()
+                          ->maxLength(255),
+
+                        Forms\Components\Toggle::make('is_default')
+                          ->label('Make Default')
+                          ->default(false)
+                          ->afterStateUpdated(function ($state, Forms\Set $set, ?array $old, ?string $operation) {
+                            if (!$state) return;
+
+                            // Get the current repeater items
+                            $items = $set->get('value') ?? [];
+
+                            // Update all other currencies to not be default
+                            foreach ($items as $key => $item) {
+                              if ($key !== $old) {
+                                $items[$key]['is_default'] = false;
+                              }
+                            }
+
+                            $set('value', $items);
+                          })
+                          ->dehydrated()
+                          ->required(),
                       ])
-                      ->required(),
+                      ->columnSpanFull()
+                      ->defaultItems(1)
+                      ->minItems(1)
+                      ->columns(4)
+                      ->afterStateUpdated(function (array $state, Forms\Set $set) {
+                        // Ensure at least one currency is set as default
+                        $hasDefault = false;
+                        foreach ($state as $currency) {
+                          if ($currency['is_default'] ?? false) {
+                            $hasDefault = true;
+                            break;
+                          }
+                        }
 
-                    Forms\Components\TextInput::make('value.symbol')
-                      ->label('Symbol')
-                      ->required()
-                      ->maxLength(10),
-
-                    Forms\Components\TextInput::make('value.name')
-                      ->label('Currency Name')
-                      ->required()
-                      ->maxLength(255),
-
-                    Forms\Components\Radio::make('value.is_default')
-                      ->label('Make Default')
-                      ->default(false)
-                      ->required()
+                        if (!$hasDefault && !empty($state)) {
+                          $state[array_key_first($state)]['is_default'] = true;
+                          $set('value', $state);
+                        }
+                      }),
                   ])
-                  ->columns(2),
+                  ->description('Configure the currencies available in your system. At least one currency must be set as default.')
+                  ->columns(1),
               ])
               ->hidden(fn ($record) => $record?->key !== 'currency_settings'),
 

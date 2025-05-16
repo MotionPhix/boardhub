@@ -114,9 +114,8 @@ class Contract extends Model implements HasMedia
       // 'content' => $content,
       'settings' => $settings,
       'generatedBy' => $generatedBy ?? auth()->user()->name ?? 'System',
-      'date' => now()
-        ->setTimezone($settings->get('localization.timezone'))
-        ->format($settings->get('localization.date_format') . ' ' . $settings->get('localization.time_format'))
+      'date' => now($settings->get('localization')['timezone'])
+        ->format($settings->get('localization')['date_format'] . ' ' . $settings->get('localization')['time_format'])
     ]);
 
     // Set PDF options
