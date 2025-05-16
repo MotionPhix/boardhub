@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Mail\ContractMail;
+use App\Notifications\ContractSignedNotification;
 use App\Traits\HasMoney;
 use App\Traits\HasUuid;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -101,19 +102,92 @@ class Contract extends Model implements HasMedia
       );
   }
 
-  public function generatePdf(): string
+  public function generatePdf(?string $generatedBy = null): string
   {
     // Get the contract template content and replace variables
-    $content = $this->prepareContractContent();
+    // $content = $this->prepareContractContent();
+    $settings = app(Settings::class);
 
     // Generate PDF using the template
     $pdf = PDF::loadView('contracts.contract-template', [
       'contract' => $this,
-      'content' => $content,
-      'date' => now()->format('F j, Y')
+      // 'content' => $content,
+      'settings' => $settings,
+      'generatedBy' => $generatedBy ?? auth()->user()->name ?? 'System',
+      'date' => now()
+        ->setTimezone($settings->get('localization.timezone'))
+        ->format($settings->get('localization.date_format') . ' ' . $settings->get('localization.time_format'))
     ]);
 
+    // Set PDF options
+    $pdf->setPaper('a4');
+    $pdf->setOption('margin-top', '2.5cm');
+    $pdf->setOption('margin-bottom', '2.5cm');
+    $pdf->setOption('margin-left', '2cm');
+    $pdf->setOption('margin-right', '2cm');
+
     return $pdf->output();
+  }
+
+  // Add a method to handle content preparation for version control
+  public function createContractVersion(): ContractVersion
+  {
+    $latestVersion = $this->versions()->latest()->first();
+    $versionNumber = $latestVersion ? $latestVersion->version + 1 : 1;
+
+    return $this->versions()->create([
+      'version' => $versionNumber,
+      'content' => $this->generatePdf(auth()->user()->name),
+      'metadata' => [
+        'created_by' => auth()->id(),
+        'created_at' => now()->toDateTimeString(),
+        'template_id' => $this->contract_template_id,
+        'agreement_status' => $this->agreement_status,
+        'total_amount' => $this->contract_final_amount,
+        'currency_code' => $this->currency_code,
+      ]
+    ]);
+  }
+
+  // Add method to handle signatures
+  public function addSignature(string $type, string $signature): void
+  {
+    $signatures = $this->signatures ?? [];
+    $signatures[$type] = $signature;
+
+    $this->update([
+      'signatures' => $signatures,
+      'signed_at' => $type === 'client' ? now() : $this->signed_at,
+      'agreement_status' => $type === 'client' ? self::STATUS_ACTIVE : $this->agreement_status,
+    ]);
+
+    // Create a new version after signing
+    $this->createContractVersion();
+
+    if ($type === 'client') {
+      // Store the signed contract in media library
+      $pdf = $this->generatePdf($this->client->name);
+      $this->addMediaFromString($pdf)
+        ->usingFileName($this->contract_number . '_signed.pdf')
+        ->withCustomProperties([
+          'signed_by' => $this->client->name,
+          'signed_at' => now()->toDateTimeString(),
+        ])
+        ->toMediaCollection('signed_contracts');
+
+      // Notify relevant parties
+      $this->notifyContractSigned();
+    }
+  }
+
+  // Add method to notify about contract signing
+  protected function notifyContractSigned(): void
+  {
+    $recipients = $this->getNotificationRecipients();
+
+    foreach ($recipients as $recipient) {
+      $recipient->notify(new ContractSignedNotification($this));
+    }
   }
 
   public function markAsGenerated(): void
