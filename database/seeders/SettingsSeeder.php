@@ -10,79 +10,69 @@ class SettingsSeeder extends Seeder
   public function run(): void
   {
     // Company Profile Settings
-    Settings::updateOrCreate(
-      ['key' => 'company_profile'],
+    Settings::set(
+      Settings::KEY_COMPANY_PROFILE,
       [
-        'value' => [
-          'name' => 'Your Company Name',
-          'email' => 'info@company.com',
-          'phone' => null,
-          'address' => [
-            'street' => null,
-            'city' => null,
-            'state' => null,
-            'country' => null,
-          ],
-          'registration_number' => null,
-          'tax_number' => null,
+        'name' => 'Your Company Name',
+        'email' => 'info@company.com',
+        'phone' => null,
+        'address' => [
+          'street' => null,
+          'city' => null,
+          'state' => null,
+          'country' => null,
         ],
-        'group' => 'company'
-      ]
+        'registration_number' => null,
+        'tax_number' => null,
+      ],
+      Settings::GROUP_COMPANY
     );
 
     // Document Settings
-    Settings::updateOrCreate(
-      ['key' => 'document_settings'],
+    Settings::set(
+      Settings::KEY_DOCUMENT_SETTINGS,
       [
-        'value' => [
-          'default_contract_terms' => null,
-          'contract_footer_text' => null,
-        ],
-        'group' => 'documents'
-      ]
+        'default_contract_terms' => null,
+        'contract_footer_text' => null,
+      ],
+      Settings::GROUP_DOCUMENTS
     );
 
     // Currency Settings
-    Settings::updateOrCreate(
-      ['key' => 'currency_settings'],
+    Settings::set(
+      Settings::KEY_CURRENCY_SETTINGS,
       [
-        'value' => [
-          [
-            'code' => 'MWK',
-            'symbol' => 'MK',
-            'name' => 'Malawian Kwacha',
-            'is_default' => true,
-          ]
-        ],
-        'group' => 'system'
-      ]
+        [
+          'code' => 'MWK',
+          'symbol' => 'MK',
+          'name' => 'Malawian Kwacha',
+          'is_default' => true,
+        ]
+      ],
+      Settings::GROUP_SYSTEM
     );
 
     // Localization Settings
-    Settings::updateOrCreate(
-      ['key' => 'localization'],
+    Settings::set(
+      Settings::KEY_LOCALIZATION,
       [
-        'value' => [
-          'timezone' => 'Africa/Blantyre',
-          'locale' => 'en',
-          'date_format' => 'Y-m-d',
-          'time_format' => 'H:i:s'
-        ],
-        'group' => 'system'
-      ]
+        'timezone' => 'Africa/Blantyre',
+        'locale' => 'en',
+        'date_format' => 'Y-m-d',
+        'time_format' => 'H:i:s'
+      ],
+      Settings::GROUP_SYSTEM
     );
 
     // Billboard Code Format Settings
-    Settings::updateOrCreate(
-      ['key' => 'billboard_code_format'],
+    Settings::set(
+      Settings::KEY_BILLBOARD_CODE_FORMAT,
       [
-        'value' => [
-          'prefix' => 'BH',
-          'separator' => '-',
-          'counter_length' => 5
-        ],
-        'group' => 'billboards'
-      ]
+        'prefix' => 'BH',
+        'separator' => '-',
+        'counter_length' => 5
+      ],
+      Settings::GROUP_BILLBOARDS
     );
   }
 }

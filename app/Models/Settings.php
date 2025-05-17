@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Model;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
@@ -18,53 +17,22 @@ class Settings extends Model implements HasMedia
   ];
 
   protected $casts = [
-    'value' => 'json',
+    'value' => 'array',
   ];
 
-  /*protected function value(): Attribute
-  {
-    return Attribute::make(
-      get: fn ($value) => json_decode($value, true),
-      set: function ($value) {
-        // Handle special cases for different setting types
-        if ($this->key === 'company_profile') {
-          // Ensure the value has all required fields
-          $defaultStructure = [
-            'name' => null,
-            'email' => null,
-            'phone' => null,
-            'address' => [
-              'street' => null,
-              'city' => null,
-              'state' => null,
-              'country' => null,
-            ],
-            'registration_number' => null,
-            'tax_number' => null,
-          ];
+  // Define setting keys as constants for consistency
+  public const KEY_COMPANY_PROFILE = 'company_profile';
+  public const KEY_CURRENCY_SETTINGS = 'currency_settings';
+  public const KEY_LOCALIZATION = 'localization';
+  public const KEY_DOCUMENT_SETTINGS = 'document_settings';
+  public const KEY_BILLBOARD_CODE_FORMAT = 'billboard_code_format';
 
-          // Merge with defaults to ensure structure
-          $value = array_merge($defaultStructure, is_array($value) ? $value : []);
-        }
+  // Define setting groups as constants
+  public const GROUP_COMPANY = 'company';
+  public const GROUP_SYSTEM = 'system';
+  public const GROUP_DOCUMENTS = 'documents';
+  public const GROUP_BILLBOARDS = 'billboards';
 
-        return json_encode($value);
-      }
-    );
-  }*/
-
-  /*public static function get(string $key, $default = null)
-  {
-    $setting = static::where('key', $key)->first();
-    return $setting ? $setting->value : $default;
-  }*/
-
-  /**
-   * Get a setting value by key with optional default value
-   *
-   * @param string $key
-   * @param mixed|null $default
-   * @return mixed
-   */
   public static function get(string $key, $default = null)
   {
     $setting = static::where('key', strstr($key, '.', true) ?: $key)->first();
@@ -75,7 +43,7 @@ class Settings extends Model implements HasMedia
 
     if (str_contains($key, '.')) {
       $keys = explode('.', $key);
-      array_shift($keys); // Remove the first key as it's already used for the query
+      array_shift($keys);
       $value = $setting->value;
 
       foreach ($keys as $k) {
@@ -93,6 +61,9 @@ class Settings extends Model implements HasMedia
 
   public static function set(string $key, $value, string $group = 'general'): void
   {
+    // Ensure proper structure based on key
+    $value = self::getStructuredValue($key, $value);
+
     static::updateOrCreate(
       ['key' => $key],
       [
@@ -102,155 +73,111 @@ class Settings extends Model implements HasMedia
     );
   }
 
+  protected static function getStructuredValue(string $key, $value): array
+  {
+    $value = is_array($value) ? $value : [];
+
+    return match ($key) {
+      self::KEY_COMPANY_PROFILE => array_merge([
+        'name' => null,
+        'email' => null,
+        'phone' => null,
+        'address' => [
+          'street' => null,
+          'city' => null,
+          'state' => null,
+          'country' => null,
+        ],
+        'registration_number' => null,
+        'tax_number' => null,
+      ], $value),
+
+      self::KEY_CURRENCY_SETTINGS => collect($value)
+        ->map(fn($currency) => array_merge([
+          'code' => '',
+          'symbol' => '',
+          'name' => '',
+          'is_default' => false,
+        ], $currency))
+        ->toArray(),
+
+      self::KEY_LOCALIZATION => array_merge([
+        'timezone' => config('app.timezone', 'UTC'),
+        'locale' => config('app.locale', 'en'),
+        'date_format' => 'Y-m-d',
+        'time_format' => 'H:i:s',
+      ], $value),
+
+      self::KEY_DOCUMENT_SETTINGS => array_merge([
+        'default_contract_terms' => null,
+        'contract_footer_text' => null,
+      ], $value),
+
+      self::KEY_BILLBOARD_CODE_FORMAT => array_merge([
+        'prefix' => 'BH',
+        'separator' => '-',
+        'counter_length' => 5,
+      ], $value),
+
+      default => $value,
+    };
+  }
+
   public static function getCompanyProfile(): array
   {
-    return static::get('company_profile', [
+    return self::get(self::KEY_COMPANY_PROFILE, [
       'name' => 'Your Company Name',
       'email' => 'info@company.com',
       'phone' => null,
-      'address' => null,
+      'address' => [
+        'street' => null,
+        'city' => null,
+        'state' => null,
+        'country' => null,
+      ],
       'registration_number' => null,
       'tax_number' => null,
     ]);
   }
 
-  /**
-   * Get the default currency settings
-   */
-  /*public static function getDefaultCurrency(): ?array
+  public static function getDefaultCurrency(): array
   {
-    $settings = self::where('key', 'currency_settings')->first();
+    $currencies = self::get(self::KEY_CURRENCY_SETTINGS, []);
 
-    if (!$settings) {
-      return [
-        'code' => 'MWK',
-        'symbol' => 'MK',
-        'name' => 'Malawian Kwacha',
-        'is_default' => true,
-      ];
+    // Handle both indexed and associative arrays
+    $currencies = array_values($currencies);
+
+    // Find default currency
+    $defaultCurrency = collect($currencies)->firstWhere('is_default', true);
+
+    if (!$defaultCurrency && !empty($currencies)) {
+      $defaultCurrency = $currencies[0];
     }
 
-    // Find the default currency from the settings
-    foreach ($settings->value as $currency) {
-      if ($currency['is_default'] ?? false) {
-        return $currency;
-      }
-    }
-
-    // If no default is set, return the first currency or fallback
-    return array_values($settings->value)[0] ?? [
+    return $defaultCurrency ?? [
       'code' => 'MWK',
       'symbol' => 'MK',
       'name' => 'Malawian Kwacha',
       'is_default' => true,
     ];
-  }*/
-
-  public static function getDefaultCurrency(): ?array
-  {
-    $settings = self::where('key', 'currency_settings')->first();
-
-    if (!$settings || empty($settings->value)) {
-      return [
-        'code' => 'MWK',
-        'symbol' => 'MK',
-        'name' => 'Malawian Kwacha',
-        'is_default' => true,
-      ];
-    }
-
-    // Handle both array formats (indexed and associative)
-    $currencies = $settings->value;
-
-    // If indexed array
-    if (isset($currencies[0])) {
-      foreach ($currencies as $currency) {
-        if ($currency['is_default'] ?? false) {
-          return $currency;
-        }
-      }
-      return $currencies[0];
-    }
-
-    // If associative array
-    foreach ($currencies as $code => $currency) {
-      if ($currency['is_default'] ?? false) {
-        return $currency;
-      }
-    }
-
-    // Return first currency if no default is set
-    return reset($currencies);
   }
 
-  public static function getLocalization(): array
-  {
-    $settings = self::where('key', 'localization')->first();
-
-    return [
-      'timezone' => $settings?->value['timezone'] ?? config('app.timezone', 'UTC'),
-      'locale' => $settings?->value['locale'] ?? config('app.locale', 'en'),
-      'date_format' => $settings?->value['date_format'] ?? 'Y-m-d',
-      'time_format' => $settings?->value['time_format'] ?? 'H:i:s'
-    ];
-  }
-
-  public static function getDocumentSettings(): array
-  {
-    return static::get('document_settings', [
-      'contract_footer_text' => null,
-      'default_payment_terms' => [
-        ['days' => 30, 'description' => 'Net 30'],
-        ['days' => 15, 'description' => 'Net 15'],
-      ],
-      'default_contract_terms' => null,
-    ]);
-  }
-
-  /**
-   * Get all available currencies
-   */
-  /**
-   * Get all available currencies
-   */
   public static function getAvailableCurrencies(): array
   {
-    $settings = self::where('key', 'currency_settings')->first();
+    $currencies = self::get(self::KEY_CURRENCY_SETTINGS, []);
 
-    if (!$settings || empty($settings->value)) {
-      // Return default currency if no settings exist
-      $defaultCurrency = self::getDefaultCurrency();
-      return [
-        $defaultCurrency['code'] => $defaultCurrency
-      ];
+    if (empty($currencies)) {
+      return [self::getDefaultCurrency()];
     }
 
-    $currencies = $settings->value;
-
-    // If the currencies are in indexed array format, convert to associative
-    if (isset($currencies[0])) {
-      $formattedCurrencies = [];
-      foreach ($currencies as $currency) {
-        if (!isset($currency['code'])) continue;
-        $formattedCurrencies[$currency['code']] = [
-          'code' => $currency['code'],
-          'symbol' => $currency['symbol'] ?? '',
-          'name' => $currency['name'] ?? $currency['code'],
-          'is_default' => $currency['is_default'] ?? false,
-        ];
-      }
-      return $formattedCurrencies;
-    }
-
-    // If already in associative format, ensure all required keys exist
-    return collect($currencies)->map(function ($currency, $code) {
-      return [
-        'code' => $code,
-        'symbol' => $currency['symbol'] ?? '',
-        'name' => $currency['name'] ?? $code,
-        'is_default' => $currency['is_default'] ?? false,
-      ];
-    })->toArray();
+    return collect($currencies)
+      ->map(fn($currency) => array_merge([
+        'code' => '',
+        'symbol' => '',
+        'name' => '',
+        'is_default' => false,
+      ], $currency))
+      ->toArray();
   }
 
   public static function getAvailableCountries(): array
@@ -290,6 +217,30 @@ class Settings extends Model implements HasMedia
     ];
   }
 
+  public static function getLocalization(): array
+  {
+    $settings = self::where('key', 'localization')->first();
+
+    return [
+      'timezone' => $settings?->value['timezone'] ?? config('app.timezone', 'UTC'),
+      'locale' => $settings?->value['locale'] ?? config('app.locale', 'en'),
+      'date_format' => $settings?->value['date_format'] ?? 'Y-m-d',
+      'time_format' => $settings?->value['time_format'] ?? 'H:i:s'
+    ];
+  }
+
+  public static function getDocumentSettings(): array
+  {
+    return static::get('document_settings', [
+      'contract_footer_text' => null,
+      'default_payment_terms' => [
+        ['days' => 30, 'description' => 'Net 30'],
+        ['days' => 15, 'description' => 'Net 15'],
+      ],
+      'default_contract_terms' => null,
+    ]);
+  }
+
   public function registerMediaCollections(): void
   {
     $this->addMediaCollection('logo')
@@ -298,9 +249,6 @@ class Settings extends Model implements HasMedia
 
     $this->addMediaCollection('favicon')
       ->singleFile()
-      ->useDisk('public');
-
-    $this->addMediaCollection('templates')
       ->useDisk('public');
   }
 }
