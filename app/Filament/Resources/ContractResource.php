@@ -52,12 +52,6 @@ class ContractResource extends Resource
                   ->default($defaultCurrency->code)
                   ->required(),
 
-                Forms\Components\Select::make('client_id')
-                  ->relationship('client', 'name')
-                  ->required()
-                  ->searchable()
-                  ->preload(),
-
                 Forms\Components\DatePicker::make('start_date')
                   ->required()
                   ->afterOrEqual('today')
@@ -68,6 +62,12 @@ class ContractResource extends Resource
                 Forms\Components\DatePicker::make('end_date')
                   ->required()
                   ->afterOrEqual(fn (Forms\Get $get) => $get('start_date')),
+
+                Forms\Components\Select::make('client_id')
+                  ->relationship('client', 'name')
+                  ->required()
+                  ->searchable()
+                  ->preload(),
 
                 Forms\Components\Select::make('agreement_status')
                   ->options([
@@ -177,67 +177,6 @@ class ContractResource extends Resource
                     $currencyCode = $get('currency_code');
                     $currency = Currency::where('code', $currencyCode)->first();
                     return $currency?->symbol ?? '';
-                  }),
-
-                Forms\Components\Repeater::make('billboard_prices')
-                  ->schema([
-                    Forms\Components\Select::make('billboard_id')
-                      ->label('Billboard')
-                      ->options(function (Forms\Get $get) {
-                        $selectedIds = $get('../../billboards');
-                        if (!$selectedIds) return [];
-
-                        return Billboard::whereIn('id', $selectedIds)
-                          ->pluck('name', 'id');
-                      })
-                      ->required()
-                      ->unique()
-                      ->columnSpan(2),
-
-                    Forms\Components\TextInput::make('billboard_base_price')
-                      ->label('Monthly Rental')
-                      ->required()
-                      ->numeric()
-                      ->default(function (Forms\Get $get) {
-                        $billboardId = $get('billboard_id');
-                        if (!$billboardId) return 0;
-
-                        $billboard = Billboard::find($billboardId);
-                        return $billboard?->base_price ?? 0;
-                      })
-                      ->prefix(function (Forms\Get $get) {
-                        $currencyCode = $get('../../../currency_code');
-                        $currency = Currency::where('code', $currencyCode)->first();
-                        return $currency?->symbol ?? '';
-                      })
-                      ->live()
-                      ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                        // Recalculate total when individual price changes
-                        $prices = $get('../../billboard_prices') ?? [];
-                        $total = collect($prices)->sum('billboard_base_price');
-
-                        $set('../../contract_total', $total);
-                        $set('../../contract_final_amount', $total - ($get('../../contract_discount') ?? 0));
-                      }),
-                  ])
-                  ->columns(3)
-                  ->defaultItems(0)
-                  ->addActionLabel('Add Billboard Price')
-                  ->reorderable(false)
-                  ->collapsible()
-                  ->itemLabel(function (array $state): ?string {
-                    $billboardId = $state['billboard_id'] ?? null;
-                    if (!$billboardId) return null;
-
-                    $billboard = Billboard::find($billboardId);
-                    return $billboard?->name;
-                  })
-                  ->live()
-                  ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                    // Recalculate total when prices are added/removed
-                    $total = collect($state)->sum('billboard_base_price');
-                    $set('contract_total', $total);
-                    $set('contract_final_amount', $total - ($get('contract_discount') ?? 0));
                   }),
               ])
               ->columns(2)

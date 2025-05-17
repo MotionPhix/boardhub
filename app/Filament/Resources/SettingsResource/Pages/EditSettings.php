@@ -41,12 +41,33 @@ class EditSettings extends Page
                       ->collection('logo')
                       ->image()
                       ->imageEditor()
-                      ->directory('logos'),
+                      ->imageEditorAspectRatios([
+                        '16:9',
+                        '4:3',
+                        '1:1',
+                      ])
+                      ->directory('logos')
+                      ->preserveFilenames()
+                      ->maxSize(2048)
+                      ->downloadable()
+                      ->openable()
+                      ->label('Company Logo')
+                      ->helperText('Recommended size: 200x200px. Supported formats: JPG, PNG, SVG, WebP'),
 
                     Forms\Components\SpatieMediaLibraryFileUpload::make('favicon')
                       ->collection('favicon')
                       ->image()
-                      ->directory('favicons'),
+                      ->imageEditor()
+                      ->imageEditorAspectRatios([
+                        '1:1',
+                      ])
+                      ->directory('favicons')
+                      ->preserveFilenames()
+                      ->maxSize(512)
+                      ->downloadable()
+                      ->openable()
+                      ->label('Favicon')
+                      ->helperText('Recommended size: 32x32px. Supported formats: ICO, PNG, SVG'),
                   ])
                   ->columns(2),
 
@@ -54,7 +75,8 @@ class EditSettings extends Page
                   ->schema([
                     Forms\Components\TextInput::make('company_name')
                       ->label('Company Name')
-                      ->required(),
+                      ->required()
+                      ->columnSpanFull(),
 
                     Forms\Components\TextInput::make('company_email')
                       ->label('Email')
@@ -167,9 +189,22 @@ class EditSettings extends Page
                   ->columns(3),
               ]),
           ])
+          ->persistTabInQueryString('tab')
           ->columnSpanFull(),
       ])
       ->statePath('data');
+  }
+
+  protected function getHeaderActions(): array
+  {
+    return [
+      Actions\Action::make('save')
+        ->label('Save changes')
+        ->action('save')
+        ->color('primary')
+        ->icon('heroicon-m-check')
+        ->keyBindings(['mod+s'])
+    ];
   }
 
   public function save(): void

@@ -7,8 +7,7 @@ use App\Filament\Resources\BillboardResource\RelationManagers\ContractsRelationM
 use App\Models\Billboard;
 use App\Models\City;
 use App\Models\Country;
-use App\Models\Location;
-use App\Models\Settings;
+use App\Models\Currency;
 use App\Models\State;
 use Filament\Forms;
 use Filament\Forms\Components\Actions\Action;
@@ -19,9 +18,7 @@ use Filament\Resources\Resource;
 use Filament\Support\Enums\MaxWidth;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class BillboardResource extends Resource
 {
@@ -33,9 +30,12 @@ class BillboardResource extends Resource
 
   protected static ?int $navigationSort = 3;
 
+  /**
+   * @throws \Exception
+   */
   public static function form(Form $form): Form
   {
-    $currency = Settings::getDefaultCurrency();
+    $defaultCurrency = Currency::getDefault();
 
     return $form
       ->schema([
@@ -55,13 +55,10 @@ class BillboardResource extends Resource
                   ->label('Billboard Code')
                   ->disabled()
                   ->helperText('This code will be automatically generated after saving')
-                  ->dehydrated(false) // Since it's handled by the model
+                  ->dehydrated(false)
                   ->columnSpanFull()
                   ->formatStateUsing(function ($state) {
-                    if (!$state) {
-                      return '[Auto-generated]';
-                    }
-                    return $state;
+                    return $state ?: '[Auto-generated]';
                   }),
 
                 Forms\Components\Select::make('location_id')
@@ -83,20 +80,16 @@ class BillboardResource extends Resource
                       ->label('Country')
                       ->required()
                       ->preload()
-                      ->options(function () {
-                        return \App\Models\Country::query()
-                          ->where('is_active', true)
-                          ->pluck('name', 'code');
-                      })
-                      ->default(function () {
-                        return \App\Models\Country::where('is_default', true)
-                          ->first()?->code;
-                      })
+                      ->options(fn () => Country::query()
+                        ->where('is_active', true)
+                        ->pluck('name', 'code'))
+                      ->default(fn () => Country::where('is_default', true)
+                        ->first()?->code)
                       ->live(),
 
                     Forms\Components\Select::make('state_code')
                       ->label('State/Region')
-                      ->options(fn(Forms\Get $get): Collection => State::query()
+                      ->options(fn (Get $get): Collection => State::query()
                         ->where('country_code', $get('country_code'))
                         ->where('is_active', true)
                         ->pluck('name', 'code'))
@@ -104,17 +97,17 @@ class BillboardResource extends Resource
                       ->searchable()
                       ->preload()
                       ->live()
-                      ->visible(fn(Forms\Get $get) => filled($get('country_code')))
-                      ->afterStateUpdated(fn(Forms\Set $set) => $set('city_code', null)),
+                      ->visible(fn (Get $get) => filled($get('country_code')))
+                      ->afterStateUpdated(fn (Set $set) => $set('city_code', null)),
 
                     Forms\Components\Select::make('city_code')
                       ->label('City')
                       ->required()
-                      ->options(function (callable $get) {
+                      ->options(function (Get $get) {
                         $stateCode = $get('state_code');
                         if (!$stateCode) return [];
 
-                        return \App\Models\City::query()
+                        return City::query()
                           ->where('state_code', $stateCode)
                           ->where('is_active', true)
                           ->pluck('name', 'code');
@@ -122,10 +115,10 @@ class BillboardResource extends Resource
                       ->searchable()
                       ->preload()
                       ->live()
-                      ->visible(fn(Forms\Get $get) => filled($get('state_code')))
-                      ->afterStateUpdated(function ($state, callable $set) {
+                      ->visible(fn (Get $get) => filled($get('state_code')))
+                      ->afterStateUpdated(function ($state, Set $set) {
                         if ($state) {
-                          $city = \App\Models\City::where('code', $state)->first();
+                          $city = City::where('code', $state)->first();
                           if ($city) {
                             $set('name', "Enter a township within {$city->name} city");
                           }
@@ -175,30 +168,23 @@ class BillboardResource extends Resource
                   ->label('Monthly Fee')
                   ->numeric()
                   ->rules(['required', 'numeric', 'min:0'])
-                  ->prefix($currency['symbol'])
+                  ->prefix($defaultCurrency?->symbol ?? 'K')
                   ->default(0),
 
                 Forms\Components\Select::make('currency_code')
                   ->label('Currency')
-                  ->options(function (): array {
-                    return collect(Settings::getAvailableCurrencies())
-                      ->mapWithKeys(fn(array $currency) => [
-                        $currency['code'] => "{$currency['name']} ({$currency['code']})"
-                      ])
-                      ->toArray();
-                  })
-                  ->default(fn() => Settings::getDefaultCurrency()['code'])
+                  ->options(Currency::query()
+                    ->get()
+                    ->mapWithKeys(fn (Currency $currency) => [
+                      $currency->code => "{$currency->name} ({$currency->code})"
+                    ]))
+                  ->default(fn () => $defaultCurrency?->code)
                   ->required(),
               ])
               ->columns(2),
 
             Forms\Components\Section::make('Billboard Status')
               ->schema([
-                /*Forms\Components\Toggle::make('is_active')
-                  ->label('Active')
-                  ->default(true)
-                  ->inline(),*/
-
                 Forms\Components\Radio::make('is_active')
                   ->label('Is the billboard available for booking')
                   ->boolean()
@@ -209,7 +195,7 @@ class BillboardResource extends Resource
                     true => 'It is ready for booking.',
                     false => 'It has issues that needs fixing',
                   ])
-                  ->disableOptionWhen(fn($get) => $get('physical_status') !== 'operational')
+                  ->disableOptionWhen(fn (Get $get) => $get('physical_status') !== 'operational')
                   ->live(),
 
                 Forms\Components\Select::make('physical_status')
@@ -219,13 +205,13 @@ class BillboardResource extends Resource
                   ->default(Billboard::PHYSICAL_STATUS_OPERATIONAL)
                   ->helperText('Current physical condition of the billboard')
                   ->selectablePlaceholder(false)
-                  ->native(false) // This enables custom styling
+                  ->native(false)
                   ->formatStateUsing(function (?string $state): string {
                     return Billboard::getPhysicalStatuses()[$state] ?? $state;
                   })
                   ->live()
                   ->afterStateUpdated(
-                    fn($state, $set) => $set('is_active', !($state !== 'operational'))
+                    fn ($state, Set $set) => $set('is_active', $state === 'operational')
                   )
                   ->columnSpan(2)
               ])
@@ -244,35 +230,10 @@ class BillboardResource extends Resource
                   ->maxFiles(5)
                   ->image()
                   ->imageEditor()
+                  ->imageEditorMode(2)
                   ->columnSpanFull(),
               ])
-              ->collapsible()
-
-            /*Forms\Components\Section::make('Current Revenue')
-              ->schema([
-                Forms\Components\Placeholder::make('current_revenue')
-                  ->label('Current Monthly Revenue')
-                  ->content(function (?Billboard $record) use ($currency) {
-                    if (!$record) return $currency['symbol'] . '0.00';
-
-                    return $currency['symbol'] . number_format($record->contracts()
-                        ->whereDate('start_date', '<=', now())
-                        ->whereDate('end_date', '>=', now())
-                        ->sum('contract_final_amount'), 2);
-                  }),
-
-                Forms\Components\Placeholder::make('active_contracts')
-                  ->label('Active Contracts')
-                  ->content(function (?Billboard $record) {
-                    if (!$record) return 0;
-
-                    return $record->contracts()
-                      ->whereDate('start_date', '<=', now())
-                      ->whereDate('end_date', '>=', now())
-                      ->count();
-                  }),
-              ])
-              ->collapsible(),*/
+              ->collapsible(),
           ])
           ->columnSpan(['lg' => 1]),
       ])
@@ -307,29 +268,19 @@ class BillboardResource extends Resource
 
         Tables\Columns\TextColumn::make('base_price')
           ->label('Booking Fee')
-          ->money(fn($record) => $record->currency_code)
+          ->money(fn ($record) => $record->currency_code)
           ->sortable(),
 
         Tables\Columns\TextColumn::make('physical_status')
           ->badge()
-          ->color(fn(string $state): string => match (strtolower($state)) {
+          ->color(fn (string $state): string => match (strtolower($state)) {
             Billboard::PHYSICAL_STATUS_OPERATIONAL => 'success',
             Billboard::PHYSICAL_STATUS_MAINTENANCE => 'warning',
             Billboard::PHYSICAL_STATUS_DAMAGED => 'danger',
             default => 'gray',
           })
-          ->formatStateUsing(fn(string $state): string => Billboard::getPhysicalStatuses()[strtolower($state)])
+          ->formatStateUsing(fn (string $state): string => Billboard::getPhysicalStatuses()[strtolower($state)])
           ->sortable(),
-
-        /*Tables\Columns\TextColumn::make('current_revenue')
-          ->money(fn($record) => $record->currency_code)
-          ->state(function (Billboard $record): float {
-            return $record->contracts()
-              ->whereDate('start_date', '<=', now())
-              ->whereDate('end_date', '>=', now())
-              ->sum('contract_final_amount');
-          })
-          ->sortable(),*/
 
         Tables\Columns\IconColumn::make('is_active')
           ->label('Active')

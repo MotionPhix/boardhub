@@ -145,7 +145,7 @@ class Billboard extends Model implements HasMedia
   public function registerMediaCollections(): void
   {
     $this->addMediaCollection('billboard_images')
-      ->useDisk('public')
+      ->useDisk('media')
       ->acceptsMimeTypes(['image/jpeg', 'image/png', 'image/webp'])
       ->registerMediaConversions(function (Media $media = null) {
         // Thumbnail for admin panel
@@ -212,7 +212,7 @@ class Billboard extends Model implements HasMedia
   }
 
   #[Scope]
-  protected function active(Builder $query): void
+  protected function active(Builder $query)
   {
     $query->where('is_active', true);
   }
@@ -230,11 +230,11 @@ class Billboard extends Model implements HasMedia
 
   public static function generateBillboardCode(City $city): string
   {
-    $settings = Settings::where('key', 'billboard_code_format')->first();
+    $settings = Settings::firstOrCreate();
 
-    $prefix = $settings->value['prefix'];
-    $separator = $settings->value['separator'];
-    $counterLength = $settings->value['counter_length'];
+    $prefix = $settings->billboard_code_prefix;
+    $separator = $settings->billboard_code_separator;
+    $counterLength = $settings->billboard_code_counter_length;
 
     // Get the last billboard number for this city
     $lastBillboard = static::where('code', 'like', "{$prefix}{$separator}{$city->code}{$separator}%")
@@ -242,6 +242,7 @@ class Billboard extends Model implements HasMedia
       ->first();
 
     $counter = 1;
+
     if ($lastBillboard) {
       $parts = explode($separator, $lastBillboard->code);
       $counter = (int)end($parts) + 1;
@@ -264,7 +265,7 @@ class Billboard extends Model implements HasMedia
     static::creating(function ($billboard) {
 
       if (!$billboard->currency_code) {
-        $billboard->currency_code = Settings::getDefaultCurrency()['currency_code'] ?? 'MWK';
+        $billboard->currency_code = Currency::getDefault()->code ?? 'MWK';
       }
 
       if (!$billboard->code) {

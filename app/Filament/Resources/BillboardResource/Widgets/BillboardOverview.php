@@ -4,7 +4,7 @@ namespace App\Filament\Resources\BillboardResource\Widgets;
 
 use App\Models\Billboard;
 use App\Models\Contract;
-use App\Models\Settings;
+use App\Models\Currency;
 use Filament\Widgets\StatsOverviewWidget as BaseWidget;
 use Filament\Widgets\StatsOverviewWidget\Stat;
 use Illuminate\Support\Facades\DB;
@@ -15,7 +15,7 @@ class BillboardOverview extends BaseWidget
 
   protected function getStats(): array
   {
-    $currency = Settings::getDefaultCurrency();
+    $defaultCurrency = Currency::getDefault();
 
     // Get total revenue for current month
     $currentMonthRevenue = Contract::query()
@@ -53,8 +53,8 @@ class BillboardOverview extends BaseWidget
       ->toArray();
 
     return [
-      Stat::make('Current Month Revenue', function () use ($currentMonthRevenue, $currency) {
-        return $currency['symbol'] . number_format($currentMonthRevenue, 2);
+      Stat::make('Current Month Revenue', function () use ($currentMonthRevenue, $defaultCurrency) {
+        return $defaultCurrency?->symbol . number_format($currentMonthRevenue, 2);
       })
         ->description('Total revenue from active contracts')
         ->descriptionIcon('heroicon-m-banknotes')
@@ -67,8 +67,8 @@ class BillboardOverview extends BaseWidget
         ->chart($billboardsTrend)
         ->color('primary'),
 
-      Stat::make('Average Billboard Price', function () use ($averagePrice, $currency) {
-        return $averagePrice ? $currency['symbol'] . number_format($averagePrice, 2) : $currency['symbol'] . '0.00';
+      Stat::make('Average Billboard Price', function () use ($averagePrice, $defaultCurrency) {
+        return $defaultCurrency?->symbol . number_format($averagePrice ?? 0, 2);
       })
         ->description('Average price per billboard')
         ->descriptionIcon('heroicon-m-calculator')

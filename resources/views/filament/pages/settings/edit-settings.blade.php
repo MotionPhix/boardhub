@@ -1,5 +1,10 @@
 <x-filament-panels::page>
-  <form wire:submit="save">
+  <x-filament-panels::form wire:submit="save">
     {{ $this->form }}
-  </form>
+
+    <x-filament-panels::form.actions
+      :actions="$this->getFormActions()"
+      class="mt-6"
+    />
+  </x-filament-panels::form>
 </x-filament-panels::page>
