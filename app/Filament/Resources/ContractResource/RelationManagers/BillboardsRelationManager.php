@@ -4,51 +4,61 @@ namespace App\Filament\Resources\ContractResource\RelationManagers;
 
 use App\Enums\BookingStatus;
 use App\Models\Billboard;
-use App\Models\Settings;
+use App\Models\Currency;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
 
 class BillboardsRelationManager extends RelationManager
 {
   protected static string $relationship = 'billboards';
+
   protected static ?string $title = 'Contract Billboards';
 
-  protected function getCurrencyForBillboard(Billboard $billboard = null): array
+  protected static ?string $recordTitleAttribute = 'name';
+
+  protected function getCurrencyForBillboard(Billboard $billboard = null): Currency
   {
     // First try to get from billboard
     if ($billboard && $billboard->currency_code) {
-      $currencies = Settings::getAvailableCurrencies();
-      if (isset($currencies[$billboard->currency_code])) {
-        return $currencies[$billboard->currency_code];
+      $currency = Currency::where('code', $billboard->currency_code)->first();
+      if ($currency) {
+        return $currency;
       }
     }
 
     // Then try to get from contract
     if ($this->ownerRecord && $this->ownerRecord->currency_code) {
-      $currencies = Settings::getAvailableCurrencies();
-      if (isset($currencies[$this->ownerRecord->currency_code])) {
-        return $currencies[$this->ownerRecord->currency_code];
+      $currency = Currency::where('code', $this->ownerRecord->currency_code)->first();
+      if ($currency) {
+        return $currency;
       }
     }
 
     // Finally fall back to default currency
-    return Settings::getDefaultCurrency();
+    return Currency::getDefault();
   }
 
-  protected function getAvailableBillboards()
+  protected function getAvailableBillboards(): Collection
   {
     return Billboard::query()
-      ->whereDoesntHave('contracts', function ($query) {
-        $query->where('agreement_status', 'active')
-          ->wherePivot('booking_status', 'in_use');
+      ->where('is_active', true)
+      ->where(function (Builder $query) {
+        $query->whereDoesntHave('contracts', function (Builder $query) {
+          $query->where('agreement_status', 'active')
+            ->wherePivot('booking_status', 'in_use')
+            ->wherePivotNotIn('contract_id', [$this->ownerRecord->id]);
+        })
+          ->orWhereHas('contracts', function (Builder $query) {
+            $query->where('contract_id', $this->ownerRecord->id);
+          });
       })
-      ->orWhereHas('contracts', function ($query) {
-        $query->where('contract_id', $this->ownerRecord->id);
-      });
+      ->orderBy('name')
+      ->get();
   }
 
   public function form(Form $form): Form
@@ -67,12 +77,13 @@ class BillboardsRelationManager extends RelationManager
               ->afterStateUpdated(function ($state, Forms\Set $set) {
                 if ($state) {
                   $billboard = Billboard::find($state);
-                  $currency = $this->getCurrencyForBillboard($billboard);
+                  if ($billboard) {
+                    $currency = $this->getCurrencyForBillboard($billboard);
 
-                  $set('billboard_base_price', $billboard?->base_price ?? 0);
-                  $set('billboard_final_price', $billboard?->base_price ?? 0);
-                  $set('currency_code', $currency['code']);
-                  $set('currency_symbol', $currency['symbol']);
+                    $set('billboard_base_price', $billboard->base_price ?? 0);
+                    $set('billboard_final_price', $billboard->base_price ?? 0);
+                    $set('currency_code', $currency->code);
+                  }
                 }
               }),
 
@@ -82,13 +93,17 @@ class BillboardsRelationManager extends RelationManager
                   ->label('Base Price')
                   ->disabled()
                   ->numeric()
-                  ->prefix(fn (Forms\Get $get) => $get('currency_symbol') ?? 'MK')
+                  ->prefix(fn (Forms\Get $get) =>
+                    Currency::where('code', $get('currency_code'))->first()?->symbol ?? 'K'
+                  )
                   ->required(),
 
                 Forms\Components\TextInput::make('billboard_discount_amount')
                   ->label('Discount')
                   ->numeric()
-                  ->prefix(fn (Forms\Get $get) => $get('currency_symbol') ?? 'MK')
+                  ->prefix(fn (Forms\Get $get) =>
+                    Currency::where('code', $get('currency_code'))->first()?->symbol ?? 'K'
+                  )
                   ->default(0)
                   ->live()
                   ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
@@ -101,24 +116,18 @@ class BillboardsRelationManager extends RelationManager
                   ->label('Final Price')
                   ->disabled()
                   ->numeric()
-                  ->prefix(fn (Forms\Get $get) => $get('currency_symbol') ?? 'MK')
+                  ->prefix(fn (Forms\Get $get) =>
+                    Currency::where('code', $get('currency_code'))->first()?->symbol ?? 'K'
+                  )
                   ->required(),
 
-                // Hidden fields to store currency info
                 Forms\Components\Hidden::make('currency_code'),
-                Forms\Components\Hidden::make('currency_symbol'),
               ]),
 
             Forms\Components\Grid::make(2)
               ->schema([
                 Forms\Components\Select::make('booking_status')
-                  ->options([
-                    BookingStatus::PENDING->value => BookingStatus::PENDING->label(),
-                    BookingStatus::CONFIRMED->value => BookingStatus::CONFIRMED->label(),
-                    BookingStatus::IN_USE->value => BookingStatus::IN_USE->label(),
-                    BookingStatus::COMPLETED->value => BookingStatus::COMPLETED->label(),
-                    BookingStatus::CANCELLED->value => BookingStatus::CANCELLED->label(),
-                  ])
+                  ->options(BookingStatus::class)
                   ->default(
                     $this->ownerRecord->agreement_status === 'active'
                       ? BookingStatus::IN_USE->value
@@ -138,36 +147,18 @@ class BillboardsRelationManager extends RelationManager
     return $table
       ->recordTitleAttribute('name')
       ->columns([
-        /*Tables\Columns\SpatieMediaLibraryImageColumn::make('billboard_images')
+        Tables\Columns\SpatieMediaLibraryImageColumn::make('billboard_images')
           ->label('')
           ->collection('billboard_images')
           ->square()
           ->height(50)
-          ->limit(1),*/
+          ->limit(1),
 
-        // Replace the existing 'name' column with this:
         Tables\Columns\TextColumn::make('size')
           ->formatStateUsing(function ($record) {
-            $lines = [
-              // Line 1: Size
-              "<div class='text-sm font-medium'>{$record->size}</div>",
-
-              // Line 2: Location name
-              "<div class='text-sm text-gray-400'>
-                {$record->name}, {$record->location->name}
-              </div>",
-
-              // Line 3: City, State, Country
-              "<div class='text-sm text-gray-400'>" .
-              implode(' · ', array_filter([
-                $record->location->city?->name,
-                $record->location->state?->name,
-                $record->location->country?->name
-              ])) .
-              "</div>"
-            ];
-
-            return implode('', $lines);
+            return view('filament.components.billboard-details', [
+              'billboard' => $record
+            ])->render();
           })
           ->html()
           ->searchable(query: function (Builder $query, string $search): Builder {
@@ -175,15 +166,9 @@ class BillboardsRelationManager extends RelationManager
               ->orWhere('billboards.size', 'like', "%{$search}%")
               ->orWhereHas('location', function ($query) use ($search) {
                 $query->where('name', 'like', "%{$search}%")
-                  ->orWhereHas('city', function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('state', function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('country', function ($query) use ($search) {
-                    $query->where('name', 'like', "%{$search}%");
-                  });
+                  ->orWhereHas('city', fn($q) => $q->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('state', fn($q) => $q->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('country', fn($q) => $q->where('name', 'like', "%{$search}%"));
               });
           })
           ->sortable()
@@ -191,21 +176,20 @@ class BillboardsRelationManager extends RelationManager
 
         Tables\Columns\TextColumn::make('pivot.billboard_base_price')
           ->label('Base Price')
-          ->money(fn ($record) => $this->getCurrencyForBillboard($record)['code'])
+          ->money(fn ($record) => $this->getCurrencyForBillboard($record)->code)
           ->sortable(),
 
         Tables\Columns\TextColumn::make('pivot.billboard_discount_amount')
           ->label('Discount')
-          ->money(fn ($record) => $this->getCurrencyForBillboard($record)['code'])
+          ->money(fn ($record) => $this->getCurrencyForBillboard($record)->code)
           ->sortable(),
 
         Tables\Columns\TextColumn::make('pivot.billboard_final_price')
           ->label('Final Price')
-          ->money(fn ($record) => $this->getCurrencyForBillboard($record)['code'])
+          ->money(fn ($record) => $this->getCurrencyForBillboard($record)->code)
           ->sortable(),
 
         Tables\Columns\TextColumn::make('pivot.booking_status')
-          ->label('Booking Status')
           ->badge()
           ->colors([
             'warning' => 'pending',
@@ -216,19 +200,13 @@ class BillboardsRelationManager extends RelationManager
           ]),
 
         Tables\Columns\TextColumn::make('pivot.created_at')
-          ->dateTime()
+          ->dateTime(config('app.datetime_format', 'M d, Y H:i'))
           ->sortable()
           ->toggleable(isToggledHiddenByDefault: true),
       ])
       ->filters([
         Tables\Filters\SelectFilter::make('booking_status')
-          ->options([
-            BookingStatus::PENDING->value => BookingStatus::PENDING->label(),
-            BookingStatus::CONFIRMED->value => BookingStatus::CONFIRMED->label(),
-            BookingStatus::IN_USE->value => BookingStatus::IN_USE->label(),
-            BookingStatus::COMPLETED->value => BookingStatus::COMPLETED->label(),
-            BookingStatus::CANCELLED->value => BookingStatus::CANCELLED->label(),
-          ]),
+          ->options(BookingStatus::class),
       ])
       ->headerActions([
         Tables\Actions\AttachAction::make()
@@ -244,12 +222,13 @@ class BillboardsRelationManager extends RelationManager
               ->afterStateUpdated(function ($state, Forms\Set $set) {
                 if ($state) {
                   $billboard = Billboard::find($state);
-                  $currency = $this->getCurrencyForBillboard($billboard);
+                  if ($billboard) {
+                    $currency = $this->getCurrencyForBillboard($billboard);
 
-                  $set('billboard_base_price', $billboard?->base_price ?? 0);
-                  $set('billboard_final_price', $billboard?->base_price ?? 0);
-                  $set('currency_code', $currency['code']);
-                  $set('currency_symbol', $currency['symbol']);
+                    $set('billboard_base_price', $billboard->base_price ?? 0);
+                    $set('billboard_final_price', $billboard->base_price ?? 0);
+                    $set('currency_code', $currency->code);
+                  }
                 }
               }),
 
@@ -257,13 +236,17 @@ class BillboardsRelationManager extends RelationManager
               ->label('Base Price')
               ->disabled()
               ->numeric()
-              ->prefix(fn (Forms\Get $get) => $get('currency_symbol') ?? 'MK')
+              ->prefix(fn (Forms\Get $get) =>
+                Currency::where('code', $get('currency_code'))->first()?->symbol ?? 'K'
+              )
               ->required(),
 
             Forms\Components\TextInput::make('billboard_discount_amount')
               ->label('Discount')
               ->numeric()
-              ->prefix(fn (Forms\Get $get) => $get('currency_symbol') ?? 'MK')
+              ->prefix(fn (Forms\Get $get) =>
+                Currency::where('code', $get('currency_code'))->first()?->symbol ?? 'K'
+              )
               ->default(0)
               ->live()
               ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
@@ -276,20 +259,15 @@ class BillboardsRelationManager extends RelationManager
               ->label('Final Price')
               ->disabled()
               ->numeric()
-              ->prefix(fn (Forms\Get $get) => $get('currency_symbol') ?? 'MK')
+              ->prefix(fn (Forms\Get $get) =>
+                Currency::where('code', $get('currency_code'))->first()?->symbol ?? 'K'
+              )
               ->required(),
 
             Forms\Components\Hidden::make('currency_code'),
-            Forms\Components\Hidden::make('currency_symbol'),
 
             Forms\Components\Select::make('booking_status')
-              ->options([
-                BookingStatus::PENDING->value => BookingStatus::PENDING->label(),
-                BookingStatus::CONFIRMED->value => BookingStatus::CONFIRMED->label(),
-                BookingStatus::IN_USE->value => BookingStatus::IN_USE->label(),
-                BookingStatus::COMPLETED->value => BookingStatus::COMPLETED->label(),
-                BookingStatus::CANCELLED->value => BookingStatus::CANCELLED->label(),
-              ])
+              ->options(BookingStatus::class)
               ->default(
                 $this->ownerRecord->agreement_status === 'active'
                   ? BookingStatus::IN_USE->value
@@ -302,47 +280,7 @@ class BillboardsRelationManager extends RelationManager
           ]),
       ])
       ->actions([
-        Tables\Actions\EditAction::make()
-          ->form([
-            Forms\Components\TextInput::make('billboard_base_price')
-              ->label('Base Price')
-              ->disabled()
-              ->numeric()
-              ->prefix(fn ($record) => $this->getCurrencyForBillboard($record)['symbol'])
-              ->required(),
-
-            Forms\Components\TextInput::make('billboard_discount_amount')
-              ->label('Discount')
-              ->numeric()
-              ->prefix(fn ($record) => $this->getCurrencyForBillboard($record)['symbol'])
-              ->live()
-              ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
-                $basePrice = $get('billboard_base_price') ?? 0;
-                $discount = $state ?? 0;
-                $set('billboard_final_price', max(0, $basePrice - $discount));
-              }),
-
-            Forms\Components\TextInput::make('billboard_final_price')
-              ->label('Final Price')
-              ->disabled()
-              ->numeric()
-              ->prefix(fn ($record) => $this->getCurrencyForBillboard($record)['symbol'])
-              ->required(),
-
-            Forms\Components\Select::make('booking_status')
-              ->options([
-                BookingStatus::PENDING->value => BookingStatus::PENDING->label(),
-                BookingStatus::CONFIRMED->value => BookingStatus::CONFIRMED->label(),
-                BookingStatus::IN_USE->value => BookingStatus::IN_USE->label(),
-                BookingStatus::COMPLETED->value => BookingStatus::COMPLETED->label(),
-                BookingStatus::CANCELLED->value => BookingStatus::CANCELLED->label(),
-              ])
-              ->required(),
-
-            Forms\Components\Textarea::make('notes')
-              ->maxLength(65535),
-          ]),
-
+        Tables\Actions\EditAction::make(),
         Tables\Actions\DetachAction::make(),
       ])
       ->bulkActions([
@@ -355,13 +293,7 @@ class BillboardsRelationManager extends RelationManager
             ->form([
               Forms\Components\Select::make('booking_status')
                 ->label('New Booking Status')
-                ->options([
-                  BookingStatus::PENDING->value => BookingStatus::PENDING->label(),
-                  BookingStatus::CONFIRMED->value => BookingStatus::CONFIRMED->label(),
-                  BookingStatus::IN_USE->value => BookingStatus::IN_USE->label(),
-                  BookingStatus::COMPLETED->value => BookingStatus::COMPLETED->label(),
-                  BookingStatus::CANCELLED->value => BookingStatus::CANCELLED->label(),
-                ])
+                ->options(BookingStatus::class)
                 ->required(),
             ])
             ->action(function (array $data, $records) {

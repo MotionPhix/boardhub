@@ -41,9 +41,12 @@ class ContractResource extends Resource
             Forms\Components\Section::make('Contract Details')
               ->schema([
                 Forms\Components\TextInput::make('contract_number')
-                  ->maxLength(255)
                   ->disabled()
-                  ->dehydrated(),
+                  ->dehydrated(false)
+                  ->formatStateUsing(function ($state) {
+                    return $state ?: '[Auto-generated]';
+                  })
+                  ->helperText('This will be automatically generated when the contract is created'),
 
                 Forms\Components\Select::make('currency_code')
                   ->options(collect($currencies)->mapWithKeys(fn ($currency) =>
