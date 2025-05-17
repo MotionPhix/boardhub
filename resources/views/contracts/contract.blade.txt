@@ -5,6 +5,7 @@
   <style>
     @page {
       margin: 2.5cm 1.75cm;
+      // font-family: 'Roboto Condensed', sans-serif;
       font-family: 'Geist Mono', monospace;
     }
 
@@ -53,6 +54,7 @@
     }
 
     .signature-section {
+      // margin-top: 60px;
       page-break-inside: avoid;
     }
 
@@ -61,6 +63,7 @@
     }
 
     .company-info {
+      // font-size: 10pt;
       color: #4b5563;
     }
 
@@ -111,23 +114,24 @@
 <body>
 <!-- Cover Page -->
 <div class="cover-page">
+
   <img
     src="{{ public_path('images/logo.png') }}"
     style="max-height: 100px; margin-bottom: 2rem"
-    alt="{{ $settings->getCompanyProfile()['name'] }} Logo"><br>
+    alt="{{ $settings->get('company_profile.name') }} Logo"><br>
 
   <div class="cover-title">
     ADVERTISING <br> RENTAL AGREEMENT <br> BETWEEN
   </div>
 
   <h3 class="party-name">
-    {{ $settings->getCompanyProfile()['name'] }}
+    {{ $contract->client->company ?: $contract->client->name }}
   </h3>
 
   <h3 class="party-name">AND</h3>
 
   <h3 class="party-name">
-    {{ $contract->client->company ?: $contract->client->name }}
+    {{ $settings->get('company_profile.name') }}
   </h3>
 
   <div class="contract-number">
@@ -139,7 +143,7 @@
 <div class="section">
   <h2 class="section-title">1. THE AGREEMENT</h2>
   <p>
-    This agreement is made on {{ $contract->start_date->format('jS F Y') }} between {{ $settings->getCompanyProfile()['name'] }}
+    This agreement is made on {{ $contract->start_date->format('jS F Y') }} between {{ $settings->get('company_profile.name') }}
     (hereinafter referred to as "the Company") and {{ $contract->client->company ?: $contract->client->name }}
     (hereinafter referred to as "the Client") for the rental of advertising space as detailed below:
   </p>
@@ -158,9 +162,9 @@
       <tr>
         <td>{{ $billboard->name }}</td>
         <td>{{ $billboard->location->name }}</td>
-        <td>{{ $billboard->size }}</td>
+        <td>{{ $billboard->dimensions }}</td>
         <td class="amount">
-          {{ $contract->currency->symbol }}
+          {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
           {{ number_format($billboard->pivot->billboard_base_price, 2) }}
         </td>
       </tr>
@@ -171,7 +175,7 @@
       <td colspan="3" class="amount"><strong>Total Amount:</strong></td>
       <td class="amount">
         <strong>
-          {{ $contract->currency->symbol }}
+          {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
           {{ number_format($contract->contract_total, 2) }}
         </strong>
       </td>
@@ -180,7 +184,7 @@
       <tr>
         <td colspan="3" class="amount">Discount:</td>
         <td class="amount">
-          {{ $contract->currency->symbol }}
+          {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
           {{ number_format($contract->contract_discount, 2) }}
         </td>
       </tr>
@@ -188,7 +192,7 @@
         <td colspan="3" class="amount"><strong>Final Amount:</strong></td>
         <td class="amount">
           <strong>
-            {{ $contract->currency->symbol }}
+            {{ $settings->get('currency_settings')[$contract->currency_code]['symbol'] }}
             {{ number_format($contract->contract_final_amount, 2) }}
           </strong>
         </td>
@@ -217,7 +221,7 @@
   <p>
     Any disputes arising from this agreement shall be resolved through amicable negotiation between both parties.
     If no resolution can be reached, the matter shall be referred to arbitration in accordance with the laws of
-    {{ $settings->getCompanyProfile()['address']['country'] }}.
+    {{ $settings->get('company_profile.address.country') }}.
   </p>
 </div>
 
@@ -230,19 +234,17 @@
   </p>
 </div>
 
-@if($settings->getDocumentSettings()['contract_terms'])
-  <div class="section">
-    <h2 class="section-title">5. TERMS AND CONDITIONS</h2>
-    {!! $settings->getDocumentSettings()['contract_terms'] !!}
-  </div>
-@endif
+<div class="section">
+  <h2 class="section-title">5. TERMS AND CONDITIONS</h2>
+  {!! $settings->get('document_settings.default_contract_terms') !!}
+</div>
 
 <div class="signature-section">
   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
     <div class="signature-box">
       <p>
         <strong>
-          Signed on behalf of {{ $settings->getCompanyProfile()['name'] }} ("The Company")
+          Signed on behalf of {{ $settings->get('company_profile.name') }} (“The Company”)
         </strong>
       </p>
 
@@ -252,38 +254,53 @@
 
       <table>
         <tbody>
-        <tr>
-          <td class="no_border">Name</td>
-          <td class="no_border">: __________________________________________</td>
-        </tr>
-        <tr>
-          <td class="no_border">Title</td>
-          <td class="no_border">: __________________________________________</td>
-        </tr>
-        <tr>
-          <td class="no_border">Date</td>
-          <td class="no_border">: __________________________________________</td>
-        </tr>
+          <tr>
+            <td class="no_border">Name</td>
+
+            <td class="no_border">
+              : __________________________________________
+            </td>
+          </tr>
+
+          <tr>
+            <td class="no_border">
+              Title
+            </td>
+
+            <td class="no_border">
+              : __________________________________________
+            </td>
+          </tr>
+
+          <tr>
+            <td class="no_border">
+              Date
+            </td>
+
+            <td class="no_border">
+              : __________________________________________
+            </td>
+          </tr>
         </tbody>
       </table>
 
       <div class="company-info">
-        {{ $settings->getCompanyProfile()['address']['street'] }}<br>
-        {{ $settings->getCompanyProfile()['address']['city'] }},
-        {{ $settings->getCompanyProfile()['address']['state'] }}<br>
-        {{ $settings->getCompanyProfile()['address']['country'] }}<br><br>
+        {{ $settings->get('company_profile.address.street') }}<br>
+        {{ $settings->get('company_profile.address.city') }},
+        {{ $settings->get('company_profile.address.state') }}<br>
+        {{ $settings->get('company_profile.address.country') }}<br><br>
 
-        @if($settings->getCompanyProfile()['phone'])
-          P: {{ $settings->getCompanyProfile()['phone'] }}<br>
+        @if($settings->get('company_profile.phone'))
+          p: {{ $settings->get('company_profile.phone') }}<br>
         @endif
-        E: {{ $settings->getCompanyProfile()['email'] }}<br>
+        E: {{ $settings->get('company_profile.email') }}<br>
 
-        @if($settings->getCompanyProfile()['registration_number'])
-          Reg. No: {{ $settings->getCompanyProfile()['registration_number'] }}<br>
+        @if($settings->get('company_profile.registration_number'))
+          Reg. No: {{ $settings->get('company_profile.registration_number') }}<br>
         @endif
 
-        @if($settings->getCompanyProfile()['tax_number'])
-          Tax No: {{ $settings->getCompanyProfile()['tax_number'] }}
+        @if($settings->get('company_profile.tax_number'))
+          Tax No: {{ $settings->get('company_profile.tax_number') }}
         @endif
       </div>
     </div>
@@ -291,7 +308,7 @@
     <div class="signature-box" style="margin-top: 4rem; border-top: 1px solid #9ca3af; padding-top: 2.5rem">
       <p>
         <strong>
-          Signed on behalf of {{ $contract->client->company ?: $contract->client->name }} ("The Client")
+          Signed on behalf of {{ $contract->client->company ?: $contract->client->name }} (“The Client”)
         </strong>
       </p>
 
@@ -303,15 +320,30 @@
         <tbody>
         <tr>
           <td class="no_border">Name</td>
-          <td class="no_border">: __________________________________________</td>
+
+          <td class="no_border">
+            : __________________________________________
+          </td>
         </tr>
+
         <tr>
-          <td class="no_border">Title</td>
-          <td class="no_border">: __________________________________________</td>
+          <td class="no_border">
+            Title
+          </td>
+
+          <td class="no_border">
+            : __________________________________________
+          </td>
         </tr>
+
         <tr>
-          <td class="no_border">Date</td>
-          <td class="no_border">: __________________________________________</td>
+          <td class="no_border">
+            Date
+          </td>
+
+          <td class="no_border">
+            : __________________________________________
+          </td>
         </tr>
         </tbody>
       </table>
@@ -322,7 +354,7 @@
         {{ $contract->client->country }}<br><br>
 
         @if($contract->client->phone)
-          P: {{ $contract->client->phone }}<br>
+        P: {{ $contract->client->phone }}<br>
         @endif
         E: {{ $contract->client->email }}
       </div>
@@ -331,7 +363,7 @@
 </div>
 
 <div class="footer">
-  {!! $settings->getDocumentSettings()['contract_footer'] !!}
+  {!! $settings->get('document_settings.contract_footer_text') !!}
   <div class="meta-info">
     Generated on {{ $date }} by {{ $generatedBy }}
   </div>

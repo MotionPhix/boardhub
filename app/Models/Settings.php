@@ -20,11 +20,42 @@ class Settings extends Model implements HasMedia
 
   public static function getLocalization(): array
   {
+    $settings = self::instance();
+
     return [
-      'timezone' => self::getAttribute('timezone') ?? config('app.timezone', 'UTC'),
-      'locale' => self::getAttribute('locale') ?? config('app.locale', 'en'),
-      'date_format' => self::getAttribute('date_format') ?? 'd M, Y',
-      'time_format' => self::getAttribute('time_format') ?? 'H:i:s'
+      'timezone' => $settings->timezone ?? config('app.timezone', 'UTC'),
+      'locale' => $settings->locale ?? config('app.locale', 'en'),
+      'date_format' => $settings->date_format ?? 'd M, Y',
+      'time_format' => $settings->time_format ?? 'H:i:s'
+    ];
+  }
+
+  public static function getCompanyProfile(): array
+  {
+    $settings = self::instance();
+
+    return [
+      'name' => $settings->company_name ?? '',
+      'email' => $settings->company_email ?? '',
+      'phone' => $settings->company_phone ?? '',
+      'address' => [
+        'street' => $settings->company_address_street ?? '',
+        'city' => $settings->company_address_city ?? '',
+        'state' => $settings->company_address_state ?? '',
+        'country' => $settings->company_address_country ?? '',
+      ],
+      'registration_number' => $settings->company_registration_number ?? '',
+      'tax_number' => $settings->company_tax_number ?? '',
+    ];
+  }
+
+  public static function getDocumentSettings(): array
+  {
+    $settings = self::instance();
+
+    return [
+      'contract_terms' => $settings->default_contract_terms ?? '',
+      'contract_footer' => $settings->contract_footer_text ?? '',
     ];
   }
 

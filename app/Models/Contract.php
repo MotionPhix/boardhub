@@ -105,16 +105,18 @@ class Contract extends Model implements HasMedia
   public function generatePdf(?string $generatedBy = null): string
   {
     // Get the contract template content and replace variables
-    // $content = $this->prepareContractContent();
     $settings = app(Settings::class);
     $localization = Settings::getLocalization();
-    $currencies = app(Currency::class);
+
+    // Load the currency relationship if it hasn't been loaded
+    if (!$this->relationLoaded('currency')) {
+      $this->load('currency');
+    }
 
     // Generate PDF using the template
     $pdf = PDF::loadView('contracts.contract-template', [
       'contract' => $this,
       'localization' => $localization,
-      'currencies' => $currencies,
       'settings' => $settings,
       'generatedBy' => $generatedBy ?? auth()->user()->name ?? 'System',
       'date' => now()
@@ -314,6 +316,11 @@ class Contract extends Model implements HasMedia
   public function client(): BelongsTo
   {
     return $this->belongsTo(Client::class);
+  }
+
+  public function currency(): BelongsTo
+  {
+    return $this->belongsTo(Currency::class, 'currency_code', 'code');
   }
 
   // Media collections
