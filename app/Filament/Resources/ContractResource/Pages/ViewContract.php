@@ -26,8 +26,8 @@ class ViewContract extends ViewRecord
         ->icon('heroicon-m-eye')
         ->label('Preview')
         ->color('gray')
-        ->url(fn () => route('filament.admin.resources.contracts.preview', ['record' => $this->record]))
-        ->openUrlInNewTab(),
+        ->url(fn () => route('filament.admin.resources.contracts.preview', ['record' => $this->record])),
+        //->openUrlInNewTab(),
 
       Actions\Action::make('download_contract')
         ->icon('heroicon-m-arrow-down-square')

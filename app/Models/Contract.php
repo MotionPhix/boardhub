@@ -134,26 +134,6 @@ class Contract extends Model implements HasMedia
     return $pdf->output();
   }
 
-  // Add a method to handle content preparation for version control
-  public function createContractVersion(): ContractVersion
-  {
-    $latestVersion = $this->versions()->latest()->first();
-    $versionNumber = $latestVersion ? $latestVersion->version + 1 : 1;
-
-    return $this->versions()->create([
-      'version' => $versionNumber,
-      'content' => $this->generatePdf(auth()->user()->name),
-      'metadata' => [
-        'created_by' => auth()->id(),
-        'created_at' => now()->toDateTimeString(),
-        'template_id' => $this->contract_template_id,
-        'agreement_status' => $this->agreement_status,
-        'total_amount' => $this->contract_final_amount,
-        'currency_code' => $this->currency_code,
-      ]
-    ]);
-  }
-
   // Add method to handle signatures
   public function addSignature(string $type, string $signature): void
   {
@@ -165,9 +145,6 @@ class Contract extends Model implements HasMedia
       'signed_at' => $type === 'client' ? now() : $this->signed_at,
       'agreement_status' => $type === 'client' ? self::STATUS_ACTIVE : $this->agreement_status,
     ]);
-
-    // Create a new version after signing
-    $this->createContractVersion();
 
     if ($type === 'client') {
       // Store the signed contract in media library
@@ -183,22 +160,6 @@ class Contract extends Model implements HasMedia
       // Notify relevant parties
       $this->notifyContractSigned();
     }
-  }
-
-  /**
-   * Get the versions of this contract.
-   */
-  public function versions(): HasMany
-  {
-    return $this->hasMany(ContractVersion::class);
-  }
-
-  /**
-   * Get the latest version of this contract.
-   */
-  public function latestVersion(): ?ContractVersion
-  {
-    return $this->versions()->latest()->first();
   }
 
   // Add method to notify about contract signing

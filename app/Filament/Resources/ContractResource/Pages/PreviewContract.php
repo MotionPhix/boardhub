@@ -4,13 +4,11 @@ namespace App\Filament\Resources\ContractResource\Pages;
 
 use App\Filament\Resources\ContractResource;
 use App\Models\Contract;
-use App\Models\ContractVersion;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Exceptions\Halt;
 use Illuminate\Contracts\Support\Htmlable;
-use Illuminate\Support\Collection;
 
 class PreviewContract extends Page
 {
@@ -20,53 +18,25 @@ class PreviewContract extends Page
 
   public ?Contract $record = null;
   public string $previewMode = 'web';
-  public array $versions = [];
-  public ?ContractVersion $currentVersion = null;
-  public ?string $selectedVersion = null;
   public ?string $signature = null;
+
+  protected function getLayoutData(): array
+  {
+    return [
+      'breadcrumbs' => $this->getBreadcrumbs(),
+      'navigationItems' => [],
+      'sidebarFullWidth' => true,
+    ];
+  }
 
   public function mount(Contract $record): void
   {
-    $this->record = $record->load(['client', 'currency', 'billboards.location', 'versions']);
-
-    // Get latest version ID if exists
-    $latestVersion = $record->latestVersion();
-    $this->selectedVersion = $latestVersion?->id;
+    $this->record = $record->load(['client', 'currency', 'billboards.location']);
   }
 
   public function getTitle(): string|Htmlable
   {
     return "Contract Preview: {$this->record->contract_number}";
-  }
-
-  public function getCurrentVersion(): ?ContractVersion
-  {
-    if (!$this->record || !$this->selectedVersion) {
-      return null;
-    }
-
-    return $this->record->versions()->find($this->selectedVersion);
-  }
-
-  public function getVersions(): Collection
-  {
-    return $this->record->versions()
-      ->latest()
-      ->get()
-      ->map(function ($version) {
-        return [
-          'id' => $version->id,
-          'created_at' => $version->created_at
-        ];
-      });
-  }
-
-  protected function data(): array
-  {
-    return [
-      'currentVersion' => $this->getCurrentVersion(),
-      'versions' => $this->getVersions(),
-    ];
   }
 
   protected function getHeaderActions(): array
