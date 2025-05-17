@@ -183,6 +183,22 @@ class Contract extends Model implements HasMedia
     }
   }
 
+  /**
+   * Get the versions of this contract.
+   */
+  public function versions(): HasMany
+  {
+    return $this->hasMany(ContractVersion::class);
+  }
+
+  /**
+   * Get the latest version of this contract.
+   */
+  public function latestVersion(): ?ContractVersion
+  {
+    return $this->versions()->latest()->first();
+  }
+
   // Add method to notify about contract signing
   protected function notifyContractSigned(): void
   {

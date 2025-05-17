@@ -9,7 +9,7 @@ return new class extends Migration {
   {
     Schema::create('contracts', function (Blueprint $table) {
       $table->id();
-      $table->uuid('uuid')->unique()->nullable();
+      $table->uuid('uuid')->unique();
 
       // Basic contract information
       $table->foreignId('client_id')->constrained()->cascadeOnDelete();

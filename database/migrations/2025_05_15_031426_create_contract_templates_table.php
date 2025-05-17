@@ -12,6 +12,7 @@ return new class extends Migration {
   {
     Schema::create('contract_templates', function (Blueprint $table) {
       $table->id();
+      $table->uuid('uuid')->primary();
       $table->string('name');
       $table->text('description')->nullable();
       $table->longText('content');
