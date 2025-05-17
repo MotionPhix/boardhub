@@ -20,13 +20,18 @@ class PreviewContract extends Page
 
   public ?Contract $record = null;
   public string $previewMode = 'web';
+  public array $versions = [];
+  public ?ContractVersion $currentVersion = null;
   public ?string $selectedVersion = null;
   public ?string $signature = null;
 
   public function mount(Contract $record): void
   {
     $this->record = $record->load(['client', 'currency', 'billboards.location', 'versions']);
-    $this->selectedVersion = $record->versions()->latest()->first()?->id;
+
+    // Get latest version ID if exists
+    $latestVersion = $record->latestVersion();
+    $this->selectedVersion = $latestVersion?->id;
   }
 
   public function getTitle(): string|Htmlable
@@ -34,14 +39,34 @@ class PreviewContract extends Page
     return "Contract Preview: {$this->record->contract_number}";
   }
 
-  public function getCurrentVersionProperty(): ?ContractVersion
+  public function getCurrentVersion(): ?ContractVersion
   {
-    return $this->versions->find($this->selectedVersion);
+    if (!$this->record || !$this->selectedVersion) {
+      return null;
+    }
+
+    return $this->record->versions()->find($this->selectedVersion);
   }
 
-  public function getVersionsProperty(): Collection
+  public function getVersions(): Collection
   {
-    return $this->record->versions()->latest()->get();
+    return $this->record->versions()
+      ->latest()
+      ->get()
+      ->map(function ($version) {
+        return [
+          'id' => $version->id,
+          'created_at' => $version->created_at
+        ];
+      });
+  }
+
+  protected function data(): array
+  {
+    return [
+      'currentVersion' => $this->getCurrentVersion(),
+      'versions' => $this->getVersions(),
+    ];
   }
 
   protected function getHeaderActions(): array

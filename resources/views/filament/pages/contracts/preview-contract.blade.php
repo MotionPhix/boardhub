@@ -4,19 +4,23 @@
       <div class="flex items-center space-x-4">
         <x-filament::input.wrapper>
           <x-filament::input.select
-            wire:model.live="previewMode"
-            :options="['web' => 'Web View', 'pdf' => 'PDF Preview']"
-          />
+            wire:model.live="previewMode">
+            <option value="web">Web View</option>
+            <option value="pdf">PDF Preview</option>
+          </x-filament::input.select>
         </x-filament::input.wrapper>
 
-        @if($versions->isNotEmpty())
+        @if(isset($this->versions))
           <x-filament::input.wrapper>
             <x-filament::input.select
-              wire:model.live="selectedVersion"
-              :options="$versions->mapWithKeys(fn ($version, $index) => [
-                                $version->id => 'Version ' . ($versions->count() - $index) . ' - ' . $version->created_at->format('M j, Y H:i')
-                            ])"
-            />
+              wire:model.live="selectedVersion">
+              @foreach($this->versions as $version)
+                <option value="{{ $version['id'] }}">
+                  Version {{ $this->record->versions()->count() - $loop->index }} -
+                  {{ $version['created_at']->format('M j, Y H:i') }}
+                </option>
+              @endforeach
+            </x-filament::input.select>
           </x-filament::input.wrapper>
         @endif
       </div>
