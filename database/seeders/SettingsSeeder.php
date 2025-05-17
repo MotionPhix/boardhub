@@ -47,7 +47,7 @@ class SettingsSeeder extends Seeder
       ['key' => 'currency_settings'],
       [
         'value' => [
-          'MWK' => [
+          [
             'code' => 'MWK',
             'symbol' => 'MK',
             'name' => 'Malawian Kwacha',

@@ -9,6 +9,8 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Filament\Forms\Get;
+use Filament\Forms\Set;
 
 class SettingsResource extends Resource
 {
@@ -52,53 +54,63 @@ class SettingsResource extends Resource
 
                 Forms\Components\Section::make('Company Information')
                   ->schema([
-                    Forms\Components\TextInput::make('value.company_profile.name')
+                    Forms\Components\TextInput::make('value.name')
                       ->label('Company Name')
                       ->required()
+                      ->placeholder('Enter your company name')
+                      ->columnSpanFull()
                       ->maxLength(255),
 
                     Forms\Components\TextInput::make('value.email')
                       ->label('Company Email')
                       ->email()
                       ->required()
+                      ->placeholder('Enter your company email')
                       ->maxLength(255),
 
                     Forms\Components\TextInput::make('value.phone')
                       ->label('Company Phone')
                       ->tel()
+                      ->placeholder('Your company phone number')
                       ->maxLength(255),
 
                     Forms\Components\Section::make('Company Address')
                       ->schema([
                         Forms\Components\TextInput::make('value.address.street')
                           ->label('Street Name')
+                          ->placeholder('Your company adress')
                           ->maxLength(255),
 
                         Forms\Components\TextInput::make('value.address.city')
                           ->label('City')
+                          ->placeholder('City your company is located')
                           ->maxLength(255),
 
                         Forms\Components\TextInput::make('value.address.state')
                           ->label('State/Region/Province')
+                          ->placeholder('State/region/province your company is based')
                           ->maxLength(255),
 
                         Forms\Components\TextInput::make('value.address.country')
                           ->label('Country')
+                          ->placeholder('Country your company is operating from')
                           ->maxLength(255),
                       ])
                       ->columns(2),
 
                     Forms\Components\TextInput::make('value.registration_number')
                       ->label('Registration Number')
+                      ->placeholder('Your company registration number')
                       ->maxLength(255),
 
                     Forms\Components\TextInput::make('value.tax_number')
                       ->label('Tax Number')
+                      ->placeholder('Your company TPIN number')
                       ->maxLength(255),
                   ])
                   ->columns(2),
               ])
-              ->hidden(fn ($record) => $record?->key !== 'company_profile'),
+              ->hidden(fn($record) => $record?->key !== 'company_profile'),
 
             Forms\Components\Tabs\Tab::make('Localization')
               ->schema([
@@ -107,16 +119,20 @@ class SettingsResource extends Resource
                     Forms\Components\Select::make('value.timezone')
                       ->label('Timezone')
                       ->options(collect(timezone_identifiers_list())
-                        ->mapWithKeys(fn ($tz) => [$tz => $tz]))
+                        ->mapWithKeys(fn($tz) => [$tz => $tz]))
                       ->searchable()
+                      ->placeholder('Select your timezone')
                       ->required(),
+
                     Forms\Components\Select::make('value.locale')
                       ->label('Language')
                       ->options([
                         'en' => 'English',
                         // Add more languages as needed
                       ])
+                      ->placeholder('Select your preferred language')
                       ->required(),
+
                     Forms\Components\Select::make('value.date_format')
                       ->label('Date Format')
                       ->options([
@@ -125,6 +141,7 @@ class SettingsResource extends Resource
                         'm/d/Y' => 'MM/DD/YYYY',
                       ])
                       ->required(),
+
                     Forms\Components\Select::make('value.time_format')
                       ->label('Time Format')
                       ->options([
@@ -135,7 +152,7 @@ class SettingsResource extends Resource
                   ])
                   ->columns(2),
               ])
-              ->hidden(fn ($record) => $record?->key !== 'localization'),
+              ->hidden(fn($record) => $record?->key !== 'localization'),
 
             Forms\Components\Tabs\Tab::make('Currency')
               ->schema([
@@ -143,26 +160,14 @@ class SettingsResource extends Resource
                   ->schema([
                     Forms\Components\Repeater::make('value')
                       ->label('Currencies')
-                      ->defaultItems(0)
-                      ->reorderable(false)
-                      ->collapsible()
-                      ->itemLabel(fn (array $state): string =>
-                        ($state['name'] ?? 'New Currency') . ' (' . ($state['code'] ?? '') . ')'
-                      )
                       ->schema([
                         Forms\Components\TextInput::make('code')
                           ->label('Currency Code')
                           ->required()
                           ->maxLength(3)
-                          ->rules(['alpha'])
-                          ->unique(
-                            ignorable: fn ($record, $state) => $record && isset($record->value[$state]),
-                            modifyRuleUsing: function (Forms\Components\TextInput $component, string $value, $record) {
-                              $currentValues = collect($record?->value ?? []);
-                              $count = $currentValues->where('code', $value)->count();
-                              return $count === 0;
-                            }
-                          ),
+                          ->alpha()
+                          ->live()
+                          ->distinct(), // Ensure unique currency codes
 
                         Forms\Components\TextInput::make('symbol')
                           ->label('Currency Symbol')
@@ -177,106 +182,90 @@ class SettingsResource extends Resource
                         Forms\Components\Toggle::make('is_default')
                           ->label('Make Default')
                           ->default(false)
-                          ->afterStateUpdated(function ($state, Forms\Set $set, ?array $old, ?string $operation) {
-                            if (!$state) return;
-
-                            // Get the current repeater items
-                            $items = $set->get('value') ?? [];
-
-                            // Update all other currencies to not be default
-                            foreach ($items as $key => $item) {
-                              if ($key !== $old) {
-                                $items[$key]['is_default'] = false;
-                              }
-                            }
-
-                            $set('value', $items);
-                          })
-                          ->dehydrated()
-                          ->required(),
+                          ->live()
+                          ->distinct() // Ensure only one default currency
+                          ->fixIndistinctState(), // Automatically handle the default currency toggle
                       ])
                       ->columnSpanFull()
                       ->defaultItems(1)
-                      ->minItems(1)
+                      ->minItems(1) // Require at least one currency
                       ->columns(4)
-                      ->afterStateUpdated(function (array $state, Forms\Set $set) {
-                        // Ensure at least one currency is set as default
-                        $hasDefault = false;
-                        foreach ($state as $currency) {
-                          if ($currency['is_default'] ?? false) {
-                            $hasDefault = true;
-                            break;
-                          }
-                        }
-
-                        if (!$hasDefault && !empty($state)) {
-                          $state[array_key_first($state)]['is_default'] = true;
-                          $set('value', $state);
-                        }
-                      }),
+                      ->reorderable(false)
+                      ->collapsible()
+                      ->itemLabel(fn (array $state): string =>
+                        ($state['name'] ?? 'New Currency') . ' (' . ($state['code'] ?? '') . ')'
+                      )
+                      ->addAction(
+                        fn (Forms\Components\Actions\Action $action) => $action->label('Add Currency')
+                      )
+                      ->deleteAction(
+                        fn (Forms\Components\Actions\Action $action) => $action->requiresConfirmation()
+                      )
+                      ->helperText('Configure the currencies available in your system. At least one currency must be set as default.')
+                      ->columns(1),
                   ])
-                  ->description('Configure the currencies available in your system. At least one currency must be set as default.')
-                  ->columns(1),
-              ])
-              ->hidden(fn ($record) => $record?->key !== 'currency_settings'),
+                  ->hidden(fn($record) => $record?->key !== 'currency_settings'),
 
-            Forms\Components\Tabs\Tab::make('Document Settings')
-              ->schema([
-                Forms\Components\Section::make('Contract Settings')
+                Forms\Components\Tabs\Tab::make('Document Settings')
                   ->schema([
-                    Forms\Components\RichEditor::make('value.default_contract_terms')
-                      ->label('Default Contract Terms')
-                      ->maxLength(65535)
-                      ->columnSpanFull(),
+                    Forms\Components\Section::make('Contract Settings')
+                      ->schema([
+                        Forms\Components\RichEditor::make('value.default_contract_terms')
+                          ->label('Default Contract Terms')
+                          ->maxLength(65535)
+                          ->columnSpanFull(),
 
-                    Forms\Components\RichEditor::make('value.contract_footer_text')
-                      ->label('Contract Footer Text')
-                      ->maxLength(65535)
-                      ->columnSpanFull(),
-                  ]),
-              ])
-              ->hidden(fn ($record) => $record?->key !== 'document_settings'),
-
-            Forms\Components\Tabs\Tab::make('Billboard Settings')
-              ->schema([
-                Forms\Components\Section::make('Billboard Code Format')
-                  ->schema([
-                    Forms\Components\TextInput::make('value.prefix')
-                      ->label('Billboard Code Prefix')
-                      ->required()
-                      ->maxLength(10)
-                      ->helperText('Company initials or short code (e.g., BH, FM)'),
-
-                    Forms\Components\TextInput::make('value.separator')
-                      ->label('Code Separator')
-                      ->required()
-                      ->default('-')
-                      ->maxLength(5)
-                      ->helperText('Character to separate code parts (e.g., -)'),
-
-                    Forms\Components\TextInput::make('value.counter_length')
-                      ->label('Counter Length')
-                      ->required()
-                      ->numeric()
-                      ->default(5)
-                      ->minValue(1)
-                      ->maxValue(10)
-                      ->helperText('Number of digits for the sequence number (e.g., 5 for 00001)'),
+                        Forms\Components\RichEditor::make('value.contract_footer_text')
+                          ->label('Contract Footer Text')
+                          ->maxLength(65535)
+                          ->columnSpanFull(),
+                      ]),
                   ])
-                  ->columns(2)
-                  ->description('Billboard codes will be generated in the format: PREFIX-CITYCODE-SEQUENCE
-                For example: BH-BT-00001 (for a billboard in Blantyre)'),
+                  ->hidden(fn($record) => $record?->key !== 'document_settings'),
+
+                Forms\Components\Tabs\Tab::make('Billboard Settings')
+                  ->schema([
+                    Forms\Components\Section::make('Billboard Code Format')
+                      ->schema([
+                        Forms\Components\TextInput::make('value.prefix')
+                          ->label('Billboard Code Prefix')
+                          ->required()
+                          ->maxLength(10)
+                          ->helperText('Company initials or short code (e.g., BH, FM)'),
+
+                        Forms\Components\TextInput::make('value.separator')
+                          ->label('Code Separator')
+                          ->required()
+                          ->default('-')
+                          ->maxLength(5)
+                          ->helperText('Character to separate code parts (e.g., -)'),
+
+                        Forms\Components\TextInput::make('value.counter_length')
+                          ->label('Counter Length')
+                          ->required()
+                          ->numeric()
+                          ->default(5)
+                          ->minValue(1)
+                          ->maxValue(10)
+                          ->helperText('Number of digits for the sequence number (e.g., 5 for 00001)'),
+                      ])
+                      ->columns(2)
+                      ->description(
+                        'Billboard codes will be generated in the format: PREFIX-CITYCODE-SEQUENCE
+                For example: BH-BT-00001 (for a billboard in Blantyre)'
+                      ),
+                  ])
               ])
-              ->hidden(fn ($record) => $record?->key !== 'billboard_code_format'),
+              ->hidden(fn($record) => $record?->key !== 'billboard_code_format'),
           ])
           ->columnSpanFull(),
 
         Forms\Components\Hidden::make('key')
-          ->default(fn ($record) => $record?->key ?? 'company_profile')
+          ->default(fn($record) => $record?->key ?? 'company_profile')
           ->required(),
 
         Forms\Components\Hidden::make('group')
-          ->default(fn ($record) => $record?->group ?? 'company')
+          ->default(fn($record) => $record?->group ?? 'company')
       ]);
   }
 
@@ -305,7 +294,7 @@ class SettingsResource extends Resource
         Tables\Columns\TextColumn::make('key')
           ->label('Setting')
           ->formatStateUsing(function (string $state): string {
-            return match($state) {
+            return match ($state) {
               'company_profile' => 'Company Profile',
               'default_currency' => 'Currency Settings',
               'localization' => 'Regional Settings',
@@ -320,7 +309,7 @@ class SettingsResource extends Resource
         Tables\Columns\TextColumn::make('value')
           ->label('Configuration')
           ->formatStateUsing(function ($record): string {
-            return match($record->key) {
+            return match ($record->key) {
               'company_profile' => $record->value['name'] ?? 'Not configured',
               'default_currency' => ($record->value['symbol'] ?? '') . ' ' . ($record->value['code'] ?? 'Not set'),
               'localization' => ($record->value['timezone'] ?? 'Not set') . ' | ' . strtoupper($record->value['locale'] ?? ''),
@@ -333,20 +322,20 @@ class SettingsResource extends Resource
 
         Tables\Columns\TextColumn::make('group')
           ->badge()
-          ->color(fn (string $state): string => match ($state) {
+          ->color(fn(string $state): string => match ($state) {
             'company' => 'success',
             'system' => 'danger',
             'documents' => 'warning',
             'billboards' => 'info',
             default => 'gray',
           })
-          ->formatStateUsing(fn (string $state): string => str($state)->title()),
+          ->formatStateUsing(fn(string $state): string => str($state)->title()),
 
         Tables\Columns\TextColumn::make('updated_at')
           ->label('Last Updated')
           ->dateTime()
           ->sortable()
-          ->description(fn ($record) => $record->updated_at->diffForHumans()),
+          ->description(fn($record) => $record->updated_at->diffForHumans()),
       ])
       ->defaultSort('updated_at', 'desc')
       ->actions([
