@@ -3,7 +3,7 @@
 namespace App\Filament\Resources\SettingsResource\Pages;
 
 use App\Filament\Resources\SettingsResource;
-use Filament\Actions;
+use App\Models\Settings;
 use Filament\Resources\Pages\EditRecord;
 use Filament\Notifications\Notification;
 
@@ -13,33 +13,22 @@ class EditSettings extends EditRecord
 
   protected function getHeaderActions(): array
   {
-    return [
-      Actions\DeleteAction::make(),
-    ];
+    return [];
   }
 
-  protected function mutateFormDataBeforeSave(array $data): array
+  public function mount(int|string $record): void
   {
-    // Ensure we're not losing the existing value structure
-    $existingValue = $this->record->value ?? [];
-    $newValue = $data['value'] ?? [];
-
-    // Merge the new value with existing value to preserve structure
-    $data['value'] = array_merge($existingValue, $newValue);
-
-    return $data;
+    $this->record = Settings::instance();
+    $this->form->fill($this->record->attributesToArray());
   }
 
-  protected function afterSave(): void
+  protected function getRedirectUrl(): ?string
   {
-    Notification::make()
-      ->success()
-      ->title('Settings updated successfully')
-      ->send();
+    return null;
   }
 
-  protected function getRedirectUrl(): string
+  protected function getSavedNotificationTitle(): ?string
   {
-    return $this->getResource()::getUrl('index');
+    return 'Settings updated successfully';
   }
 }

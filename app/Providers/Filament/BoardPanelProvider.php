@@ -41,7 +41,7 @@ class BoardPanelProvider extends PanelProvider
       ->brandName('BoardHub')
       ->sidebarCollapsibleOnDesktop()
       ->favicon(asset('images/favicon.png'))
-      ->font('Geist Mono', provider: GoogleFontProvider::class)
+      ->font('Space Mono', provider: GoogleFontProvider::class)
       ->assets([
         Css::make('custom-stylesheet', resource_path('css/custom.css')),
       ])

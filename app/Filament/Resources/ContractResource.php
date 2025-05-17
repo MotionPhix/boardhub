@@ -7,6 +7,7 @@ use App\Filament\Resources\ContractResource\Pages;
 use App\Filament\Resources\ContractResource\RelationManagers\BillboardsRelationManager;
 use App\Models\Billboard;
 use App\Models\Contract;
+use App\Models\Currency;
 use App\Models\Settings;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -30,8 +31,8 @@ class ContractResource extends Resource
 
   public static function form(Form $form): Form
   {
-    $defaultCurrency = Settings::getDefaultCurrency();
-    $currencies = Settings::getAvailableCurrencies();
+    $defaultCurrency = Currency::getDefault();
+    $currencies = Currency::all();
 
     return $form
       ->schema([
@@ -46,9 +47,9 @@ class ContractResource extends Resource
 
                 Forms\Components\Select::make('currency_code')
                   ->options(collect($currencies)->mapWithKeys(fn ($currency) =>
-                  [$currency['code'] => "{$currency['name']} ({$currency['symbol']})"]
+                  [$currency->code => "{$currency->name} ({$currency->symbol})"]
                   ))
-                  ->default($defaultCurrency['code'])
+                  ->default($defaultCurrency->code)
                   ->required(),
 
                 Forms\Components\Select::make('client_id')
@@ -145,8 +146,8 @@ class ContractResource extends Resource
                   ->numeric()
                   ->prefix(function (Forms\Get $get) {
                     $currencyCode = $get('currency_code');
-                    $currencies = Settings::getAvailableCurrencies();
-                    return $currencies[$currencyCode]['symbol'] ?? '';
+                    $currency = Currency::where('code', $currencyCode)->first();
+                    return $currency?->symbol ?? '';
                   })
                   ->default(0),
 
@@ -162,8 +163,8 @@ class ContractResource extends Resource
                   })
                   ->prefix(function (Forms\Get $get) {
                     $currencyCode = $get('currency_code');
-                    $currencies = Settings::getAvailableCurrencies();
-                    return $currencies[$currencyCode]['symbol'] ?? '';
+                    $currency = Currency::where('code', $currencyCode)->first();
+                    return $currency?->symbol ?? '';
                   }),
 
                 Forms\Components\TextInput::make('contract_final_amount')
@@ -174,8 +175,8 @@ class ContractResource extends Resource
                   ->default(0)
                   ->prefix(function (Forms\Get $get) {
                     $currencyCode = $get('currency_code');
-                    $currencies = Settings::getAvailableCurrencies();
-                    return $currencies[$currencyCode]['symbol'] ?? '';
+                    $currency = Currency::where('code', $currencyCode)->first();
+                    return $currency?->symbol ?? '';
                   }),
 
                 Forms\Components\Repeater::make('billboard_prices')
@@ -194,7 +195,7 @@ class ContractResource extends Resource
                       ->columnSpan(2),
 
                     Forms\Components\TextInput::make('billboard_base_price')
-                      ->label('Base Price')
+                      ->label('Monthly Rental')
                       ->required()
                       ->numeric()
                       ->default(function (Forms\Get $get) {
@@ -206,8 +207,8 @@ class ContractResource extends Resource
                       })
                       ->prefix(function (Forms\Get $get) {
                         $currencyCode = $get('../../../currency_code');
-                        $currencies = Settings::getAvailableCurrencies();
-                        return $currencies[$currencyCode]['symbol'] ?? '';
+                        $currency = Currency::where('code', $currencyCode)->first();
+                        return $currency?->symbol ?? '';
                       })
                       ->live()
                       ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
@@ -288,11 +289,17 @@ class ContractResource extends Resource
           ->sortable(),
 
         Tables\Columns\TextColumn::make('contract_total')
-          ->money(fn ($record) => $record->currency_code)
+          ->money(function ($record) {
+            $currency = Currency::where('code', $record->currency_code)->first();
+            return $currency?->code ?? Currency::getDefault()->code;
+          })
           ->sortable(),
 
         Tables\Columns\TextColumn::make('contract_final_amount')
-          ->money(fn ($record) => $record->currency_code)
+          ->money(function ($record) {
+            $currency = Currency::where('code', $record->currency_code)->first();
+            return $currency?->code ?? Currency::getDefault()->code;
+          })
           ->sortable()
           ->weight(FontWeight::Bold),
 

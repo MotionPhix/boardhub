@@ -10,15 +10,12 @@ class Settings extends Model implements HasMedia
 {
   use InteractsWithMedia;
 
-  protected $fillable = [
-    'key',
-    'value',
-    'group',
-  ];
+  protected $guarded = [];
 
-  protected $casts = [
-    'value' => 'array',
-  ];
+  public static function instance(): self
+  {
+    return static::firstOrCreate();
+  }
 
   // Define setting keys as constants for consistency
   public const KEY_COMPANY_PROFILE = 'company_profile';
@@ -239,6 +236,40 @@ class Settings extends Model implements HasMedia
       ],
       'default_contract_terms' => null,
     ]);
+  }
+
+  /**
+   * Get the form data for editing
+   */
+  public function getFormData(): array
+  {
+    $value = $this->value;
+
+    if ($this->key === self::KEY_COMPANY_PROFILE) {
+      return [
+        'value' => [
+          'name' => $value['name'] ?? null,
+          'email' => $value['email'] ?? null,
+          'phone' => $value['phone'] ?? null,
+          'address' => [
+            'street' => $value['address']['street'] ?? null,
+            'city' => $value['address']['city'] ?? null,
+            'state' => $value['address']['state'] ?? null,
+            'country' => $value['address']['country'] ?? null,
+          ],
+          'registration_number' => $value['registration_number'] ?? null,
+          'tax_number' => $value['tax_number'] ?? null,
+        ],
+        'key' => $this->key,
+        'group' => $this->group,
+      ];
+    }
+
+    return [
+      'value' => $value,
+      'key' => $this->key,
+      'group' => $this->group,
+    ];
   }
 
   public function registerMediaCollections(): void
