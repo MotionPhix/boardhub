@@ -4,6 +4,7 @@ namespace App\Filament\Resources\ContractResource\Pages;
 
 use App\Enums\BookingStatus;
 use App\Filament\Resources\ContractResource;
+use Filament\Actions;
 use Filament\Resources\Pages\EditRecord;
 use Illuminate\Support\Facades\DB;
 
@@ -11,6 +12,27 @@ class EditContract extends EditRecord
 {
   protected static string $resource = ContractResource::class;
   protected array $changes = [];
+
+  protected function authorizeAccess(): void
+  {
+    parent::authorizeAccess();
+
+    $record = $this->getRecord();
+
+    if ($record->agreement_status !== 'draft') {
+      $this->notify('danger', 'This contract cannot be edited as it is no longer in draft status.');
+      redirect()->to(static::$resource::getUrl('view', ['record' => $record]));
+    }
+  }
+
+  protected function getHeaderActions(): array
+  {
+    return [
+      Actions\ViewAction::make(),
+      Actions\DeleteAction::make()
+        ->visible(fn () => $this->record->agreement_status === 'draft'),
+    ];
+  }
 
   protected function mutateFormDataBeforeSave(array $data): array
   {

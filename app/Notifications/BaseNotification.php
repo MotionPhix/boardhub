@@ -27,6 +27,11 @@ abstract class BaseNotification extends Notification implements ShouldQueue
       ->exists();
   }
 
+  protected function getTemplate(string $template, string $urgency = null, array $data = []): array
+  {
+    return NotificationTemplate::get($template, $urgency, $data);
+  }
+
   protected function getNotifiablePreferences($notifiable, string $type): array
   {
     return $notifiable->notificationSettings()

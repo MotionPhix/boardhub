@@ -195,7 +195,7 @@ class ContractResource extends Resource
           ->searchable()
           ->sortable(),
 
-        Tables\Columns\TextColumn::make('client.name')
+        Tables\Columns\TextColumn::make('client.company')
           ->searchable()
           ->sortable(),
 
@@ -210,6 +210,7 @@ class ContractResource extends Resource
 
         Tables\Columns\TextColumn::make('agreement_status')
           ->badge()
+          ->formatStateUsing(fn ($state): string => strtoupper($state))
           ->color(fn (string $state): string => match ($state) {
             'draft' => 'gray',
             'active' => 'success',

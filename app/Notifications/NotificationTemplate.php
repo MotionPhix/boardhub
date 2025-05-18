@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Notifications\Templates;
+namespace App\Notifications;
 
 class NotificationTemplate
 {
