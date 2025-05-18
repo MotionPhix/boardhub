@@ -3,7 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
-use App\Notifications\ContractNotification;
+use Filament\Notifications\Notification;
 use Illuminate\Console\Command;
 
 class TestNotification extends Command
@@ -21,20 +21,17 @@ class TestNotification extends Command
       return 1;
     }
 
-    // Create a test contract notification
-    $contract = \App\Models\Contract::first();
-
-    if (!$contract) {
-      $this->error("No contracts found in the database");
-      return 1;
-    }
-
     try {
-      $user->notify(new ContractNotification(
-        $contract,
-        'expiry',
-        ['days' => 7]
-      ));
+      // Send a Filament notification
+      Notification::make()
+        ->title('Test Notification')
+        ->body('This is a test notification sent at ' . now())
+        ->icon('heroicon-o-bell')
+        ->iconColor('success')
+        ->sendToDatabase($user);
+
+      // Trigger real-time broadcast
+      $user->notify(new \App\Notifications\TestNotification());
 
       $this->info('Test notification sent successfully!');
       $this->info('Check these places:');

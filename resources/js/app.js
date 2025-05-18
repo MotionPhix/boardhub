@@ -11,13 +11,30 @@ window.Echo = new Echo({
   forceTLS: true
 });
 
+// Listen for notifications on the user's private channel
+window.Echo.private(`App.Models.User.${window.userId}`)
+  .notification((notification) => {
+    // Handle Filament notification
+    window.dispatchEvent(new CustomEvent('notificationReceived', {
+      detail: {
+        id: notification.id,
+        title: notification.title,
+        message: notification.message,
+        status: notification.status,
+        icon: notification.icon,
+        iconColor: notification.iconColor,
+        duration: 5000,
+      },
+    }));
+  });
+
+// Also listen for specific contract events if needed
 window.Echo.private('contracts')
   .listen('ContractExpiringEvent', (e) => {
-    // Handle the notification
-    Filament.notify({
+    window.$wireui.notify({
       title: 'Contract Expiring',
       message: e.message,
-      icon: 'heroicon-o-exclamation-triangle',
+      icon: 'warning',
       iconColor: 'warning',
       duration: 5000,
     });

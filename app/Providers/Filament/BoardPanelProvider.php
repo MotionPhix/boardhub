@@ -53,6 +53,8 @@ class BoardPanelProvider extends PanelProvider
       ])
       ->spa()
       ->maxContentWidth(MaxWidth::FiveExtraLarge)
+      ->databaseNotifications()
+      ->broadcasting()
       ->unsavedChangesAlerts()
       ->plugins([
         FilamentApexChartsPlugin::make(),
