@@ -13,6 +13,7 @@ use Creagia\LaravelSignPad\Contracts\ShouldGenerateSignatureDocument;
 use Creagia\LaravelSignPad\SignatureDocumentTemplate;
 use Creagia\LaravelSignPad\SignaturePosition;
 use Creagia\LaravelSignPad\Templates\BladeDocumentTemplate;
+use Creagia\LaravelSignPad\Templates\PdfDocumentTemplate;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -24,6 +25,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Storage;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
@@ -109,7 +111,7 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
       );
   }
 
-  public function generatePdf(?string $generatedBy = null): string
+  /*public function generatePdf(?string $generatedBy = null): string
   {
     // Get the contract template content and replace variables
     $settings = app(Settings::class);
@@ -139,39 +141,32 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
     $pdf->setOption('margin-right', '2cm');
 
     return $pdf->output();
-  }
+  }*/
 
-  // Add method to handle signatures
-  public function addSignature(string $type, string $signature): void
+  public function generatePdf(): string
   {
-    $signatures = $this->signatures ?? [];
-    $signatures[$type] = $signature;
-
-    $this->update([
-      'signatures' => $signatures,
-      'signed_at' => $type === 'client' ? now() : $this->signed_at,
-      'agreement_status' => $type === 'client' ? self::STATUS_ACTIVE : $this->agreement_status,
+    $pdf = Pdf::loadView('contracts.contract-template', [
+      'contract' => $this,
+      'settings' => app(Settings::class),
+      'localization' => Settings::getLocalization(),
+      'generatedBy' => auth()->user()->name ?? 'System',
+      'date' => now()
+        ->setTimezone(Settings::getLocalization()['timezone'])
+        ->format(Settings::getLocalization()['date_format'] . ' ' . Settings::getLocalization()['time_format'])
     ]);
 
-    if ($type === 'client') {
-      // Store the signed contract in media library
-      $pdf = $this->generatePdf($this->client->name);
-      $this->addMediaFromString($pdf)
-        ->usingFileName($this->contract_number . '_signed.pdf')
-        ->withCustomProperties([
-          'signed_by' => $this->client->name,
-          'signed_at' => now()->toDateTimeString(),
-        ])
-        ->toMediaCollection('signed_contracts');
+    // Generate a unique filename
+    $filename = "contracts/unsigned_{$this->contract_number}.pdf";
 
-      // Notify relevant parties
-      $this->notifyContractSigned();
-    }
+    // Store the PDF
+    Storage::disk('media')->put($filename, $pdf->output());
+
+    return $filename;
   }
 
   public function getSignatureDocumentTemplate(): SignatureDocumentTemplate
   {
-    return new SignatureDocumentTemplate(
+    /*return new SignatureDocumentTemplate(
       outputPdfPrefix: 'contract',
       template: new BladeDocumentTemplate('contracts.contract-template'),
       signaturePositions: [
@@ -179,6 +174,21 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
           signaturePage: 1,
           signatureX: 20,
           signatureY: 25,
+        ),
+      ]
+    );*/
+
+    // Generate the PDF if it doesn't exist
+    $pdfPath = Storage::disk('public')->path($this->generatePdf());
+
+    return new SignatureDocumentTemplate(
+      outputPdfPrefix: "contract_{$this->contract_number}",
+      template: new PdfDocumentTemplate($pdfPath),
+      signaturePositions: [
+        new SignaturePosition(
+          signaturePage: 1,  // Adjust page number as needed
+          signatureX: 50,    // Adjust X coordinate as needed
+          signatureY: 750,   // Adjust Y coordinate as needed
         ),
       ]
     );

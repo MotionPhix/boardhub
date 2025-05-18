@@ -48,19 +48,25 @@
       @if($previewMode === 'web')
         <div class="p-6">
           @include('contracts.web-contract-template', [
-            'contract'       => $record,
-            'settings'       => app(App\Models\Settings::class),
-            'localization'   => App\Models\Settings::getLocalization(),
-            'generatedBy'    => auth()->user()->name ?? 'System',
-            'date'           => now()
-                                  ->setTimezone(App\Models\Settings::getLocalization()['timezone'])
-                                  ->format(App\Models\Settings::getLocalization()['date_format'] . ' ' . App\Models\Settings::getLocalization()['time_format'])
+              'contract' => $record,
+              'settings' => app(App\Models\Settings::class),
+              'localization' => App\Models\Settings::getLocalization(),
+              'generatedBy' => auth()->user()->name ?? 'System',
+              'date' => now()
+                  ->setTimezone(App\Models\Settings::getLocalization()['timezone'])
+                  ->format(App\Models\Settings::getLocalization()['date_format'] . ' ' . App\Models\Settings::getLocalization()['time_format'])
           ])
         </div>
       @else
-        @if($record->hasMedia('contract_documents'))
+        @if($record->hasBeenSigned())
           <iframe
-            src="{{ $record->getFirstMediaUrl('contract_documents') }}"
+            src="{{ Storage::disk(config('sign-pad.disk'))->url($record->signature->getSignedDocumentPath()) }}"
+            class="w-full"
+            style="height: 800px;"
+          ></iframe>
+        @elseif(isset($previewUrl))
+          <iframe
+            src="{{ $previewUrl }}"
             class="w-full"
             style="height: 800px;"
           ></iframe>
