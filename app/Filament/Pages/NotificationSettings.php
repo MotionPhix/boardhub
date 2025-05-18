@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use App\Models\NotificationSettings as NotificationSettingsModel;
-use App\Models\User;
 use Filament\Forms\Components\Grid;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Toggle;
@@ -18,148 +17,208 @@ class NotificationSettings extends Page
   use InteractsWithForms;
 
   protected static ?string $navigationIcon = 'heroicon-o-bell-alert';
-
-  // protected static ?string $navigationGroup = 'Settings';
-
-  protected static ?int $navigationSort = 2;
-
+  protected static ?string $navigationGroup = 'System';
+  protected static ?int $navigationSort = 4; // After Notifications page
   protected static string $view = 'filament.pages.notification-settings';
 
   public ?array $data = [];
 
   public function mount(): void
   {
-    // Get user's notification settings
+    $this->fillForm();
+  }
+
+  protected function fillForm(): void
+  {
+    // Get user's current notification settings
     $settings = Auth::user()
       ->notificationSettings()
       ->get()
       ->groupBy('type')
-      ->map(function ($typeSettings) {
-        return $typeSettings->pluck('is_enabled', 'channel')->toArray();
-      })
+      ->map(fn ($typeSettings) => $typeSettings->pluck('is_enabled', 'channel')->toArray())
       ->toArray();
 
-    // Transform settings to match the form structure
+    // Initialize form data with default values
     $formData = [];
-    foreach (NotificationSettingsModel::getNotificationTypes() as $type => $label) {
-      foreach (NotificationSettingsModel::getNotificationChannels() as $channel => $channelLabel) {
-        $formData["{$type}_{$channel}"] = $settings[$type][$channel] ?? true;
+    foreach ($this->getNotificationCategories() as $category => $types) {
+      foreach ($types as $type => $config) {
+        foreach (NotificationSettingsModel::getNotificationChannels() as $channel => $channelLabel) {
+          $formData["{$type}_{$channel}"] = $settings[$type][$channel] ?? true;
+        }
       }
     }
 
     $this->form->fill($formData);
   }
 
-  protected function getNotificationToggles(): array
-  {
-    $user = auth()->user();
-    $toggles = [];
-    $types = NotificationSettingsModel::getNotificationTypes();
-    $channels = NotificationSettingsModel::getNotificationChannels();
-
-    // Billboard-related notifications (available to all users)
-    $this->addToggleGroup($toggles, 'billboard_availability', $channels);
-
-    // Only show maintenance notifications to users who can manage billboards
-    if ($user->hasAnyRole(['super_admin', 'admin', 'manager'])) {
-      $this->addToggleGroup($toggles, 'billboard_maintenance', $channels);
-    }
-
-    // Contract-related notifications (for users who can manage contracts)
-    if ($user->hasPermissionTo('view_contract') || $user->hasAnyRole(['super_admin', 'admin', 'manager'])) {
-      $this->addToggleGroup($toggles, 'contract_expiry', $channels);
-      $this->addToggleGroup($toggles, 'contract_renewal', $channels);
-      $this->addToggleGroup($toggles, 'new_contract', $channels);
-    }
-
-    // Payment-related notifications (for admin and managers only)
-    if ($user->hasAnyRole(['super_admin', 'admin', 'manager'])) {
-      $this->addToggleGroup($toggles, 'payment_due', $channels);
-      $this->addToggleGroup($toggles, 'payment_overdue', $channels);
-    }
-
-    return $toggles;
-  }
-
-  protected function addToggleGroup(array &$toggles, string $type, array $channels): void
-  {
-    $types = NotificationSettingsModel::getNotificationTypes();
-
-    foreach ($channels as $channel => $channelLabel) {
-      $toggles[] = Toggle::make("{$type}_{$channel}")
-        ->label($types[$type] . ' - ' . $channelLabel)
-        ->helperText($this->getHelperText($type, $channel))
-        ->default(true);
-    }
-  }
-
-  protected function getHelperText(string $type, string $channel): string
-  {
-    return match($type) {
-        'billboard_availability' => 'Get notified when billboards become available',
-        'billboard_maintenance' => 'Get notified about billboard maintenance schedules',
-        'contract_expiry' => 'Get notified when contracts are about to expire',
-        'contract_renewal' => 'Get notified when contracts are up for renewal',
-        'new_contract' => 'Get notified when new contracts are created',
-        'payment_due' => 'Get notified when payments are due',
-        'payment_overdue' => 'Get notified when payments are overdue',
-        default => '',
-      } . " via $channel";
-  }
-
   public function form(Form $form): Form
   {
     return $form
       ->schema([
-        Section::make('Notification Preferences')
-          ->description('Choose which notifications you want to receive and how')
-          ->schema([
-            Grid::make(2)
-              ->schema($this->getNotificationToggles()),
-          ]),
+        Grid::make()
+          ->columns(1)
+          ->schema($this->buildFormSchema())
       ]);
+  }
+
+  protected function getNotificationCategories(): array
+  {
+    return [
+      'Contracts' => [
+        'contract_expiry' => [
+          'label' => 'Contract Expiration',
+          'description' => 'Notifications about contracts nearing their end date',
+          'icon' => 'heroicon-o-clock',
+          'roles' => ['super_admin', 'admin', 'manager', 'client'],
+        ],
+        'contract_renewal' => [
+          'label' => 'Contract Renewal',
+          'description' => 'Notifications when contracts are ready for renewal',
+          'icon' => 'heroicon-o-arrow-path',
+          'roles' => ['super_admin', 'admin', 'manager'],
+        ],
+        'new_contract' => [
+          'label' => 'New Contracts',
+          'description' => 'Notifications when new contracts are created',
+          'icon' => 'heroicon-o-document-plus',
+          'roles' => ['super_admin', 'admin', 'manager'],
+        ],
+      ],
+      'Billboards' => [
+        'billboard_availability' => [
+          'label' => 'Billboard Availability',
+          'description' => 'Notifications when billboards become available',
+          'icon' => 'heroicon-o-eye',
+          'roles' => ['*'], // Available to all users
+        ],
+        'billboard_maintenance' => [
+          'label' => 'Billboard Maintenance',
+          'description' => 'Updates about billboard maintenance schedules',
+          'icon' => 'heroicon-o-wrench-screwdriver',
+          'roles' => ['super_admin', 'admin', 'manager'],
+        ],
+      ],
+      'Payments' => [
+        'payment_due' => [
+          'label' => 'Payment Due',
+          'description' => 'Reminders about upcoming payment deadlines',
+          'icon' => 'heroicon-o-currency-dollar',
+          'roles' => ['super_admin', 'admin', 'manager', 'client'],
+        ],
+        'payment_overdue' => [
+          'label' => 'Payment Overdue',
+          'description' => 'Alerts about overdue payments',
+          'icon' => 'heroicon-o-exclamation-triangle',
+          'roles' => ['super_admin', 'admin', 'manager', 'client'],
+        ],
+      ],
+    ];
+  }
+
+  protected function buildFormSchema(): array
+  {
+    $schema = [];
+    $user = auth()->user();
+    $channels = NotificationSettingsModel::getNotificationChannels();
+
+    foreach ($this->getNotificationCategories() as $category => $types) {
+      $categorySchema = [];
+
+      foreach ($types as $type => $config) {
+        // Check if user has permission for this notification type
+        if (!$this->userCanAccessNotificationType($user, $config['roles'])) {
+          continue;
+        }
+
+        $toggles = [];
+        foreach ($channels as $channel => $channelLabel) {
+          $toggles[] = Toggle::make("{$type}_{$channel}")
+            ->label($channelLabel)
+            ->helperText($this->getChannelHelperText($channel))
+            ->inline()
+            ->default(true);
+        }
+
+        $categorySchema[] = Section::make($config['label'])
+          ->description($config['description'])
+          ->icon($config['icon'])
+          ->compact()
+          ->columns(count($channels))
+          ->schema($toggles);
+      }
+
+      if (!empty($categorySchema)) {
+        $schema[] = Section::make($category)
+          ->description("Manage your {$category} related notifications")
+          ->collapsible()
+          ->schema($categorySchema);
+      }
+    }
+
+    return $schema;
+  }
+
+  protected function userCanAccessNotificationType($user, array $roles): bool
+  {
+    if (in_array('*', $roles)) {
+      return true;
+    }
+
+    return $user->hasAnyRole($roles);
+  }
+
+  protected function getChannelHelperText(string $channel): string
+  {
+    return match($channel) {
+      'email' => 'Receive notifications via email',
+      'database' => 'See notifications in the app',
+      'broadcast' => 'Get real-time push notifications',
+      default => '',
+    };
   }
 
   public function submit(): void
   {
-    $data = $this->form->getState();
-    $user = auth()->user();
+    try {
+      $data = $this->form->getState();
+      $user = auth()->user();
 
-    // Transform form data back to notification settings structure
-    foreach ($data as $key => $isEnabled) {
-      [$type, $channel] = explode('_', $key, 2);
+      foreach ($data as $key => $isEnabled) {
+        [$type, $channel] = explode('_', $key, 2);
 
-      $user->notificationSettings()->updateOrCreate(
-        [
-          'type' => $type,
-          'channel' => $channel,
-        ],
-        [
-          'is_enabled' => $isEnabled,
-        ]
-      );
+        $user->notificationSettings()->updateOrCreate(
+          [
+            'type' => $type,
+            'channel' => $channel,
+          ],
+          [
+            'is_enabled' => $isEnabled,
+          ]
+        );
+      }
+
+      Notification::make()
+        ->title('Notification preferences updated')
+        ->success()
+        ->send();
+
+    } catch (\Exception $e) {
+      Notification::make()
+        ->title('Error updating preferences')
+        ->danger()
+        ->body('Please try again or contact support if the problem persists.')
+        ->send();
+
+      \Log::error('Error updating notification settings', [
+        'user_id' => auth()->id(),
+        'error' => $e->getMessage(),
+      ]);
     }
-
-    Notification::make()
-      ->title('Notification settings updated successfully')
-      ->success()
-      ->send();
   }
 
   public static function shouldRegister(): bool
   {
-    return auth()->check() &&
-      auth()->user()->can('manage_notification_settings');
-  }
-
-  public static function getNavigationLabel(): string
-  {
-    return 'Notifications';
-  }
-
-  public static function getNavigationGroup(): ?string
-  {
-    return 'System';
+    return auth()->check();
   }
 
   public function getTitle(): string

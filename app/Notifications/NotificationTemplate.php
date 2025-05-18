@@ -5,7 +5,7 @@ namespace App\Notifications;
 class NotificationTemplate
 {
   protected static array $templates = [
-    'contract.expiring' => [
+    'contract.expiry' => [
       'urgent' => [
         'subject' => 'URGENT: Contract Expiring in {days} Days - {contract_number}',
         'greeting' => 'Immediate Action Required',
@@ -28,27 +28,45 @@ class NotificationTemplate
         'icon' => 'heroicon-o-information-circle',
       ],
     ],
-    'contract.expired' => [
-      'subject' => 'Contract Has Expired - {contract_number}',
-      'greeting' => 'Contract Expiration Notice',
-      'message' => 'The contract {contract_number} for {client_name} has expired. Please update the contract status accordingly.',
-      'color' => 'danger',
-      'icon' => 'heroicon-o-x-circle',
-    ],
-    'contract.renewal' => [
-      'subject' => 'Contract Renewal Opportunity - {contract_number}',
-      'greeting' => 'Contract Renewal',
-      'message' => 'Contract {contract_number} for {client_name} is approaching renewal. Total contract value: ${total_amount}.',
-      'color' => 'success',
+    'contract.status_change' => [
+      'subject' => 'Contract Status Updated - {contract_number}',
+      'greeting' => 'Contract Status Change',
+      'message' => 'Contract {contract_number} status has changed from {old_status} to {new_status}.',
+      'color' => 'primary',
       'icon' => 'heroicon-o-arrow-path',
     ],
+    'contract.activation' => [
+      'subject' => 'Contract Activated - {contract_number}',
+      'greeting' => 'Contract Activation Notice',
+      'message' => 'Contract {contract_number} for {client_name} has been activated. Total value: MK {total_amount}',
+      'color' => 'success',
+      'icon' => 'heroicon-o-check-circle',
+    ],
+    'contract.completion' => [
+      'subject' => 'Contract Completed - {contract_number}',
+      'greeting' => 'Contract Completion Notice',
+      'message' => 'Contract {contract_number} for {client_name} has been marked as completed.',
+      'color' => 'success',
+      'icon' => 'heroicon-o-check-badge',
+    ],
+    'contract.cancellation' => [
+      'subject' => 'Contract Cancelled - {contract_number}',
+      'greeting' => 'Contract Cancellation Notice',
+      'message' => 'Contract {contract_number} for {client_name} has been cancelled.',
+      'color' => 'danger',
+      'icon' => 'heroicon-o-x-circle',
+    ]
   ];
 
-  public static function get(string $template, string $urgency = null, array $data = []): array
+  public static function get(string $template, ?string $urgency = null, array $data = []): array
   {
-    $templateData = $urgency
+    $templateData = $urgency && isset(static::$templates[$template][$urgency])
       ? static::$templates[$template][$urgency]
-      : static::$templates[$template];
+      : static::$templates[$template] ?? [];
+
+    if (empty($templateData)) {
+      throw new \InvalidArgumentException("Template not found: {$template}" . ($urgency ? " with urgency: {$urgency}" : ''));
+    }
 
     return array_map(function ($value) use ($data) {
       return static::replacePlaceholders($value, $data);
@@ -61,5 +79,10 @@ class NotificationTemplate
       $text = str_replace("{{$key}}", $value, $text);
     }
     return $text;
+  }
+
+  public static function getAllTemplates(): array
+  {
+    return static::$templates;
   }
 }
