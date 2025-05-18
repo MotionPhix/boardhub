@@ -7,6 +7,12 @@ use App\Notifications\ContractSignedNotification;
 use App\Traits\HasMoney;
 use App\Traits\HasUuid;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Creagia\LaravelSignPad\Concerns\RequiresSignature;
+use Creagia\LaravelSignPad\Contracts\CanBeSigned;
+use Creagia\LaravelSignPad\Contracts\ShouldGenerateSignatureDocument;
+use Creagia\LaravelSignPad\SignatureDocumentTemplate;
+use Creagia\LaravelSignPad\SignaturePosition;
+use Creagia\LaravelSignPad\Templates\BladeDocumentTemplate;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -21,11 +27,12 @@ use Illuminate\Support\Facades\Mail;
 use Spatie\MediaLibrary\HasMedia;
 use Spatie\MediaLibrary\InteractsWithMedia;
 
-class Contract extends Model implements HasMedia
+class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSignatureDocument
 {
   use HasFactory,
     SoftDeletes,
     InteractsWithMedia,
+    RequiresSignature,
     HasUuid,
     HasMoney;
 
@@ -160,6 +167,21 @@ class Contract extends Model implements HasMedia
       // Notify relevant parties
       $this->notifyContractSigned();
     }
+  }
+
+  public function getSignatureDocumentTemplate(): SignatureDocumentTemplate
+  {
+    return new SignatureDocumentTemplate(
+      outputPdfPrefix: 'contract',
+      template: new BladeDocumentTemplate('contracts.contract-template'),
+      signaturePositions: [
+        new SignaturePosition(
+          signaturePage: 1,
+          signatureX: 20,
+          signatureY: 25,
+        ),
+      ]
+    );
   }
 
   // Add method to notify about contract signing

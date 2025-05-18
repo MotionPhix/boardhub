@@ -1,45 +1,30 @@
 <x-filament-panels::page>
-  <div
-    class="space-y-6"
-    x-data="{}"
-    x-init="$store.sidebar = $store.sidebar ?? {
-      isOpen: true,
-      isCollapsed: false,
-      collapsedGroups: [],
-      groupIsCollapsed(group) {
-        return this.collapsedGroups.includes(group)
-      },
-      toggleCollapsedGroup(group) {
-        if (this.groupIsCollapsed(group)) {
-          this.collapsedGroups = this.collapsedGroups.filter(g => g !== group)
-        } else {
-          this.collapsedGroups = [...this.collapsedGroups, group]
-        }
-      },
-      close() {
-        this.isOpen = false
-      },
-      open() {
-        this.isOpen = true
-      },
-      toggle() {
-        this.isOpen = !this.isOpen
-      },
-      collapse() {
-        this.isCollapsed = true
-      },
-      expand() {
-        this.isCollapsed = false
-      },
-      toggleCollapsed() {
-        this.isCollapsed = !this.isCollapsed
-      }
+  <div x-data="{}" x-init="$store.sidebar = $store.sidebar ?? {
+        isOpen: true,
+        isCollapsed: false,
+        collapsedGroups: [],
+        groupIsCollapsed(group) {
+            return this.collapsedGroups.includes(group)
+        },
+        toggleCollapsedGroup(group) {
+            if (this.groupIsCollapsed(group)) {
+                this.collapsedGroups = this.collapsedGroups.filter(g => g !== group)
+            } else {
+                this.collapsedGroups = [...this.collapsedGroups, group]
+            }
+        },
+        close() { this.isOpen = false },
+        open() { this.isOpen = true },
+        toggle() { this.isOpen = !this.isOpen },
+        collapse() { this.isCollapsed = true },
+        expand() { this.isCollapsed = false },
+        toggleCollapsed() { this.isCollapsed = !this.isCollapsed }
     }">
+  <div class="space-y-6">
     <div class="flex justify-between items-center">
       <div class="flex items-center space-x-4">
         <x-filament::input.wrapper>
-          <x-filament::input.select
-            wire:model.live="previewMode">
+          <x-filament::input.select wire:model.live="previewMode">
             <option value="web">Web View</option>
             <option value="pdf">PDF Preview</option>
           </x-filament::input.select>
@@ -62,14 +47,14 @@
     <div class="bg-white rounded-xl shadow overflow-hidden">
       @if($previewMode === 'web')
         <div class="p-6">
-          @include('contracts.contract-template', [
-            'contract' => $record,
-            'settings' => app(App\Models\Settings::class),
-            'localization' => App\Models\Settings::getLocalization(),
-            'generatedBy' => auth()->user()->name ?? 'System',
-            'date' => now()
-                ->setTimezone(App\Models\Settings::getLocalization()['timezone'])
-                ->format(App\Models\Settings::getLocalization()['date_format'] . ' ' . App\Models\Settings::getLocalization()['time_format'])
+          @include('contracts.web-contract-template', [
+            'contract'       => $record,
+            'settings'       => app(App\Models\Settings::class),
+            'localization'   => App\Models\Settings::getLocalization(),
+            'generatedBy'    => auth()->user()->name ?? 'System',
+            'date'           => now()
+                                  ->setTimezone(App\Models\Settings::getLocalization()['timezone'])
+                                  ->format(App\Models\Settings::getLocalization()['date_format'] . ' ' . App\Models\Settings::getLocalization()['time_format'])
           ])
         </div>
       @else
@@ -87,7 +72,7 @@
       @endif
     </div>
 
-    @if($record->signatures)
+    @if($record->hasBeenSigned())
       <div class="mt-4 space-y-4">
         <h3 class="text-lg font-medium">Signatures</h3>
         <div class="grid grid-cols-2 gap-4">
@@ -102,66 +87,28 @@
     @endif
   </div>
 
-  <x-filament::modal id="signatureModal" width="md">
-    <div class="p-6">
-      <h2 class="text-lg font-medium">Sign Contract</h2>
-      <div class="mt-4">
-        <div
-          id="signature-pad"
-          class="border rounded-lg"
-          style="width: 100%; height: 200px;">
+  @if (!$record->hasBeenSigned())
+    <x-filament::modal id="signatureModal" width="md">
+      <form action="{{ $record->getSignatureRoute() }}" method="POST">
+        @csrf
+        <div class="p-6">
+          <h2 class="text-lg font-medium mb-4">Sign Contract</h2>
+
+          <x-creagia-signature-pad
+            border-color="#e5e7eb"
+            pad-classes="rounded-lg border-2 w-full"
+            button-classes="mt-4 inline-flex items-center justify-center gap-1 font-medium rounded-lg border transition-colors outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700"
+            clear-name="Clear"
+            submit-name="Save Signature"
+            :disabled-without-signature="true"
+          />
         </div>
+      </form>
+    </x-filament::modal>
+  @endif
 
-        <div class="mt-4 flex justify-end space-x-2">
-          <x-filament::button color="secondary" wire:click="clearSignature">
-            Clear
-          </x-filament::button>
-
-          <x-filament::button wire:click="saveSignature">
-            Save Signature
-          </x-filament::button>
-        </div>
-      </div>
-    </div>
-  </x-filament::modal>
-
-  @push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
-    <script>
-      let signaturePad;
-
-      document.addEventListener('DOMContentLoaded', function() {
-        const canvas = document.querySelector('#signature-pad');
-
-        // Set canvas size to match container
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
-
-        signaturePad = new SignaturePad(canvas, {
-          backgroundColor: 'rgb(255, 255, 255)',
-          penColor: 'rgb(0, 0, 0)'
-        });
-      });
-
-      window.addEventListener('clear-signature', () => {
-        signaturePad.clear();
-      });
-
-      Livewire.on('saveSignature', () => {
-        @this.set('signature', signaturePad.toDataURL());
-      });
-
-      // Handle window resize
-      window.addEventListener('resize', () => {
-        const canvas = document.querySelector('#signature-pad');
-        if (canvas) {
-          const ratio = Math.max(window.devicePixelRatio || 1, 1);
-          canvas.width = canvas.offsetWidth * ratio;
-          canvas.height = canvas.offsetHeight * ratio;
-          canvas.getContext('2d').scale(ratio, ratio);
-          signaturePad.clear();
-        }
-      });
-    </script>
-  @endpush
+  @pushOnce('scripts')
+    <script src="{{ asset('vendor/sign-pad/sign-pad.min.js') }}"></script>
+  @endPushOnce
+  </div>
 </x-filament-panels::page>

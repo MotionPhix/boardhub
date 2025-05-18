@@ -9,6 +9,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Pages\Page;
 use Filament\Support\Exceptions\Halt;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Support\Facades\Storage;
 
 class PreviewContract extends Page
 {
@@ -32,6 +33,16 @@ class PreviewContract extends Page
   public function mount(Contract $record): void
   {
     $this->record = $record->load(['client', 'currency', 'billboards.location']);
+
+    static::authorizeResourceAccess();
+
+    if ($this->record->signature) {
+      // Ensure signed document exists
+      if (!Storage::disk(config('sign-pad.disk'))->exists($this->record->signature->getSignedDocumentPath())) {
+        // Regenerate if missing
+        $this->record->signature->generateSignedDocument();
+      }
+    }
   }
 
   public function getTitle(): string|Htmlable
@@ -42,17 +53,30 @@ class PreviewContract extends Page
   protected function getHeaderActions(): array
   {
     return [
-      Action::make('download')
+      Action::make('download_pdf')
         ->label('Download PDF')
-        ->icon('heroicon-m-arrow-down-tray')
-        ->action('downloadPdf')
-        ->visible(fn () => $this->record->hasMedia('contract_documents')),
+        ->icon('heroicon-o-document-arrow-down')
+        ->url(fn () => $this->record->signature?->getSignedDocumentPath())
+        ->openUrlInNewTab()
+        ->visible(fn () => $this->record->hasBeenSigned())
+        ->color('success'),
 
       Action::make('sign')
         ->label('Sign Contract')
-        ->icon('heroicon-m-pencil-square')
-        ->action(fn () => $this->dispatch('openModal', id: 'signatureModal'))
-        ->visible(fn () => !$this->record->signed_at),
+        ->modalHeading('Sign Contract')
+        ->modalSubmitActionLabel('Save Signature')
+        ->visible(fn () => !$this->record->hasBeenSigned())
+        ->action(fn () => $this->openSignatureModal())
+        ->modalWidth('md'),
+
+      Action::make('delete_signature')
+        ->label('Delete Signature')
+        ->icon('heroicon-o-trash')
+        ->color('danger')
+        ->visible(fn () => $this->record->hasBeenSigned())
+        ->requiresConfirmation()
+        ->modalDescription('Are you sure you want to delete the signature? This cannot be undone.')
+        ->action(fn () => $this->deleteSignature()),
 
       Action::make('send')
         ->label('Send to Client')
@@ -62,43 +86,26 @@ class PreviewContract extends Page
         ->modalDescription('Are you sure you want to send this contract to ' . $this->record->client->name . '?')
         ->modalSubmitActionLabel('Yes, send it')
         ->action('sendToClient')
-        ->visible(fn () => $this->record->hasMedia('contract_documents')),
+        ->visible(fn () => $this->record->hasBeenSigned()),
     ];
   }
 
-  public function clearSignature(): void
+  protected function openSignatureModal(): void
   {
-    $this->dispatch('clear-signature');
+    $this->dispatch('open-modal', id: 'signatureModal');
   }
 
-  public function saveSignature(): void
+  protected function deleteSignature(): void
   {
-    try {
-      if (empty($this->signature)) {
-        throw new \Exception('Please provide a signature.');
-      }
+    $this->record->deleteSignature();
 
-      $this->record->addSignature('company', $this->signature);
+    Notification::make()
+      ->title('Success')
+      ->body('Signature deleted successfully.')
+      ->success()
+      ->send();
 
-      $this->dispatch('closeModal', id: 'signatureModal');
-
-      Notification::make()
-        ->title('Success')
-        ->body('Contract signed successfully.')
-        ->success()
-        ->send();
-
-      $this->signature = null;
-
-    } catch (\Exception $e) {
-      Notification::make()
-        ->title('Error')
-        ->body($e->getMessage())
-        ->danger()
-        ->send();
-
-      throw new Halt();
-    }
+    $this->redirect($this->getResource()::getUrl('preview', ['record' => $this->record]));
   }
 
   public function downloadPdf()

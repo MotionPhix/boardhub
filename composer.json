@@ -14,6 +14,7 @@
     "barryvdh/laravel-dompdf": "^3.1",
     "bezhansalleh/filament-shield": "^3.3",
     "cheesegrits/filament-phone-numbers": "^1.0",
+    "creagia/laravel-sign-pad": "^2.1",
     "dotswan/filament-map-picker": "^1.8",
     "filament/filament": "^3.3",
     "filament/notifications": "^3.3",
