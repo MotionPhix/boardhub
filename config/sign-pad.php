@@ -20,7 +20,7 @@ return [
   /**
    * Route name where you want to redirect users after signing.
    */
-  'redirect_route_name' => 'filament.admin.resources.contracts.preview',
+  'redirect_route_name' => null,
 
   /**
    * Width and height of the signature rectangle.
@@ -46,6 +46,10 @@ return [
     'Location' => '',
     'Reason' => '',
     'ContactInfo' => '',
+  ],
+
+  'after_sign' => [
+    'redirect_url' => null, // We'll handle redirection in the listener
   ],
 
   /**

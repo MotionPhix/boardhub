@@ -12,7 +12,6 @@ use Creagia\LaravelSignPad\Contracts\CanBeSigned;
 use Creagia\LaravelSignPad\Contracts\ShouldGenerateSignatureDocument;
 use Creagia\LaravelSignPad\SignatureDocumentTemplate;
 use Creagia\LaravelSignPad\SignaturePosition;
-use Creagia\LaravelSignPad\Templates\BladeDocumentTemplate;
 use Creagia\LaravelSignPad\Templates\PdfDocumentTemplate;
 use Illuminate\Database\Eloquent\Attributes\Scope;
 use Illuminate\Database\Eloquent\Builder;
@@ -111,7 +110,7 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
       );
   }
 
-  /*public function generatePdf(?string $generatedBy = null): string
+  public function generateDownloadablePdf(?string $generatedBy = null): string
   {
     // Get the contract template content and replace variables
     $settings = app(Settings::class);
@@ -141,10 +140,15 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
     $pdf->setOption('margin-right', '2cm');
 
     return $pdf->output();
-  }*/
+  }
 
   public function generatePdf(): string
   {
+    // Load relationships if not loaded
+    if (!$this->relationLoaded('currency')) {
+      $this->load(['currency', 'client', 'billboards.location']);
+    }
+
     $pdf = Pdf::loadView('contracts.contract-template', [
       'contract' => $this,
       'settings' => app(Settings::class),
@@ -155,40 +159,38 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
         ->format(Settings::getLocalization()['date_format'] . ' ' . Settings::getLocalization()['time_format'])
     ]);
 
-    // Generate a unique filename
-    $filename = "contracts/unsigned_{$this->contract_number}.pdf";
+    // Set PDF options
+    $pdf->setPaper('a4');
+    $pdf->setOption('margin-top', '2.5cm');
+    $pdf->setOption('margin-bottom', '2.5cm');
+    $pdf->setOption('margin-left', '2cm');
+    $pdf->setOption('margin-right', '2cm');
 
-    // Store the PDF
-    Storage::disk('media')->put($filename, $pdf->output());
+    // Generate a unique filename with timestamp to prevent caching
+    $filename = "contracts/unsigned_{$this->contract_number}_" . time() . ".pdf";
+
+    // Store the PDF in public disk (important for Laravel Sign Pad)
+    Storage::disk('public')->put($filename, $pdf->output());
 
     return $filename;
   }
 
   public function getSignatureDocumentTemplate(): SignatureDocumentTemplate
   {
-    /*return new SignatureDocumentTemplate(
-      outputPdfPrefix: 'contract',
-      template: new BladeDocumentTemplate('contracts.contract-template'),
-      signaturePositions: [
-        new SignaturePosition(
-          signaturePage: 1,
-          signatureX: 20,
-          signatureY: 25,
-        ),
-      ]
-    );*/
+    // Generate the PDF first
+    $pdfPath = $this->generatePdf();
 
-    // Generate the PDF if it doesn't exist
-    $pdfPath = Storage::disk('public')->path($this->generatePdf());
+    // Get absolute path from public disk
+    $absolutePath = Storage::disk('public')->path($pdfPath);
 
     return new SignatureDocumentTemplate(
       outputPdfPrefix: "contract_{$this->contract_number}",
-      template: new PdfDocumentTemplate($pdfPath),
+      template: new PdfDocumentTemplate($absolutePath),
       signaturePositions: [
         new SignaturePosition(
-          signaturePage: 1,  // Adjust page number as needed
-          signatureX: 50,    // Adjust X coordinate as needed
-          signatureY: 750,   // Adjust Y coordinate as needed
+          signaturePage: 1,
+          signatureX: 50,
+          signatureY: 750,
         ),
       ]
     );
@@ -240,20 +242,35 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
       return;
     }
 
-    $billboardCount = $this->billboards->count();
-    $discountPerBillboard = $billboardCount > 0
-      ? $this->contract_discount / $billboardCount
-      : 0;
+    // Get all billboards in a single query
+    $billboards = $this->billboards;
+    $billboardCount = $billboards->count();
 
-    $this->billboards->each(function ($billboard) use ($discountPerBillboard) {
-      $this->billboards()->updateExistingPivot($billboard->id, [
+    if ($billboardCount === 0) {
+      return;
+    }
+
+    $discountPerBillboard = $this->contract_discount / $billboardCount;
+
+    // Prepare all updates in a single array
+    $updates = $billboards->mapWithKeys(function ($billboard) use ($discountPerBillboard) {
+      return [$billboard->id => [
         'billboard_base_price' => $billboard->base_price,
         'billboard_discount_amount' => $discountPerBillboard,
         'billboard_final_price' => $billboard->base_price - $discountPerBillboard,
-      ]);
-    });
+      ]];
+    })->all();
 
-    $this->calculateTotals();
+    // Perform a single query to update all pivots
+    DB::beginTransaction();
+    try {
+      $this->billboards()->sync($updates, false);
+      $this->calculateTotals();
+      DB::commit();
+    } catch (\Exception $e) {
+      DB::rollBack();
+      throw $e;
+    }
   }
 
   /**
@@ -277,6 +294,50 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
       'contract_discount' => $totals->total_discount ?? 0,
       'contract_final_amount' => $totals->total_final ?? 0,
     ]);
+  }
+
+  public function calculateTotalsEfficiently(): void
+  {
+    // Get the totals in a single query
+    $totals = DB::table('billboard_contract')
+      ->select(
+        DB::raw('SUM(billboard_base_price) as total_base'),
+        DB::raw('SUM(billboard_discount_amount) as total_discount'),
+        DB::raw('SUM(billboard_final_price) as total_final')
+      )
+      ->where('contract_id', $this->id)
+      ->first();
+
+    // Update contract with new totals in a single query
+    $this->update([
+      'contract_total' => $totals->total_base ?? 0,
+      'contract_discount' => $totals->total_discount ?? 0,
+      'contract_final_amount' => $totals->total_final ?? 0,
+    ]);
+  }
+
+  protected function updateBillboardPivotsEfficiently(): void
+  {
+    if (!$this->billboards()->exists()) {
+      return;
+    }
+
+    // Get billboards in chunks to prevent memory issues
+    $this->billboards()->chunk(50, function ($billboards) {
+      $billboardCount = $this->billboards()->count();
+      $discountPerBillboard = $billboardCount > 0 ? ($this->contract_discount / $billboardCount) : 0;
+
+      foreach ($billboards as $billboard) {
+        DB::table('billboard_contract')
+          ->where('contract_id', $this->id)
+          ->where('billboard_id', $billboard->id)
+          ->update([
+            'billboard_base_price' => $billboard->base_price,
+            'billboard_discount_amount' => $discountPerBillboard,
+            'billboard_final_price' => $billboard->base_price - $discountPerBillboard,
+          ]);
+      }
+    });
   }
 
   /**

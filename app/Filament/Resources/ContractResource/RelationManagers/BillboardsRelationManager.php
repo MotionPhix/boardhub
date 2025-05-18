@@ -23,29 +23,41 @@ class BillboardsRelationManager extends RelationManager
 
   protected function getCurrencyForBillboard(Billboard $billboard = null): Currency
   {
-    // First try to get from billboard
+    static $currencyCache = [];
+
+    // Try billboard currency
     if ($billboard && $billboard->currency_code) {
-      $currency = Currency::where('code', $billboard->currency_code)->first();
-      if ($currency) {
-        return $currency;
+      $cacheKey = "billboard_{$billboard->currency_code}";
+      if (!isset($currencyCache[$cacheKey])) {
+        $currencyCache[$cacheKey] = Currency::where('code', $billboard->currency_code)->first();
+      }
+      if ($currencyCache[$cacheKey]) {
+        return $currencyCache[$cacheKey];
       }
     }
 
-    // Then try to get from contract
+    // Try contract currency
     if ($this->ownerRecord && $this->ownerRecord->currency_code) {
-      $currency = Currency::where('code', $this->ownerRecord->currency_code)->first();
-      if ($currency) {
-        return $currency;
+      $cacheKey = "contract_{$this->ownerRecord->currency_code}";
+      if (!isset($currencyCache[$cacheKey])) {
+        $currencyCache[$cacheKey] = Currency::where('code', $this->ownerRecord->currency_code)->first();
+      }
+      if ($currencyCache[$cacheKey]) {
+        return $currencyCache[$cacheKey];
       }
     }
 
-    // Finally fall back to default currency
-    return Currency::getDefault();
+    // Default currency
+    if (!isset($currencyCache['default'])) {
+      $currencyCache['default'] = Currency::getDefault();
+    }
+    return $currencyCache['default'];
   }
 
   protected function getAvailableBillboards(): Collection
   {
     return Billboard::query()
+      ->select('billboards.*') // Be explicit about selected columns
       ->where('is_active', true)
       ->where(function (Builder $query) {
         $query->whereDoesntHave('contracts', function (Builder $query) {
@@ -57,6 +69,7 @@ class BillboardsRelationManager extends RelationManager
             $query->where('contract_id', $this->ownerRecord->id);
           });
       })
+      ->with(['location.city', 'location.state', 'location.country']) // Eager load relationships
       ->orderBy('name')
       ->get();
   }

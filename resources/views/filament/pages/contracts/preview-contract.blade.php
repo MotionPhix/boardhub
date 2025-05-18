@@ -58,38 +58,39 @@
           ])
         </div>
       @else
-        @if($record->hasBeenSigned())
-          <iframe
-            src="{{ Storage::disk(config('sign-pad.disk'))->url($record->signature->getSignedDocumentPath()) }}"
-            class="w-full"
-            style="height: 800px;"
-          ></iframe>
-        @elseif(isset($previewUrl))
+        @if(isset($previewUrl))
           <iframe
             src="{{ $previewUrl }}"
             class="w-full"
             style="height: 800px;"
+            frameborder="0"
           ></iframe>
         @else
           <div class="p-6 text-center text-gray-500">
-            No PDF document available. Please generate one first.
+            No PDF document available. Please try refreshing the page.
           </div>
         @endif
       @endif
     </div>
 
-    @if($record->hasBeenSigned())
-      <div class="mt-4 space-y-4">
-        <h3 class="text-lg font-medium">Signatures</h3>
-        <div class="grid grid-cols-2 gap-4">
-          @foreach($record->signatures as $type => $signature)
-            <div class="bg-white rounded-lg p-4">
-              <h4 class="text-sm font-medium text-gray-500">{{ ucfirst($type) }} Signature</h4>
-              <img src="{{ $signature }}" alt="{{ $type }} signature" class="mt-2 max-h-20">
-            </div>
-          @endforeach
-        </div>
-      </div>
+    @if (!$record->hasBeenSigned())
+      <x-filament::modal id="signatureModal" width="md">
+        <form action="{{ $record->getSignatureRoute() }}" method="POST">
+          @csrf
+          <div class="p-6">
+            <h2 class="text-lg font-medium mb-4">Sign Contract</h2>
+
+            <x-creagia-signature-pad
+              border-color="#e5e7eb"
+              pad-classes="rounded-lg border-2 w-full"
+              button-classes="mt-4 inline-flex items-center justify-center gap-1 font-medium rounded-lg border transition-colors outline-none focus:ring-offset-2 focus:ring-2 focus:ring-inset min-h-[2.25rem] px-4 text-sm text-white shadow focus:ring-white border-transparent bg-primary-600 hover:bg-primary-500 focus:bg-primary-700 focus:ring-offset-primary-700"
+              clear-name="Clear"
+              submit-name="Save Signature"
+              :disabled-without-signature="true"
+            />
+          </div>
+        </form>
+      </x-filament::modal>
     @endif
   </div>
 

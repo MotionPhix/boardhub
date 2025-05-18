@@ -49,6 +49,14 @@ return [
         'bold' => storage_path('fonts/Lato-Bold.ttf'),
         'italic' => storage_path('fonts/Lato-Italic.ttf'),
         'bold_italic' => storage_path('fonts/Lato-BoldItalic.ttf')
+      ],
+      'Lekton' => [
+        'normal' => storage_path('fonts/Lekton-Regular.ttf'),
+        'bold' => storage_path('fonts/Lekton-Bold.ttf'),
+        'italic' => storage_path('fonts/Lekton-Italic.ttf'),
+      ],
+      'Roboto Flex' => [
+        'normal' => storage_path('fonts/RobotoFlex-VariableFont.ttf'),
       ]
     ]
   ],

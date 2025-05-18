@@ -7,8 +7,6 @@ use App\Filament\Resources\ContractResource\Pages;
 use App\Filament\Resources\ContractResource\RelationManagers\BillboardsRelationManager;
 use App\Models\Billboard;
 use App\Models\Contract;
-use App\Models\Currency;
-use App\Models\Settings;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -16,7 +14,6 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Model;
 use Filament\Support\Enums\FontWeight;
 
 class ContractResource extends Resource
@@ -31,9 +28,6 @@ class ContractResource extends Resource
 
   public static function form(Form $form): Form
   {
-    $defaultCurrency = Currency::getDefault();
-    $currencies = Currency::all();
-
     return $form
       ->schema([
         Forms\Components\Group::make()
@@ -42,35 +36,28 @@ class ContractResource extends Resource
               ->schema([
                 Forms\Components\TextInput::make('contract_number')
                   ->disabled()
-                  ->dehydrated(false)
+                  ->dehydrated()
                   ->formatStateUsing(function ($state) {
                     return $state ?: '[Auto-generated]';
-                  })
-                  ->helperText('This will be automatically generated when the contract is created'),
-
-                Forms\Components\Select::make('currency_code')
-                  ->options(collect($currencies)->mapWithKeys(fn ($currency) =>
-                  [$currency->code => "{$currency->name} ({$currency->symbol})"]
-                  ))
-                  ->default($defaultCurrency->code)
-                  ->required(),
-
-                Forms\Components\DatePicker::make('start_date')
-                  ->required()
-                  ->afterOrEqual('today')
-                  ->live()
-                  ->afterStateUpdated(fn ($state, Forms\Set $set) =>
-                  $set('end_date', $state ? date('Y-m-d', strtotime($state . ' +1 month')) : null)),
-
-                Forms\Components\DatePicker::make('end_date')
-                  ->required()
-                  ->afterOrEqual(fn (Forms\Get $get) => $get('start_date')),
+                  }),
 
                 Forms\Components\Select::make('client_id')
                   ->relationship('client', 'name')
                   ->required()
                   ->searchable()
                   ->preload(),
+
+                Forms\Components\DatePicker::make('start_date')
+                  ->required()
+                  ->afterOrEqual('today')
+                  ->live()
+                  ->afterStateUpdated(fn ($state, Forms\Set $set) =>
+                  $set('end_date', $state ? date('Y-m-d', strtotime($state . ' +1 month')) : null)
+                  ),
+
+                Forms\Components\DatePicker::make('end_date')
+                  ->required()
+                  ->afterOrEqual(fn (Forms\Get $get) => $get('start_date')),
 
                 Forms\Components\Select::make('agreement_status')
                   ->options([
@@ -98,22 +85,25 @@ class ContractResource extends Resource
                     function (Builder $query, Forms\Get $get) {
                       $startDate = $get('start_date');
                       $endDate = $get('end_date');
+                      $contractId = $get('id');
 
-                      // Skip filtering if dates aren't selected yet
                       if (!$startDate || !$endDate) {
                         return $query;
                       }
 
-                      return $query->whereDoesntHave('contracts', function ($q) use ($startDate, $endDate) {
-                        $q->whereIn('agreement_status', ['active', 'pending'])
-                          ->where(function ($q) use ($startDate, $endDate) {
-                            $q->where(function ($q) use ($startDate, $endDate) {
-                              // Check for overlapping date ranges
+                      return $query->where(function ($query) use ($startDate, $endDate, $contractId) {
+                        $query->whereDoesntHave('contracts', function ($q) use ($startDate, $endDate, $contractId) {
+                          $q->where('contracts.id', '!=', $contractId ?: 0)
+                            ->whereIn('agreement_status', ['active', 'pending'])
+                            ->where(function ($q) use ($startDate, $endDate) {
                               $q->where('start_date', '<=', $endDate)
                                 ->where('end_date', '>=', $startDate);
                             });
+                        })
+                          ->orWhereHas('contracts', function ($q) use ($contractId) {
+                            $q->where('contracts.id', $contractId);
                           });
-                      })->orderBy('name');
+                      });
                     }
                   )
                   ->multiple()
@@ -121,25 +111,17 @@ class ContractResource extends Resource
                   ->preload()
                   ->searchable()
                   ->live()
-                  ->afterStateUpdated(function ($state, Forms\Set $set, Forms\Get $get) {
+                  ->afterStateUpdated(function ($state, Forms\Set $set) {
                     if (empty($state)) {
                       $set('contract_total', 0);
                       $set('contract_final_amount', 0);
                       return;
                     }
 
-                    // Get the selected billboards
-                    $billboards = Billboard::whereIn('id', $state)->get();
+                    $total = Billboard::whereIn('id', $state)->sum('base_price');
 
-                    // Calculate total
-                    $total = $billboards->sum('base_price');
-
-                    // Get discount if any
-                    $discount = $get('contract_discount') ?? 0;
-
-                    // Set the contract totals
                     $set('contract_total', $total);
-                    $set('contract_final_amount', $total - $discount);
+                    $set('contract_final_amount', $total);
                   }),
 
                 Forms\Components\TextInput::make('contract_total')
@@ -147,11 +129,7 @@ class ContractResource extends Resource
                   ->disabled()
                   ->dehydrated()
                   ->numeric()
-                  ->prefix(function (Forms\Get $get) {
-                    $currencyCode = $get('currency_code');
-                    $currency = Currency::where('code', $currencyCode)->first();
-                    return $currency?->symbol ?? '';
-                  })
+                  ->prefix('K')
                   ->default(0),
 
                 Forms\Components\TextInput::make('contract_discount')
@@ -164,11 +142,7 @@ class ContractResource extends Resource
                     $discount = $state ?? 0;
                     $set('contract_final_amount', $total - $discount);
                   })
-                  ->prefix(function (Forms\Get $get) {
-                    $currencyCode = $get('currency_code');
-                    $currency = Currency::where('code', $currencyCode)->first();
-                    return $currency?->symbol ?? '';
-                  }),
+                  ->prefix('K'),
 
                 Forms\Components\TextInput::make('contract_final_amount')
                   ->label('Final Amount')
@@ -176,15 +150,10 @@ class ContractResource extends Resource
                   ->dehydrated()
                   ->numeric()
                   ->default(0)
-                  ->prefix(function (Forms\Get $get) {
-                    $currencyCode = $get('currency_code');
-                    $currency = Currency::where('code', $currencyCode)->first();
-                    return $currency?->symbol ?? '';
-                  }),
+                  ->prefix('K'),
               ])
               ->columns(2)
-              ->collapsible()
-              ->collapsed(false),
+              ->collapsible(),
           ])
           ->columnSpan(['lg' => 2]),
 
@@ -231,17 +200,11 @@ class ContractResource extends Resource
           ->sortable(),
 
         Tables\Columns\TextColumn::make('contract_total')
-          ->money(function ($record) {
-            $currency = Currency::where('code', $record->currency_code)->first();
-            return $currency?->code ?? Currency::getDefault()->code;
-          })
+          ->money('MWK')
           ->sortable(),
 
         Tables\Columns\TextColumn::make('contract_final_amount')
-          ->money(function ($record) {
-            $currency = Currency::where('code', $record->currency_code)->first();
-            return $currency?->code ?? Currency::getDefault()->code;
-          })
+          ->money('MWK')
           ->sortable()
           ->weight(FontWeight::Bold),
 
@@ -297,7 +260,7 @@ class ContractResource extends Resource
             ->label('Generate PDF')
             ->action(function (Contract $record) {
               try {
-                $pdf = $record->generatePdf();
+                $pdf = $record->generateDownloadablePdf();
 
                 // Store the generated PDF
                 $record->addMediaFromString($pdf)
@@ -325,6 +288,7 @@ class ContractResource extends Resource
                   ->send();
               }
             }),
+
           Tables\Actions\Action::make('email_contract')
             ->icon('heroicon-o-envelope')
             ->label('Email to Client')
@@ -347,6 +311,7 @@ class ContractResource extends Resource
             })
             ->requiresConfirmation()
             ->visible(fn (Contract $record) => $record->hasMedia('contract_documents')),
+
           Tables\Actions\Action::make('download_contract')
             ->icon('heroicon-m-arrow-down-square')
             ->label('Download Contract')
@@ -411,7 +376,7 @@ class ContractResource extends Resource
       'create' => Pages\CreateContract::route('/create'),
       'edit' => Pages\EditContract::route('/{record}/edit'),
       'view' => Pages\ViewContract::route('/{record}'),
-      'preview' => Pages\PreviewContract::route('/{record}/preview')
+      'preview' => Pages\PreviewContract::route('/{record}/preview'),
     ];
   }
 }

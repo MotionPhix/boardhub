@@ -37,15 +37,17 @@ class PreviewContract extends Page
     static::authorizeResourceAccess();
 
     // Generate PDF for preview if in PDF mode
-    if ($this->previewMode === 'pdf' && !$this->record->signature) {
-      $pdfPath = $this->record->generatePdf();
-      $this->record->preview_pdf_url = Storage::disk('public')->url($pdfPath);
-    }
-
-    // Check signed document
-    if ($this->record->HasBeenSigned()) {
-      if (!Storage::disk('media')->exists($this->record->signature->getSignedDocumentPath())) {
-        $this->record->signature->generateSignedDocument();
+    if ($this->previewMode === 'pdf') {
+      if ($this->record->hasBeenSigned()) {
+        // Check if signed document exists
+        if (!Storage::disk(config('sign-pad.disk'))->exists($this->record->signature->getSignedDocumentPath())) {
+          $this->record->signature->generateSignedDocument();
+        }
+        $this->record->preview_pdf_url = Storage::disk(config('sign-pad.disk'))->url($this->record->signature->getSignedDocumentPath());
+      } else {
+        // Generate unsigned preview
+        $pdfPath = $this->record->generatePdf();
+        $this->record->preview_pdf_url = Storage::disk('public')->url($pdfPath);
       }
     }
   }

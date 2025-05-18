@@ -4,8 +4,8 @@
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
   <style>
     @page {
-      margin: 2.5cm 1.75cm;
-      font-family: 'Geist Mono', monospace;
+      margin: 1.5cm;
+      font-family: 'Lekton', monospace;
     }
 
     body {
@@ -15,6 +15,7 @@
     }
 
     .cover-page {
+      padding-top: 1.5cm;
       text-align: center;
       height: 100%;
       display: flex;
@@ -66,7 +67,7 @@
 
     .footer {
       position: fixed;
-      bottom: -2cm;
+      bottom: -0.5cm;
       left: 0;
       right: 0;
       text-align: center;
@@ -82,8 +83,12 @@
 
     th, td {
       padding: 10px;
-      border: 1px solid #d1d5db;
+      border-top: 1px solid #d1d5db;
       text-align: left;
+    }
+
+    td {
+      vertical-align: top;
     }
 
     th {
@@ -139,26 +144,45 @@
 <div class="section">
   <h2 class="section-title">1. THE AGREEMENT</h2>
   <p>
-    This agreement is made on {{ $contract->start_date->format('jS F Y') }} between {{ $settings->getCompanyProfile()['name'] }}
-    (hereinafter referred to as "the Company") and {{ $contract->client->company ?: $contract->client->name }}
-    (hereinafter referred to as "the Client") for the rental of advertising space as detailed below:
+    This agreement is made on <strong>{{ $contract->updated_at->format('jS F Y') }}</strong>
+    between <strong>{{ $settings->getCompanyProfile()['name'] }}</strong> (hereinafter referred to as
+    <strong>"the Company"</strong>) and <strong>{{ $contract->client->company ?: $contract->client->name }}</strong>
+    (hereinafter referred to as <strong>"the Client"</strong>) for the rental of advertising space as detailed below:
   </p>
 
   <table>
     <thead>
     <tr>
-      <th>Billboard</th>
+      <th style="border-left: 1px solid #d1d5db;">Billboard</th>
       <th>Location</th>
-      <th>Dimensions</th>
-      <th class="amount">Rate</th>
+      <th class="amount" style="border-right: 1px solid #d1d5db;">Monthly Rate</th>
     </tr>
     </thead>
     <tbody>
     @foreach($contract->billboards as $billboard)
       <tr>
-        <td>{{ $billboard->name }}</td>
-        <td>{{ $billboard->location->name }}</td>
-        <td>{{ $billboard->size }}</td>
+        <td>
+          <div style="display: flex; flex-direction: column;">
+            <div>{{ $billboard->size }}</div>
+            <div>
+              <small style="color: #6B7280; font-size: 12px;">{{ $billboard->code }}</small>
+            </div>
+          </div>
+        </td>
+
+        <td>
+          <div style="display: flex; flex-direction: column">
+            <div>{{ $billboard->location->name }}, {{ $billboard->name }}</div>
+            <div>
+              <small style="color: #6B7280; font-size: 12px;">
+                {{ $billboard->location->city->name }},
+                {{ $billboard->location->state->name }},
+                {{ $billboard->location->country->name }}
+              </small>
+            </div>
+          </div>
+        </td>
+
         <td class="amount">
           {{ $contract->currency->symbol }}
           {{ number_format($billboard->pivot->billboard_base_price, 2) }}
@@ -166,9 +190,10 @@
       </tr>
     @endforeach
     </tbody>
+
     <tfoot>
     <tr>
-      <td colspan="3" class="amount"><strong>Total Amount:</strong></td>
+      <td colspan="2" class="amount"><strong>Total Amount:</strong></td>
       <td class="amount">
         <strong>
           {{ $contract->currency->symbol }}
@@ -178,14 +203,14 @@
     </tr>
     @if($contract->contract_discount > 0)
       <tr>
-        <td colspan="3" class="amount">Discount:</td>
+        <td colspan="2" class="amount">Discount:</td>
         <td class="amount">
           {{ $contract->currency->symbol }}
           {{ number_format($contract->contract_discount, 2) }}
         </td>
       </tr>
       <tr>
-        <td colspan="3" class="amount"><strong>Final Amount:</strong></td>
+        <td colspan="2" class="amount"><strong>Final Amount:</strong></td>
         <td class="amount">
           <strong>
             {{ $contract->currency->symbol }}
@@ -198,8 +223,9 @@
   </table>
 
   <p>
-    The rental period shall commence on {{ $contract->start_date->format('jS F Y') }}
-    and end on {{ $contract->end_date->format('jS F Y') }}.
+    <strong>**</strong> The rental period shall commence on <strong>{{ $contract->start_date->format('jS F Y') }}</strong>,
+    and end on <strong>{{ $contract->end_date->format('jS F Y') }}</strong>. Thus the contract will be run for
+    <strong>{{ $contract->start_date->diffInMonths($contract->end_date) }} months</strong>.
   </p>
 </div>
 
@@ -234,6 +260,13 @@
   <div class="section">
     <h2 class="section-title">5. TERMS AND CONDITIONS</h2>
     {!! $settings->getDocumentSettings()['contract_terms'] !!}
+  </div>
+@endif
+
+@if($contract->notes)
+  <div class="section">
+    <h2 class="section-title">NOTES</h2>
+    {!! $contract->notes !!}
   </div>
 @endif
 

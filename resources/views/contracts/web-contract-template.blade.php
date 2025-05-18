@@ -78,7 +78,7 @@
 
     th, td {
       padding: 10px;
-      border: 1px solid #d1d5db;
+      border-top: 1px solid #d1d5db;
       text-align: left;
     }
 
@@ -134,26 +134,34 @@
   <div class="section">
     <h2 class="section-title">1. THE AGREEMENT</h2>
     <p>
-      This agreement is made on {{ $contract->start_date->format('jS F Y') }}
-      between {{ $settings->getCompanyProfile()['name'] }}
-      (hereinafter referred to as "the Company") and {{ $contract->client->company ?: $contract->client->name }}
-      (hereinafter referred to as "the Client") for the rental of advertising space as detailed below:
+      This agreement is made on <strong>{{ $contract->updated_at->format('jS F Y') }}</strong>
+      between <strong>{{ $settings->getCompanyProfile()['name'] }}</strong> (hereinafter referred to as
+      <strong>"the Company"</strong>) and <strong>{{ $contract->client->company ?: $contract->client->name }}</strong>
+      (hereinafter referred to as <strong>"the Client"</strong>) for the rental of advertising space as detailed below:
     </p>
 
     <table>
       <thead>
       <tr>
-        <th>Billboard</th>
+        <th style="border-left: 1px solid #d1d5db;">Billboard</th>
         <th>Location</th>
         <th>Dimensions</th>
-        <th class="amount">Rate</th>
+        <th class="amount" style="border-right: 1px solid #d1d5db;">Monthly Rate</th>
       </tr>
       </thead>
       <tbody>
       @foreach($contract->billboards as $billboard)
         <tr>
-          <td>{{ $billboard->name }}</td>
-          <td>{{ $billboard->location->name }}</td>
+          <td>{{ $billboard->code }}</td>
+
+          <td style="display: flex; flex-direction: column">
+            <span>{{ $billboard->location->name }}, {{ $billboard->name }}</span>
+            <small style="color: #6B7280">
+              {{ $billboard->location->city->name }}, {{ $billboard->location->state->name }}
+              , {{ $billboard->location->country->name }}
+            </small>
+          </td>
+
           <td>{{ $billboard->size }}</td>
           <td class="amount">
             {{ $contract->currency->symbol }}
@@ -162,6 +170,7 @@
         </tr>
       @endforeach
       </tbody>
+
       <tfoot>
       <tr>
         <td colspan="3" class="amount"><strong>Total Amount:</strong></td>
@@ -194,8 +203,9 @@
     </table>
 
     <p>
-      The rental period shall commence on {{ $contract->start_date->format('jS F Y') }}
-      and end on {{ $contract->end_date->format('jS F Y') }}.
+      <strong>**</strong> The rental period shall commence on <strong>{{ $contract->start_date->format('jS F Y') }}</strong>,
+      and end on <strong>{{ $contract->end_date->format('jS F Y') }}</strong>. Thus the contract will be run for
+      <strong>{{ $contract->start_date->diffInMonths($contract->end_date) }} months</strong>.
     </p>
   </div>
 
