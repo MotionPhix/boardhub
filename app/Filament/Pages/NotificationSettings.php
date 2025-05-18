@@ -11,6 +11,8 @@ use Filament\Forms\Form;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class NotificationSettings extends Page
 {
@@ -18,7 +20,7 @@ class NotificationSettings extends Page
 
   protected static ?string $navigationIcon = 'heroicon-o-bell-alert';
   protected static ?string $navigationGroup = 'System';
-  protected static ?int $navigationSort = 4; // After Notifications page
+  protected static ?int $navigationSort = 4;
   protected static string $view = 'filament.pages.notification-settings';
 
   public ?array $data = [];
@@ -34,16 +36,20 @@ class NotificationSettings extends Page
     $settings = Auth::user()
       ->notificationSettings()
       ->get()
-      ->groupBy('type')
-      ->map(fn ($typeSettings) => $typeSettings->pluck('is_enabled', 'channel')->toArray())
+      ->mapWithKeys(function ($setting) {
+        // Create a compound key from type and channel
+        return ["{$setting->type}_{$setting->channel}" => $setting->is_enabled];
+      })
       ->toArray();
 
     // Initialize form data with default values
     $formData = [];
+
     foreach ($this->getNotificationCategories() as $category => $types) {
       foreach ($types as $type => $config) {
         foreach (NotificationSettingsModel::getNotificationChannels() as $channel => $channelLabel) {
-          $formData["{$type}_{$channel}"] = $settings[$type][$channel] ?? true;
+          $key = "{$type}_{$channel}";
+          $formData[$key] = $settings[$key] ?? true;
         }
       }
     }
@@ -58,7 +64,7 @@ class NotificationSettings extends Page
         Grid::make()
           ->columns(1)
           ->schema($this->buildFormSchema())
-      ]);
+      ])->statePath('data');
   }
 
   protected function getNotificationCategories(): array
@@ -180,22 +186,31 @@ class NotificationSettings extends Page
   public function submit(): void
   {
     try {
-      $data = $this->form->getState();
+      $formData = $this->form->getState();
       $user = auth()->user();
 
-      foreach ($data as $key => $isEnabled) {
+      // Begin transaction
+      DB::beginTransaction();
+
+      // Clear existing settings
+      $user->notificationSettings()->delete();
+
+      // Create new settings from form data
+      foreach ($formData as $key => $isEnabled) {
         [$type, $channel] = explode('_', $key, 2);
 
-        $user->notificationSettings()->updateOrCreate(
-          [
-            'type' => $type,
-            'channel' => $channel,
-          ],
-          [
-            'is_enabled' => $isEnabled,
-          ]
-        );
+        $user->notificationSettings()->create([
+          'type' => $type,
+          'channel' => $channel,
+          'is_enabled' => $isEnabled,
+        ]);
       }
+
+      // Commit transaction
+      DB::commit();
+
+      // Clear any cached settings
+      $user->clearNotificationCache();
 
       Notification::make()
         ->title('Notification preferences updated')
@@ -203,15 +218,19 @@ class NotificationSettings extends Page
         ->send();
 
     } catch (\Exception $e) {
+      // Rollback transaction on error
+      DB::rollBack();
+
       Notification::make()
         ->title('Error updating preferences')
         ->danger()
         ->body('Please try again or contact support if the problem persists.')
         ->send();
 
-      \Log::error('Error updating notification settings', [
+      Log::error('Error updating notification settings', [
         'user_id' => auth()->id(),
         'error' => $e->getMessage(),
+        'trace' => $e->getTraceAsString(),
       ]);
     }
   }

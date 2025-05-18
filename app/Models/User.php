@@ -5,6 +5,7 @@ namespace App\Models;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Panel;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -27,7 +28,6 @@ class User extends Authenticatable implements FilamentUser
     'bio',
     'is_active',
     'email_verified_at',
-    'notification_preferences',
   ];
 
   protected $hidden = [
@@ -39,16 +39,36 @@ class User extends Authenticatable implements FilamentUser
   {
     return [
       'email_verified_at' => 'datetime',
-      'notification_preferences' => 'array',
       'password' => 'hashed',
       'is_active' => 'boolean',
     ];
   }
 
   /**
+   * Clear notification-related cache for the user.
+   */
+  public function clearNotificationCache(): void
+  {
+    $cacheKeys = [
+      "user_{$this->id}_unread_notifications_count",
+      "user_{$this->id}_recent_notifications",
+    ];
+
+    // Clear notification settings cache for each type and channel
+    foreach (NotificationSettings::getNotificationTypes() as $type => $_) {
+      foreach (NotificationSettings::getNotificationChannels() as $channel => $_) {
+        $cacheKeys[] = "user_{$this->id}_notification_setting_{$type}_{$channel}";
+      }
+      $cacheKeys[] = "user_{$this->id}_enabled_channels_{$type}";
+    }
+
+    Cache::deleteMultiple($cacheKeys);
+  }
+
+  /**
    * Get all notification settings for the user.
    */
-  public function notificationSettings()
+  public function notificationSettings(): HasMany
   {
     return $this->hasMany(NotificationSettings::class);
   }
@@ -199,30 +219,6 @@ class User extends Authenticatable implements FilamentUser
   }
 
   /**
-   * Clear notification-related cache for the user.
-   */
-  protected function clearNotificationCache(): void
-  {
-    $cacheKeys = [
-      "user_{$this->id}_unread_notifications_count",
-      "user_{$this->id}_recent_notifications",
-    ];
-
-    // Clear notification settings cache
-    $types = NotificationSettings::getNotificationTypes();
-    $channels = NotificationSettings::getNotificationChannels();
-
-    foreach ($types as $type => $label) {
-      foreach ($channels as $channel => $channelLabel) {
-        $cacheKeys[] = "user_{$this->id}_notification_setting_{$type}_{$channel}";
-      }
-      $cacheKeys[] = "user_{$this->id}_enabled_channels_{$type}";
-    }
-
-    Cache::deleteMultiple($cacheKeys);
-  }
-
-  /**
    * Custom method to handle notification preferences update.
    */
   public function updateNotificationPreferences(array $preferences): void
@@ -243,8 +239,6 @@ class User extends Authenticatable implements FilamentUser
 
     $this->clearNotificationCache();
   }
-
-  // ... Keep existing methods ...
 
   public function canAccessPanel(Panel $panel): bool
   {
