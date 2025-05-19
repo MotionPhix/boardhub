@@ -13,7 +13,7 @@ class SettingsResource extends Resource
 
   protected static ?string $navigationIcon = 'heroicon-o-cog-6-tooth';
   protected static ?string $navigationGroup = 'System';
-  protected static ?string $navigationLabel = 'Settings';
+  protected static ?string $navigationLabel = 'Brand Settings';
   protected static ?int $navigationSort = 100;
 
   public static function getPages(): array

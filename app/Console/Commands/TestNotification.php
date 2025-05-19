@@ -3,12 +3,13 @@
 namespace App\Console\Commands;
 
 use App\Models\User;
+use App\Models\NotificationSettings;
 use Illuminate\Console\Command;
 
 class TestNotification extends Command
 {
-  protected $signature = 'notifications:test {email?}';
-  protected $description = 'Test the notification system with different notification types';
+  protected $signature = 'notifications:test {email?} {--type=} {--all}';
+  protected $description = 'Test notifications based on user preferences';
 
   public function handle()
   {
@@ -20,70 +21,84 @@ class TestNotification extends Command
       return 1;
     }
 
-    try {
-      // Contract Expiry Notification
-      $user->notify(new \App\Notifications\TestNotification([
+    // Get all notification types or specific type if provided
+    $types = $this->option('type')
+      ? [$this->option('type')]
+      : array_keys(NotificationSettings::getNotificationTypes());
+
+    foreach ($types as $type) {
+      // Skip if user hasn't enabled this type and --all flag is not set
+      if (!$this->option('all') && !$user->shouldReceiveNotification($type, 'database')) {
+        $this->info("Skipping {$type} notification (not enabled by user)");
+        continue;
+      }
+
+      try {
+        $this->sendNotification($user, $type);
+        $this->info("Sent {$type} notification successfully!");
+      } catch (\Exception $e) {
+        $this->error("Error sending {$type} notification: {$e->getMessage()}");
+      }
+    }
+
+    $this->info("\nCheck these places:");
+    $this->line('1. The notifications page in Filament');
+    $this->line('2. The database notifications table');
+
+    return 0;
+  }
+
+  protected function sendNotification(User $user, string $type): void
+  {
+    $data = match ($type) {
+      'contract_expiring' => [
         "type" => "contract_expiring",
         "title" => "Contract Expiring Soon",
         "message" => "Contract #CNT-2023-05 for Billboard B001 will expire in 30 days",
         "status" => "warning",
-        "icon" => "heroicon-o-clock",
+        "icon" => "clock",
         "iconColor" => "warning",
         "contract_id" => 1,
         "contract_number" => "CNT-2023-05",
         "expiry_date" => "2025-06-19 00:00:00"
-      ]));
-
-      // Contract Renewal Notification
-      $user->notify(new \App\Notifications\TestNotification([
+      ],
+      'contract_renewal' => [
         "type" => "contract_renewal",
         "title" => "Contract Renewal Available",
         "message" => "Contract #CNT-2023-06 is eligible for renewal",
         "status" => "info",
-        "icon" => "heroicon-o-document-check",
+        "icon" => "document-check",
         "iconColor" => "primary",
         "contract_id" => 2,
         "contract_number" => "CNT-2023-06",
         "renewal_by" => "2025-05-26 00:00:00"
-      ]));
-
-      // New Billboard Notification
-      $user->notify(new \App\Notifications\TestNotification([
+      ],
+      'billboard_maintenance' => [
         "type" => "billboard_maintenance",
         "title" => "New Billboard Added",
         "message" => "A new billboard has been added to the system at Lilongwe City Centre",
         "status" => "success",
-        "icon" => "heroicon-o-plus-circle",
+        "icon" => "plus-circle",
         "iconColor" => "success",
         "billboard_id" => 1,
         "billboard_code" => "B001",
         "location" => "Lilongwe City Centre"
-      ]));
-
-      // Available Billboard Notification
-      $user->notify(new \App\Notifications\TestNotification([
+      ],
+      'billboard_availability' => [
         "type" => "billboard_availability",
         "title" => "Billboard Available for Booking",
         "message" => "Billboard B002 at Blantyre CBD is now available for booking",
         "status" => "info",
-        "icon" => "heroicon-o-check-badge",
+        "icon" => "check-badge",
         "iconColor" => "primary",
         "billboard_id" => 2,
         "billboard_code" => "B002",
         "location" => "Blantyre CBD",
-        "available_from" => "2025-05-19 04:49:22"
-      ]));
+        "available_from" => now()->toDateTimeString()
+      ],
+      default => throw new \InvalidArgumentException("Unknown notification type: {$type}")
+    };
 
-      $this->info('Test notifications sent successfully!');
-      $this->info('Check these places:');
-      $this->line('1. The notifications page in Filament');
-      $this->line('2. The database notifications table');
-
-      return 0;
-
-    } catch (\Exception $e) {
-      $this->error("Error sending notification: {$e->getMessage()}");
-      return 1;
-    }
+    $user->notify(new \App\Notifications\TestNotification($data));
   }
 }

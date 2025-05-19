@@ -15,28 +15,41 @@ class TestNotification extends Notification implements ShouldQueue
 
   public function __construct(array $data = [])
   {
-    $this->data = $data ?: [
-      'type' => 'test',
-      'title' => 'Test Notification',
-      'message' => 'This is a test notification sent at ' . now(),
-      'status' => 'success',
-      'icon' => 'heroicon-o-bell',
-      'iconColor' => 'success',
-    ];
+    $this->data = $data;
   }
 
   public function via($notifiable): array
   {
-    return ['broadcast', 'database', 'email'];
+    // Get enabled channels for this notification type
+    $type = $this->data['type'] ?? 'general';
+    $channels = [];
+
+    if ($notifiable->shouldReceiveNotification($type, 'database')) {
+      $channels[] = 'database';
+    }
+
+    if ($notifiable->shouldReceiveNotification($type, 'broadcast')) {
+      $channels[] = 'broadcast';
+    }
+
+    return $channels;
   }
 
   public function toBroadcast($notifiable): BroadcastMessage
   {
-    return new BroadcastMessage($this->data);
+    return new BroadcastMessage([
+      'id' => $this->id,
+      ...$this->data,
+      'time' => now()->toIso8601String(),
+      'read' => false,
+    ]);
   }
 
   public function toDatabase($notifiable): array
   {
-    return $this->data;
+    return [
+      ...$this->data,
+      'time' => now()->toIso8601String(),
+    ];
   }
 }

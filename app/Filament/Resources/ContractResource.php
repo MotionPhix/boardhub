@@ -37,8 +37,9 @@ class ContractResource extends Resource
                 Forms\Components\TextInput::make('contract_number')
                   ->disabled()
                   ->dehydrated()
+                  ->placeholder('This will be auto-generated')
                   ->formatStateUsing(function ($state) {
-                    return $state ?: '[Auto-generated]';
+                    return $state ?: '';
                   }),
 
                 Forms\Components\Select::make('client_id')

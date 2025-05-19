@@ -85,6 +85,11 @@ class User extends Authenticatable implements FilamentUser
     });
   }
 
+  public function loginActivities(): HasMany
+  {
+    return $this->hasMany(\App\Models\UserLoginActivity::class);
+  }
+
   /**
    * Get recent notifications with caching.
    */
