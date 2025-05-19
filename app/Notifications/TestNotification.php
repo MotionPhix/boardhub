@@ -11,31 +11,32 @@ class TestNotification extends Notification implements ShouldQueue
 {
   use Queueable;
 
-  public function via($notifiable): array
-  {
-    return ['broadcast', 'database'];
-  }
+  protected array $data;
 
-  public function toBroadcast($notifiable): BroadcastMessage
+  public function __construct(array $data = [])
   {
-    return new BroadcastMessage([
-      'id' => $this->id,
+    $this->data = $data ?: [
+      'type' => 'test',
       'title' => 'Test Notification',
-      'message' => 'This is a test broadcast notification sent at ' . now(),
-      'status' => 'success',
-      'icon' => 'heroicon-o-bell',
-      'iconColor' => 'success',
-    ]);
-  }
-
-  public function toDatabase($notifiable): array
-  {
-    return [
-      'title' => 'Test Notification',
-      'message' => 'This is a test database notification sent at ' . now(),
+      'message' => 'This is a test notification sent at ' . now(),
       'status' => 'success',
       'icon' => 'heroicon-o-bell',
       'iconColor' => 'success',
     ];
+  }
+
+  public function via($notifiable): array
+  {
+    return ['broadcast', 'database', 'email'];
+  }
+
+  public function toBroadcast($notifiable): BroadcastMessage
+  {
+    return new BroadcastMessage($this->data);
+  }
+
+  public function toDatabase($notifiable): array
+  {
+    return $this->data;
   }
 }

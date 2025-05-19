@@ -66,7 +66,7 @@ class Notifications extends Page implements HasTable
           ->label('Mark as Read')
           ->icon('heroicon-o-check')
           ->action(fn (DatabaseNotification $record) => $record->markAsRead())
-          ->visible(fn (DatabaseNotification $record) => $record->read_at === null),
+          ->disabled(fn (DatabaseNotification $record) => $record->read_at !== null),
 
         Action::make('view_details')
           ->label('View')
