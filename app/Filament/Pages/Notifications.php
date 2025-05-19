@@ -34,22 +34,17 @@ class Notifications extends Page implements HasTable
       )
       ->columns([
         Grid::make([
-          'sm' => 6,
+          'default' => 1,
+          'sm' => 4,
         ])
           ->schema([
-            IconColumn::make('read_at')
-              ->label('')
-              ->boolean()
-              ->trueIcon('heroicon-o-check-circle')
-              ->falseIcon('heroicon-o-bell-alert')
-              ->trueColor('success')
-              ->falseColor('warning')
-              ->sortable(),
-
             ViewColumn::make('notification_content')
               ->label('Notification')
               ->view('filament.tables.columns.notification-content')
-              ->columnSpan(2)
+              ->columnSpan([
+                'default' => 1,
+                'sm' => 3,
+              ])
               ->searchable(query: function (Builder $query, string $search): Builder {
                 return $query->where('data->message', 'like', "%{$search}%")
                   ->orWhere('data->title', 'like', "%{$search}%");
@@ -58,14 +53,11 @@ class Notifications extends Page implements HasTable
             TextColumn::make('created_at')
               ->label('Received')
               ->dateTime()
-              ->sortable(),
-
-            IconColumn::make('data.icon')
-              ->label('')
-              ->width('10%')
-              ->icon(fn ($record) => $record->data['icon'] ?? 'heroicon-o-information-circle')
-              ->color(fn ($record) => $record->data['color'] ?? 'primary'),
-
+              ->sortable()
+              ->columnSpan([
+                'default' => 1,
+                'sm' => 1,
+              ]),
           ]),
       ])
       ->defaultSort('created_at', 'desc')
