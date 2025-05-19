@@ -3,6 +3,7 @@
 namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
+use Filament\Tables\Columns\Layout\Grid;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Columns\IconColumn;
@@ -32,36 +33,40 @@ class Notifications extends Page implements HasTable
           ->where('notifiable_type', auth()->user()::class)
       )
       ->columns([
-        IconColumn::make('read_at')
-          ->label('')
-          ->boolean()
-          ->width('10%')
-          ->trueIcon('heroicon-o-check-circle')
-          ->falseIcon('heroicon-o-bell-alert')
-          ->trueColor('success')
-          ->falseColor('warning')
-          ->sortable(),
+        Grid::make([
+          'sm' => 6,
+        ])
+          ->schema([
+            IconColumn::make('read_at')
+              ->label('')
+              ->boolean()
+              ->trueIcon('heroicon-o-check-circle')
+              ->falseIcon('heroicon-o-bell-alert')
+              ->trueColor('success')
+              ->falseColor('warning')
+              ->sortable(),
 
-        ViewColumn::make('notification_content')
-          ->label('Notification')
-          ->view('filament.tables.columns.notification-content')
-          ->width('50%')
-          ->searchable(query: function (Builder $query, string $search): Builder {
-            return $query->where('data->message', 'like', "%{$search}%")
-              ->orWhere('data->title', 'like', "%{$search}%");
-          }),
+            ViewColumn::make('notification_content')
+              ->label('Notification')
+              ->view('filament.tables.columns.notification-content')
+              ->columnSpan(2)
+              ->searchable(query: function (Builder $query, string $search): Builder {
+                return $query->where('data->message', 'like', "%{$search}%")
+                  ->orWhere('data->title', 'like', "%{$search}%");
+              }),
 
-        TextColumn::make('created_at')
-          ->label('Received')
-          ->dateTime()
-          ->width('10%')
-          ->sortable(),
+            TextColumn::make('created_at')
+              ->label('Received')
+              ->dateTime()
+              ->sortable(),
 
-        IconColumn::make('data.icon')
-          ->label('')
-          ->width('10%')
-          ->icon(fn ($record) => $record->data['icon'] ?? 'heroicon-o-information-circle')
-          ->color(fn ($record) => $record->data['color'] ?? 'primary'),
+            IconColumn::make('data.icon')
+              ->label('')
+              ->width('10%')
+              ->icon(fn ($record) => $record->data['icon'] ?? 'heroicon-o-information-circle')
+              ->color(fn ($record) => $record->data['color'] ?? 'primary'),
+
+          ]),
       ])
       ->defaultSort('created_at', 'desc')
       ->actions([
