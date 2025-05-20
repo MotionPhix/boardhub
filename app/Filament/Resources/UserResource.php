@@ -154,15 +154,21 @@ class UserResource extends Resource
 
         TextColumn::make('is_active')
           ->label('Status')
+          ->badge()
+          ->icon(fn ($state) => $state == 1 ? 'heroicon-o-check' : 'heroicon-o-x-mark')
+          ->color(fn ($state) => $state == 1 ? 'success' : 'danger')
           ->formatStateUsing(fn (string $state): string => $state == 1 ? 'Active' : 'Inactive')
           ->sortable(),
       ])
       ->filters([
         Tables\Filters\TrashedFilter::make(),
+
         Tables\Filters\Filter::make('verified')
           ->query(fn (Builder $query): Builder => $query->whereNotNull('email_verified_at')),
+
         Tables\Filters\Filter::make('unverified')
           ->query(fn (Builder $query): Builder => $query->whereNull('email_verified_at')),
+
         Tables\Filters\SelectFilter::make('roles')
           ->relationship('roles', 'name')
           ->multiple()
@@ -175,14 +181,18 @@ class UserResource extends Resource
                 return [$role => static::getRoleLabel($role)];
               });
           }),
+
         Tables\Filters\Filter::make('active')
           ->query(fn (Builder $query): Builder => $query->where('is_active', true)),
+
         Tables\Filters\Filter::make('inactive')
           ->query(fn (Builder $query): Builder => $query->where('is_active', false)),
       ])
       ->actions([
         Tables\Actions\EditAction::make(),
+
         Tables\Actions\DeleteAction::make(),
+
         Tables\Actions\Action::make('impersonate')
           ->icon('heroicon-m-user')
           ->requiresConfirmation()
