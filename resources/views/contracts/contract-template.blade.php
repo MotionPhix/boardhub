@@ -71,7 +71,8 @@
       left: 0;
       right: 0;
       text-align: center;
-      font-size: 10pt;
+      border-top: 1px #f3f4f6 solid;
+      font-size: 8pt;
       color: #6b7280;
     }
 

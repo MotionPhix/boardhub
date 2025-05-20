@@ -165,7 +165,7 @@ class BillboardResource extends Resource
             Forms\Components\Section::make('Pricing')
               ->schema([
                 Forms\Components\TextInput::make('base_price')
-                  ->label('Monthly Fee')
+                  ->label('Monthly Rental')
                   ->numeric()
                   ->rules(['required', 'numeric', 'min:0'])
                   ->prefix($defaultCurrency?->symbol ?? 'K')
@@ -202,7 +202,7 @@ class BillboardResource extends Resource
                   ->label('Physical Status')
                   ->options(Billboard::getPhysicalStatuses())
                   ->required()
-                  ->default(Billboard::PHYSICAL_STATUS_OPERATIONAL)
+                  ->default(Billboard::PHYSICAL_STATUS_MAINTENANCE)
                   ->helperText('Current physical condition of the billboard')
                   ->selectablePlaceholder(false)
                   ->native(false)
