@@ -56,10 +56,10 @@ class UserResource extends Resource
               ->maxLength(255)
               ->unique(ignoreRecord: true),
 
-            Forms\Components\DateTimePicker::make('email_verified_at')
-              ->native(false)
-              ->displayFormat('M d, Y H:i:s')
-              ->label('Email Verified At'),
+            Forms\Components\TextInput::make('position')
+              ->label('Position / Job Title')
+              ->placeholder('e.g. Sales Manager, Marketing Director')
+              ->maxLength(255),
 
             Forms\Components\TextInput::make('password')
               ->password()
@@ -133,17 +133,14 @@ class UserResource extends Resource
           ->searchable()
           ->sortable(),
 
-        IconColumn::make('email_verified_at')
-          ->label('Verified')
-          ->boolean()
-          ->sortable()
-          ->toggleable(),
+        TextColumn::make('position')
+          ->searchable()
+          ->sortable(),
 
         TextColumn::make('roles.name')
           ->badge()
           ->formatStateUsing(fn (string $state): string => static::getRoleLabel($state))
           ->colors([
-            'danger' => 'super_admin',
             'warning' => 'admin',
             'success' => 'manager',
             'info' => 'agent',
@@ -239,7 +236,10 @@ class UserResource extends Resource
     return parent::getEloquentQuery()
       ->withoutGlobalScopes([
         SoftDeletingScope::class,
-      ]);
+      ])
+      ->whereDoesntHave('roles', function ($query) {
+        $query->where('name', 'super_admin');
+      });
   }
 
   public static function getNavigationBadge(): ?string

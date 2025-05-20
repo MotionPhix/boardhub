@@ -3,10 +3,10 @@
 namespace App\Policies;
 
 use App\Models\User;
-use App\Models\Location;
+use App\Models\Country;
 use Illuminate\Auth\Access\HandlesAuthorization;
 
-class LocationPolicy
+class CountryPolicy
 {
     use HandlesAuthorization;
 
@@ -15,15 +15,15 @@ class LocationPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->can('view_any_location');
+        return $user->can('view_any_country');
     }
 
     /**
      * Determine whether the user can view the model.
      */
-    public function view(User $user, Location $location): bool
+    public function view(User $user, Country $country): bool
     {
-        return $user->can('view_location');
+        return $user->can('view_country');
     }
 
     /**
@@ -31,23 +31,23 @@ class LocationPolicy
      */
     public function create(User $user): bool
     {
-        return $user->can('create_location');
+        return $user->can('create_country');
     }
 
     /**
      * Determine whether the user can update the model.
      */
-    public function update(User $user, Location $location): bool
+    public function update(User $user, Country $country): bool
     {
-        return $user->can('update_location');
+        return $user->can('update_country');
     }
 
     /**
      * Determine whether the user can delete the model.
      */
-    public function delete(User $user, Location $location): bool
+    public function delete(User $user, Country $country): bool
     {
-        return $user->can('delete_location');
+        return $user->can('delete_country');
     }
 
     /**
@@ -55,15 +55,15 @@ class LocationPolicy
      */
     public function deleteAny(User $user): bool
     {
-        return $user->can('delete_any_location');
+        return $user->can('delete_any_country');
     }
 
     /**
      * Determine whether the user can permanently delete.
      */
-    public function forceDelete(User $user, Location $location): bool
+    public function forceDelete(User $user, Country $country): bool
     {
-        return $user->can('force_delete_location');
+        return $user->can('force_delete_country');
     }
 
     /**
@@ -71,15 +71,15 @@ class LocationPolicy
      */
     public function forceDeleteAny(User $user): bool
     {
-        return $user->can('force_delete_any_location');
+        return $user->can('force_delete_any_country');
     }
 
     /**
      * Determine whether the user can restore.
      */
-    public function restore(User $user, Location $location): bool
+    public function restore(User $user, Country $country): bool
     {
-        return $user->can('restore_location');
+        return $user->can('restore_country');
     }
 
     /**
@@ -87,15 +87,15 @@ class LocationPolicy
      */
     public function restoreAny(User $user): bool
     {
-        return $user->can('restore_any_location');
+        return $user->can('restore_any_country');
     }
 
     /**
      * Determine whether the user can replicate.
      */
-    public function replicate(User $user, Location $location): bool
+    public function replicate(User $user, Country $country): bool
     {
-        return $user->can('replicate_location');
+        return $user->can('replicate_country');
     }
 
     /**
@@ -103,6 +103,6 @@ class LocationPolicy
      */
     public function reorder(User $user): bool
     {
-        return $user->can('reorder_location');
+        return $user->can('reorder_country');
     }
 }

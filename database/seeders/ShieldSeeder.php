@@ -80,6 +80,13 @@ class ShieldSeeder extends Seeder
       'update_country',
       'delete_country',
 
+      // State/Region permissions
+      'view_state',
+      'view_any_state',
+      'create_state',
+      'update_state',
+      'delete_state',
+
       // City permissions
       'view_city',
       'view_any_city',
@@ -93,6 +100,13 @@ class ShieldSeeder extends Seeder
       'create_settings',
       'update_settings',
       'delete_settings',
+
+      // Add Currency permissions
+      'view_currency',
+      'view_any_currency',
+      'create_currency',
+      'update_currency',
+      'delete_currency',
     ];
 
     // Create permissions
@@ -168,6 +182,13 @@ class ShieldSeeder extends Seeder
           'update_country',
           'delete_country',
 
+          // State/Region permissions
+          'view_state',
+          'view_any_state',
+          'create_state',
+          'update_state',
+          'delete_state',
+
           // City permissions
           'view_city',
           'view_any_city',
@@ -181,6 +202,13 @@ class ShieldSeeder extends Seeder
           'create_settings',
           'update_settings',
           'delete_settings',
+
+          // Currency permissions
+          'view_currency',
+          'view_any_currency',
+          'create_currency',
+          'update_currency',
+          'delete_currency',
         ]
       ],
       'manager' => [
@@ -220,9 +248,18 @@ class ShieldSeeder extends Seeder
           'view_city',
           'view_any_city',
 
+          'view_state',
+          'view_any_state',
+
           // Only view permissions for cities
           'view_country',
           'view_any_country',
+
+          // Add view-only permissions for Settings and Currency
+          'view_settings',
+          'view_any_settings',
+          'view_currency',
+          'view_any_currency',
         ]
       ],
       'agent' => [
@@ -237,6 +274,9 @@ class ShieldSeeder extends Seeder
           // Only view permissions for cities
           'view_city',
           'view_any_city',
+
+          'view_state',
+          'view_any_state',
 
           // Only view permissions for countries
           'view_country',
