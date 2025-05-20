@@ -2,6 +2,9 @@
 <html>
 <head>
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+  <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+
   <style>
     @page {
       margin: 1.5cm;
@@ -15,13 +18,23 @@
     }
 
     .cover-page {
-      padding-top: 1.5cm;
+      /*padding-top: 1.5cm;
       text-align: center;
       height: 100%;
       display: flex;
       flex-direction: column;
       justify-content: center;
+      page-break-after: always;*/
+
+      margin: 0;
+      padding: 2cm 0;
+      text-align: center;
+      position: relative;
       page-break-after: always;
+    }
+
+    .logo {
+      margin-bottom: 3cm;
     }
 
     .cover-title {
@@ -43,7 +56,7 @@
 
     .section {
       margin: 20px 0;
-      page-break-inside: avoid;
+      /*page-break-inside: avoid;*/
     }
 
     .section-title {
@@ -140,6 +153,33 @@
     Contract Serial No: <strong>{{ $contract->contract_number }}</strong>
   </div>
 </div>
+
+{{--<div class="cover-page">--}}
+{{--  <div class="logo">--}}
+{{--    <img--}}
+{{--      src="{{ public_path('images/logo.png') }}"--}}
+{{--      style="max-height: 100px;"--}}
+{{--      alt="{{ $settings->getCompanyProfile()['name'] }} Logo">--}}
+{{--  </div>--}}
+
+{{--  <div class="cover-title">--}}
+{{--    ADVERTISING <br> RENTAL AGREEMENT <br> BETWEEN--}}
+{{--  </div>--}}
+
+{{--  <h3 class="party-name" style="margin-top: 2cm;">--}}
+{{--    {{ $settings->getCompanyProfile()['name'] }}--}}
+{{--  </h3>--}}
+
+{{--  <h3 class="party-name">AND</h3>--}}
+
+{{--  <h3 class="party-name">--}}
+{{--    {{ $contract->client->company ?: $contract->client->name }}--}}
+{{--  </h3>--}}
+
+{{--  <div class="contract-number" style="position: absolute; bottom: 3cm; left: 0; right: 0;">--}}
+{{--    Contract Serial No: <strong>{{ $contract->contract_number }}</strong>--}}
+{{--  </div>--}}
+{{--</div>--}}
 
 <!-- Main Content -->
 <div class="section">
