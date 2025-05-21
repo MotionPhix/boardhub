@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use App\Mail\ContractMail;
-use App\Notifications\ContractSignedNotification;
 use App\Traits\HasMoney;
 use App\Traits\HasUuid;
 use Barryvdh\DomPDF\Facade\Pdf;
@@ -142,7 +141,7 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
     return $pdf->output();
   }
 
-  public function generatePdf(): string
+  /*public function generatePdf(): string
   {
     // Load relationships if not loaded
     if (!$this->relationLoaded('currency')) {
@@ -173,6 +172,43 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
     Storage::disk('public')->put($filename, $pdf->output());
 
     return $filename;
+  }*/
+
+  public function generatePdf()
+  {
+    $template = $this->template ?? ContractTemplate::getDefaultTemplate();
+
+    if (!$template) {
+      throw new \Exception('No contract template available');
+    }
+
+    $variables = [
+      'contract_number' => $this->contract_number,
+      'client_name' => $this->client->name,
+      'client_company' => $this->client->company,
+      'start_date' => $this->start_date->format('F j, Y'),
+      'end_date' => $this->end_date->format('F j, Y'),
+      'total_amount' => number_format($this->contract_final_amount, 2),
+      'currency' => $this->currency_code,
+      // Add more variables as needed
+    ];
+
+    $content = $template->replaceVariables($variables);
+
+    $pdf = PDF::loadView('contracts.template', [
+      'content' => $content,
+      'contract' => $this,
+      'template' => $template,
+    ]);
+
+    // Set PDF options
+    $pdf->setPaper('a4');
+    $pdf->setOption('margin-top', '2.5cm');
+    $pdf->setOption('margin-bottom', '2.5cm');
+    $pdf->setOption('margin-left', '2cm');
+    $pdf->setOption('margin-right', '2cm');
+
+    return $pdf->output();
   }
 
   public function getSignatureDocumentTemplate(): SignatureDocumentTemplate
@@ -194,16 +230,6 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
         ),
       ]
     );
-  }
-
-  // Add method to notify about contract signing
-  protected function notifyContractSigned(): void
-  {
-    $recipients = $this->getNotificationRecipients();
-
-    foreach ($recipients as $recipient) {
-      $recipient->notify(new ContractSignedNotification($this));
-    }
   }
 
   public function markAsGenerated(): void
@@ -370,6 +396,11 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
   public function client(): BelongsTo
   {
     return $this->belongsTo(Client::class);
+  }
+
+  public function template(): BelongsTo
+  {
+    return $this->belongsTo(ContractTemplate::class, 'template_id');
   }
 
   public function currency(): BelongsTo

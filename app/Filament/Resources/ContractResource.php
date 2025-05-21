@@ -7,6 +7,7 @@ use App\Filament\Resources\ContractResource\Pages;
 use App\Filament\Resources\ContractResource\RelationManagers\BillboardsRelationManager;
 use App\Models\Billboard;
 use App\Models\Contract;
+use App\Models\ContractTemplate;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Notifications\Notification;
@@ -158,6 +159,49 @@ class ContractResource extends Resource
           ])
           ->columnSpan(['lg' => 2]),
 
+        // Template Picker
+        Forms\Components\Section::make('Contract Template')
+          ->schema([
+            Forms\Components\Select::make('template_id')
+              ->label('Contract Template')
+              ->options(function () {
+                return ContractTemplate::active()
+                  ->get()
+                  ->mapWithKeys(function ($template) {
+                    return [$template->id => $template->name];
+                  });
+              })
+              ->default(function () {
+                return ContractTemplate::getDefaultTemplate()?->id;
+              })
+              ->reactive()
+              ->afterStateUpdated(function ($state, callable $set) {
+                if ($state) {
+                  $template = ContractTemplate::find($state);
+                  if ($template) {
+                    // You might want to update other form fields based on the template
+                    $set('contract_terms', $template->content);
+                  }
+                }
+              })
+              ->required()
+              ->helperText('Select a template for this contract')
+              ->columnSpanFull(),
+
+            Forms\Components\Grid::make()
+              ->schema([
+                Forms\Components\View::make('filament.components.template-preview')
+                  ->visible(fn (Forms\Get $get) => $get('template_id'))
+                  ->viewData(fn (Forms\Get $get) => [
+                    'template' => ContractTemplate::find($get('template_id')),
+                  ])
+              ])
+              ->columns(1),
+          ])
+          ->collapsible(),
+        // End Template Picker
+
+        // Document Management
         Forms\Components\Group::make()
           ->schema([
             Forms\Components\Section::make('Documents')
@@ -186,6 +230,7 @@ class ContractResource extends Resource
           ->columnSpan(['lg' => 1]),
       ])
       ->columns(3);
+    // End Document Management
   }
 
   public static function table(Table $table): Table
