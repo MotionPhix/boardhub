@@ -174,7 +174,7 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
     return $filename;
   }*/
 
-  public function generatePdf()
+  /*public function generatePdf()
   {
     $template = $this->template ?? ContractTemplate::getDefaultTemplate();
 
@@ -207,6 +207,42 @@ class Contract extends Model implements HasMedia, CanBeSigned, ShouldGenerateSig
     $pdf->setOption('margin-bottom', '2.5cm');
     $pdf->setOption('margin-left', '2cm');
     $pdf->setOption('margin-right', '2cm');
+
+    return $pdf->output();
+  }*/
+
+  public function generatePdf(?ContractTemplate $template = null): string
+  {
+    // If no template provided, use default
+    $template = $template ?? $this->template ?? ContractTemplate::getDefaultTemplate();
+
+    if (!$template) {
+      throw new \Exception('No contract template available');
+    }
+
+    $variables = [
+      'contract' => $this,
+      'settings' => app(Settings::class),
+      'date' => now()->format('Y-m-d'),
+      'generatedBy' => auth()->user()->name ?? 'System',
+      'showHeader' => $template->settings['header_enabled'] ?? true,
+      'showFooter' => $template->settings['footer_enabled'] ?? true,
+    ];
+
+    // Generate PDF using Laravel PDF package
+    $pdf = PDF::loadView('contracts.templates.' . $template->content, $variables);
+
+    // Set PDF options
+    $pdf->setPaper('a4');
+    $pdf->setOption('margin-top', '2.5cm');
+    $pdf->setOption('margin-bottom', '2.5cm');
+    $pdf->setOption('margin-left', '2cm');
+    $pdf->setOption('margin-right', '2cm');
+
+    // Add page numbers if enabled
+    if ($template->settings['page_numbering'] ?? true) {
+      $pdf->setOption('footer-right', 'Page [page] of [toPage]');
+    }
 
     return $pdf->output();
   }

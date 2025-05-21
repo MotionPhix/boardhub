@@ -19,6 +19,7 @@ class DatabaseSeeder extends Seeder
       StateSeeder::class,
       CitySeeder::class,
       SettingsSeeder::class,
+      ContractTemplateSeeder::class,
       NotificationSettingsSeeder::class,
       ShieldSeeder::class,
     ]);

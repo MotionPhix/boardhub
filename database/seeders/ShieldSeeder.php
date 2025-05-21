@@ -49,6 +49,20 @@ class ShieldSeeder extends Seeder
       'approve_contract',
       'reject_contract',
 
+      // Contract permissions
+      'view_contract::template',
+      'view_any_contract::template',
+      'create_contract::template',
+      'update_contract::template',
+      'delete_contract::template',
+      'delete_any_contract::template',
+      'force_delete_contract::template',
+      'force_delete_any_contract::template',
+      'restore_contract::template',
+      'restore_any_contract::template',
+      'replicate_contract::template',
+      'reorder_contract::template',
+
       // User permissions
       'view_user',
       'view_any_user',
@@ -150,6 +164,13 @@ class ShieldSeeder extends Seeder
           'force_delete_contract',
           'approve_contract',
           'reject_contract',
+
+          // Contract permissions
+          'view_contract::template',
+          'view_any_contract::template',
+          'create_contract::template',
+          'update_contract::template',
+          'delete_contract::template',
 
           // User permissions
           'view_user',

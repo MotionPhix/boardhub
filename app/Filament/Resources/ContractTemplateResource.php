@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use App\Jobs\GenerateContractTemplatePreview;
 
 class ContractTemplateResource extends Resource
 {
@@ -28,7 +29,12 @@ class ContractTemplateResource extends Resource
               ->schema([
                 Forms\Components\TextInput::make('name')
                   ->required()
-                  ->maxLength(255),
+                  ->maxLength(255)
+                  ->reactive()
+                  ->afterStateUpdated(function ($state, callable $set) {
+                    if (!$state) return;
+                    $set('content', Str::slug($state));
+                  }),
 
                 Forms\Components\Textarea::make('description')
                   ->maxLength(65535)
@@ -38,9 +44,15 @@ class ContractTemplateResource extends Resource
                   ->options([
                     'standard' => 'Standard Contract',
                     'premium' => 'Premium Contract',
-                    'simple' => 'Simple Contract',
+                    'executive' => 'Executive Contract',
+                    'corporate' => 'Corporate Contract',
                   ])
                   ->required(),
+
+                Forms\Components\TextInput::make('content')
+                  ->required()
+                  ->helperText('Template path relative to contracts.templates directory')
+                  ->placeholder('e.g., standard/advertising-agreement'),
 
                 Forms\Components\Toggle::make('is_default')
                   ->label('Set as Default Template')
@@ -48,7 +60,6 @@ class ContractTemplateResource extends Resource
                   ->reactive()
                   ->afterStateUpdated(function ($state, callable $set) {
                     if ($state) {
-                      // Remove default from other templates
                       ContractTemplate::where('is_default', true)
                         ->where('id', '!=', $this->record?->id)
                         ->update(['is_default' => false]);
@@ -61,37 +72,8 @@ class ContractTemplateResource extends Resource
               ])
               ->columns(2),
 
-            Forms\Components\Section::make('Template Content')
+            Forms\Components\Section::make('Template Settings')
               ->schema([
-                Forms\Components\RichEditor::make('content')
-                  ->required()
-                  ->toolbarButtons([
-                    'bold',
-                    'italic',
-                    'underline',
-                    'strike',
-                    'link',
-                    'orderedList',
-                    'unorderedList',
-                    'h2',
-                    'h3',
-                  ])
-                  ->columnSpanFull(),
-              ]),
-          ])
-          ->columnSpan(['lg' => 2]),
-
-        Forms\Components\Group::make()
-          ->schema([
-            Forms\Components\Section::make('Preview & Variables')
-              ->schema([
-                Forms\Components\FileUpload::make('preview_image')
-                  ->image()
-                  ->directory('contract-templates')
-                  ->visibility('public')
-                  ->imagePreviewHeight('256')
-                  ->columnSpanFull(),
-
                 Forms\Components\Repeater::make('variables')
                   ->schema([
                     Forms\Components\TextInput::make('name')
@@ -99,7 +81,68 @@ class ContractTemplateResource extends Resource
                     Forms\Components\TextInput::make('description')
                       ->required(),
                   ])
-                  ->columnSpanFull(),
+                  ->columns(2)
+                  ->collapsible(),
+
+                Forms\Components\CheckboxList::make('settings.terms_sections')
+                  ->label('Included Sections')
+                  ->options([
+                    'payment' => 'Payment Terms',
+                    'maintenance' => 'Maintenance',
+                    'liability' => 'Liability',
+                    'termination' => 'Termination',
+                    'disputes' => 'Disputes',
+                    'confidentiality' => 'Confidentiality',
+                    'intellectual_property' => 'Intellectual Property',
+                    'force_majeure' => 'Force Majeure',
+                    'insurance' => 'Insurance',
+                  ])
+                  ->columns(2),
+
+                Forms\Components\Grid::make()
+                  ->schema([
+                    Forms\Components\Toggle::make('settings.header_enabled')
+                      ->label('Show Header')
+                      ->default(true),
+
+                    Forms\Components\Toggle::make('settings.footer_enabled')
+                      ->label('Show Footer')
+                      ->default(true),
+
+                    Forms\Components\Toggle::make('settings.page_numbering')
+                      ->label('Page Numbers')
+                      ->default(true),
+
+                    Forms\Components\Toggle::make('settings.table_of_contents')
+                      ->label('Table of Contents')
+                      ->default(true),
+                  ])
+                  ->columns(2),
+              ]),
+          ])
+          ->columnSpan(['lg' => 2]),
+
+        Forms\Components\Group::make()
+          ->schema([
+            Forms\Components\Section::make('Preview')
+              ->schema([
+                Forms\Components\View::make('filament.resources.contract-template-resource.preview'),
+              ]),
+
+            Forms\Components\Section::make('Actions')
+              ->schema([
+                Forms\Components\Actions::make([
+                  Forms\Components\Actions\Action::make('regenerate_preview')
+                    ->label('Regenerate Preview')
+                    ->action(function (ContractTemplate $record) {
+                      GenerateContractTemplatePreview::dispatch($record);
+                      Notification::make()
+                        ->title('Preview generation started')
+                        ->success()
+                        ->send();
+                    })
+                    ->visible(fn ($record) => $record !== null),
+                ]),
               ]),
           ])
           ->columnSpan(['lg' => 1]),
@@ -111,12 +154,22 @@ class ContractTemplateResource extends Resource
   {
     return $table
       ->columns([
+        Tables\Columns\ImageColumn::make('preview_image_url')
+          ->label('Preview')
+          ->square(),
+
         Tables\Columns\TextColumn::make('name')
           ->searchable()
           ->sortable(),
 
         Tables\Columns\TextColumn::make('template_type')
-          ->badge(),
+          ->badge()
+          ->colors([
+            'primary' => 'standard',
+            'success' => 'premium',
+            'warning' => 'executive',
+            'danger' => 'corporate',
+          ]),
 
         Tables\Columns\IconColumn::make('is_default')
           ->boolean(),
@@ -134,12 +187,20 @@ class ContractTemplateResource extends Resource
           ->options([
             'standard' => 'Standard Contract',
             'premium' => 'Premium Contract',
-            'simple' => 'Simple Contract',
+            'executive' => 'Executive Contract',
+            'corporate' => 'Corporate Contract',
           ]),
         Tables\Filters\TernaryFilter::make('is_active'),
       ])
       ->actions([
+        Tables\Actions\ViewAction::make(),
         Tables\Actions\EditAction::make(),
+        Tables\Actions\Action::make('preview')
+          ->label('Generate Preview')
+          ->icon('heroicon-o-eye')
+          ->action(function (ContractTemplate $record) {
+            GenerateContractTemplatePreview::dispatch($record);
+          }),
         Tables\Actions\DeleteAction::make(),
       ])
       ->bulkActions([
@@ -154,6 +215,7 @@ class ContractTemplateResource extends Resource
     return [
       'index' => Pages\ListContractTemplates::route('/'),
       'create' => Pages\CreateContractTemplate::route('/create'),
+      'view' => Pages\ViewContractTemplate::route('/{record}'),
       'edit' => Pages\EditContractTemplate::route('/{record}/edit'),
     ];
   }
