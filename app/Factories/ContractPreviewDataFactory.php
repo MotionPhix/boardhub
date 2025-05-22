@@ -3,6 +3,7 @@
 namespace App\Factories;
 
 use App\Models\Currency;
+use App\Models\Settings;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
