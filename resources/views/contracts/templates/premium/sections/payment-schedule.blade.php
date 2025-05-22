@@ -2,42 +2,42 @@
   <h3>3.2 Payment Terms</h3>
 
   <div class="payment-details">
-    <h4 class="mb-2">3.2.1 Payment Schedule</h4>
-    <table class="payment-schedule-table">
-      <thead>
-      <tr>
-        <th>Payment Period</th>
-        <th>Due Date</th>
-        <th class="text-right">Amount</th>
-        <th>Payment Method</th>
-      </tr>
-      </thead>
-      <tbody>
-      @php
-        $startDate = $contract->start_date->copy();
-        $endDate = $contract->end_date->copy();
-        $currentDate = $startDate->copy();
-      @endphp
+{{--    <h4 class="mb-2">3.2.1 Payment Schedule</h4>--}}
+{{--    <table class="payment-schedule-table">--}}
+{{--      <thead>--}}
+{{--      <tr>--}}
+{{--        <th>Payment Period</th>--}}
+{{--        <th>Due Date</th>--}}
+{{--        <th class="text-right">Amount</th>--}}
+{{--        <th>Payment Method</th>--}}
+{{--      </tr>--}}
+{{--      </thead>--}}
+{{--      <tbody>--}}
+{{--      @php--}}
+{{--        $startDate = $contract->start_date->copy();--}}
+{{--        $endDate = $contract->end_date->copy();--}}
+{{--        $currentDate = $startDate->copy();--}}
+{{--      @endphp--}}
 
-      @while($currentDate->lte($endDate))
-        <tr>
-          <td>{{ $currentDate->format('F Y') }}</td>
-          <td>{{ $currentDate->copy()->subDays(5)->format('jS F Y') }}</td>
-          <td class="text-right">
-            {{ $contract->currency->symbol }}
-            {{ number_format($contract->contract_final_amount, 2) }}
-          </td>
-          <td>Bank Transfer</td>
-        </tr>
-        @php
-          $currentDate->addMonth();
-        @endphp
-      @endwhile
-      </tbody>
-    </table>
+{{--      @while($currentDate->lte($endDate))--}}
+{{--        <tr>--}}
+{{--          <td>{{ $currentDate->format('F Y') }}</td>--}}
+{{--          <td>{{ $currentDate->copy()->subDays(5)->format('jS F Y') }}</td>--}}
+{{--          <td class="text-right">--}}
+{{--            {{ $contract->currency->symbol }}--}}
+{{--            {{ number_format($contract->contract_final_amount, 2) }}--}}
+{{--          </td>--}}
+{{--          <td>Bank Transfer</td>--}}
+{{--        </tr>--}}
+{{--        @php--}}
+{{--          $currentDate->addMonth();--}}
+{{--        @endphp--}}
+{{--      @endwhile--}}
+{{--      </tbody>--}}
+{{--    </table>--}}
 
     <div class="payment-notes mt-4">
-      <h4 class="mb-2">3.2.2 Payment Terms and Conditions</h4>
+      <h4 class="mb-2">3.2.1 Payment Terms and Conditions</h4>
       <ol type="a" class="ml-4">
         <li>All payments shall be made in {{ $contract->currency->name }} ({{ $contract->currency->code }});</li>
         <li>Payments are due five (5) business days before the start of each month;</li>
@@ -49,7 +49,7 @@
     </div>
 
     <div class="banking-details mt-4">
-      <h4 class="mb-2">3.2.3 Banking Details</h4>
+      <h4 class="mb-2">3.2.2 Banking Details</h4>
       <table class="banking-info-table">
         <tbody>
         <tr>

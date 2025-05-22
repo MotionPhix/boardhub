@@ -7,23 +7,22 @@
 
   <style>
     @page {
-      margin: 2.5cm;
-      font-family: 'Helvetica', sans-serif;
+      margin: 1.5cm;
+      font-family: 'Lekton', monospace;
     }
-
     /* Reset and base styles */
     body {
-      font-size: 11pt;
+      font-family: 'Lekton', monospace;
+      font-size: 12pt;
       line-height: 1.6;
       color: #1f2937;
       margin: 0;
       padding: 0;
-      font-family: 'Helvetica', sans-serif;
     }
 
     /* Typography */
     h1, h2, h3, h4 {
-      font-family: 'Helvetica-Bold', sans-serif;
+      font-weight: bold;
       color: #111827;
       margin: 0;
       padding: 0;
@@ -80,7 +79,7 @@
     }
 
     .section-title {
-      font-family: 'Helvetica-Bold', sans-serif;
+      font-weight: bold;
       color: #111827;
       border-bottom: 0.5pt solid #e5e7eb;
       padding-bottom: 0.25cm;
@@ -96,16 +95,16 @@
 
     th {
       background-color: #f3f4f6;
-      font-family: 'Helvetica-Bold', sans-serif;
+      font-weight: bold;
       text-align: left;
-      padding: 0.5cm;
+      padding: 0.2cm 0.5cm;
       border: 0.5pt solid #d1d5db;
       color: #111827;
     }
 
     td {
-      padding: 0.5cm;
-      border: 0.5pt solid #d1d5db;
+      padding: 0.2cm 0.5cm;
+      border-top: 0.5pt solid #d1d5db;
       vertical-align: top;
     }
 
@@ -142,7 +141,7 @@
     /* Utilities */
     .text-center { text-align: center; }
     .text-right { text-align: right; }
-    .font-bold { font-family: 'Helvetica-Bold', sans-serif; }
+    .font-bold { font-weight: bold }
     .text-sm { font-size: 9pt; }
     .text-gray { color: #6b7280; }
     .mt-1 { margin-top: 0.25cm; }

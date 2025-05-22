@@ -186,17 +186,18 @@ class ContractResource extends Resource
               })
               ->required()
               ->helperText('Select a template for this contract')
-              ->columnSpanFull(),
+              ->columns(1),
+              //->columnSpanFull(),
 
-            Forms\Components\Grid::make()
+            /*Forms\Components\Grid::make()
               ->schema([
                 Forms\Components\View::make('filament.components.template-preview')
                   ->visible(fn (Forms\Get $get) => $get('template_id'))
-                  ->viewData(fn (Forms\Get $get) => [
-                    'template' => ContractTemplate::find($get('template_id')),
+                  ->viewData([
+                    'template' => ContractTemplate::find($this->state->template_id),
                   ])
               ])
-              ->columns(1),
+              ->columns(1),*/
           ])
           ->collapsible(),
         // End Template Picker
@@ -307,7 +308,8 @@ class ContractResource extends Resource
             ->label('Generate PDF')
             ->action(function (Contract $record) {
               try {
-                $pdf = $record->generateDownloadablePdf();
+                // $pdf = $record->generateDownloadablePdf();
+                $pdf = $record->generatePdf(ContractTemplate::where('id', 2)->first());
 
                 // Store the generated PDF
                 $record->addMediaFromString($pdf)

@@ -59,6 +59,19 @@ class Settings extends Model implements HasMedia
     ];
   }
 
+  public static function getBankingDetails(): array
+  {
+    $settings = self::instance();
+
+    return [
+      'bank_name' => $settings->bank_name ?? '',
+      'account_name' => $settings->bank_account ?? '',
+      'account_number' => $settings->account_number ?? '',
+      'branch_code' => $settings->branch_code ?? '',
+      'swift_code' => $settings->swift_code ?? '',
+    ];
+  }
+
   public function registerMediaCollections(): void
   {
     $this

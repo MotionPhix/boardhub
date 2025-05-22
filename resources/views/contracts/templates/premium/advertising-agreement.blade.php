@@ -39,13 +39,6 @@
       border-bottom: 1pt dotted #d1d5db;
       margin: 0 0.5cm;
     }
-
-    .confidentiality-notice {
-      background-color: #f3f4f6;
-      padding: 0.5cm;
-      border: 0.5pt solid #d1d5db;
-      margin-bottom: 1cm;
-    }
   </style>
 @endpush
 
@@ -54,99 +47,93 @@
 
   {{-- Cover Page --}}
   <div class="cover-page">
-    <img src="{{ public_path('images/logo.png') }}"
-         alt="{{ $settings->getCompanyProfile()['name'] }}"
-         style="max-height: 4cm; margin-bottom: 3cm;">
+    <img
+      src="{{ public_path('images/logo.png') }}"
+      alt="{{ $settings->getCompanyProfile()['name'] }}"
+      style="max-height: 3cm; margin-bottom: 2cm;">
 
-    <h1 class="mb-8" style="color: #1a56db;">PREMIUM ADVERTISING AGREEMENT</h1>
+    <h1 class="mb-8" style="color: #1a56db; font-family: 'Geist Mono', monospace;">
+      ADVERTISING <br> RENTAL AGREEMENT <br> BETWEEN
+    </h1>
 
-    <div class="confidentiality-notice text-sm">
-      <strong>CONFIDENTIALITY NOTICE:</strong><br>
-      This document contains confidential and proprietary information.
-      Unauthorized disclosure or reproduction is strictly prohibited.
-    </div>
+    <h3 class="mb-2">{{ $settings->getCompanyProfile()['name'] }}</h3>
 
-    <div class="mb-8" style="font-size: 14pt;">Between</div>
-
-    <h3 class="mb-4">{{ $settings->getCompanyProfile()['name'] }}</h3>
-
-    <div class="mb-4" style="font-size: 14pt;">and</div>
+    <div class="mb-2" style="font-size: 14pt;">AND</div>
 
     <h3 class="mb-8">{{ $contract->client->company ?: $contract->client->name }}</h3>
 
-    <div style="position: absolute; bottom: 4cm; left: 0; right: 0;">
-      <div class="text-sm mb-2">Contract Reference</div>
+    <div style="text-align: center;">
+      <div>Contract Reference Number</div>
       <div class="font-bold" style="font-size: 14pt;">{{ $contract->contract_number }}</div>
-      <div class="text-sm mt-2">Effective Date: {{ $contract->start_date->format('jS F Y') }}</div>
     </div>
   </div>
 
   {{-- Table of Contents --}}
-  <div class="table-of-contents">
-    <h2 class="premium-header">TABLE OF CONTENTS</h2>
-    <ul>
-      <li>
-        <span>1. Definitions and Interpretation</span>
-        <span class="dots"></span>
-        <span>1</span>
-      </li>
-      <li>
-        <span>2. Agreement Terms</span>
-        <span class="dots"></span>
-        <span>2</span>
-      </li>
-      <li>
-        <span>3. Financial Terms</span>
-        <span class="dots"></span>
-        <span>3</span>
-      </li>
-      <li>
-        <span>4. Maintenance and Service Level</span>
-        <span class="dots"></span>
-        <span>4</span>
-      </li>
-      <li>
-        <span>5. Intellectual Property Rights</span>
-        <span class="dots"></span>
-        <span>5</span>
-      </li>
-      <li>
-        <span>6. Confidentiality</span>
-        <span class="dots"></span>
-        <span>6</span>
-      </li>
-      <li>
-        <span>7. Liability and Indemnification</span>
-        <span class="dots"></span>
-        <span>7</span>
-      </li>
-      <li>
-        <span>8. Term and Termination</span>
-        <span class="dots"></span>
-        <span>8</span>
-      </li>
-      <li>
-        <span>9. Force Majeure</span>
-        <span class="dots"></span>
-        <span>9</span>
-      </li>
-      <li>
-        <span>10. Governing Law and Jurisdiction</span>
-        <span class="dots"></span>
-        <span>10</span>
-      </li>
-    </ul>
-  </div>
+{{--  <div class="table-of-contents">--}}
+{{--    <h2 class="premium-header">TABLE OF CONTENTS</h2>--}}
+{{--    <ul>--}}
+{{--      <li>--}}
+{{--        <span>1. Definitions and Interpretation</span>--}}
+{{--        <span class="dots"></span>--}}
+{{--        <span>1</span>--}}
+{{--      </li>--}}
+{{--      <li>--}}
+{{--        <span>2. Agreement Terms</span>--}}
+{{--        <span class="dots"></span>--}}
+{{--        <span>2</span>--}}
+{{--      </li>--}}
+{{--      <li>--}}
+{{--        <span>3. Financial Terms</span>--}}
+{{--        <span class="dots"></span>--}}
+{{--        <span>3</span>--}}
+{{--      </li>--}}
+{{--      <li>--}}
+{{--        <span>4. Maintenance and Service Level</span>--}}
+{{--        <span class="dots"></span>--}}
+{{--        <span>4</span>--}}
+{{--      </li>--}}
+{{--      <li>--}}
+{{--        <span>5. Intellectual Property Rights</span>--}}
+{{--        <span class="dots"></span>--}}
+{{--        <span>5</span>--}}
+{{--      </li>--}}
+{{--      <li>--}}
+{{--        <span>6. Confidentiality</span>--}}
+{{--        <span class="dots"></span>--}}
+{{--        <span>6</span>--}}
+{{--      </li>--}}
+{{--      <li>--}}
+{{--        <span>7. Liability and Indemnification</span>--}}
+{{--        <span class="dots"></span>--}}
+{{--        <span>7</span>--}}
+{{--      </li>--}}
+{{--      <li>--}}
+{{--        <span>8. Terms and Termination</span>--}}
+{{--        <span class="dots"></span>--}}
+{{--        <span>8</span>--}}
+{{--      </li>--}}
+{{--      <li>--}}
+{{--        <span>9. Force Majeure</span>--}}
+{{--        <span class="dots"></span>--}}
+{{--        <span>9</span>--}}
+{{--      </li>--}}
+{{--      <li>--}}
+{{--        <span>10. Governing Law and Jurisdiction</span>--}}
+{{--        <span class="dots"></span>--}}
+{{--        <span>10</span>--}}
+{{--      </li>--}}
+{{--    </ul>--}}
+{{--  </div>--}}
 
   {{-- Definitions Section --}}
-  @include('contracts.templates.premium.sections.definitions')
+{{--  @include('contracts.templates.premium.sections.definitions')--}}
 
   {{-- Agreement Terms --}}
   <div class="section">
-    <h2 class="section-title">2. AGREEMENT TERMS</h2>
+    <h2 class="section-title">1. AGREEMENT TERMS</h2>
 
     <p>
-      This Premium Advertising Agreement (the "Agreement") is made and entered into on
+      This <strong>Agreement</strong> (the "Agreement") is made and entered into on
       <strong>{{ $contract->updated_at->format('jS F Y') }}</strong> between:
     </p>
 
@@ -200,7 +187,6 @@
       <tr>
         <th style="width: 25%;">Billboard Code</th>
         <th style="width: 35%;">Location Details</th>
-        <th style="width: 20%;">Specifications</th>
         <th style="width: 20%;" class="text-right">Monthly Rate</th>
       </tr>
       </thead>
@@ -208,24 +194,25 @@
       @foreach($contract->billboards as $billboard)
         <tr>
           <td>
-            <div class="font-bold">{{ $billboard->code }}</div>
-            <div class="text-sm text-gray">{{ $billboard->size }}</div>
+            <div class="font-bold">
+              {{ $billboard->code }}
+            </div>
+
+            <div class="text-gray">{{ $billboard->size }}</div>
           </td>
+
           <td>
-            <div>{{ $billboard->location->name }}</div>
-            <div>{{ $billboard->name }}</div>
-            <div class="text-sm text-gray">
+            <div>
+              {{ $billboard->name }}, {{ $billboard->location->name }}
+            </div>
+
+            <div class="text-gray">
               {{ $billboard->location->city->name }},
-              {{ $billboard->location->state->name }}
+              {{ $billboard->location->state->name }},
+              {{ $billboard->location->country->name }}
             </div>
           </td>
-          <td>
-            <div class="text-sm">
-              Size: {{ $billboard->dimensions }}<br>
-              Type: {{ $billboard->type }}<br>
-              Visibility: {{ $billboard->visibility_rating }}
-            </div>
-          </td>
+
           <td class="text-right">
             {{ $contract->currency->symbol }}
             {{ number_format($billboard->pivot->billboard_base_price, 2) }}
@@ -235,7 +222,7 @@
       </tbody>
       <tfoot>
       <tr>
-        <td colspan="3" class="text-right"><strong>Subtotal:</strong></td>
+        <td colspan="2" class="text-right"><strong>Subtotal:</strong></td>
         <td class="text-right">
           <strong>
             {{ $contract->currency->symbol }}
@@ -245,24 +232,24 @@
       </tr>
       @if($contract->contract_discount > 0)
         <tr>
-          <td colspan="3" class="text-right">Volume Discount:</td>
+          <td colspan="2" class="text-right">Volume Discount:</td>
           <td class="text-right">
             {{ $contract->currency->symbol }}
             {{ number_format($contract->contract_discount, 2) }}
           </td>
         </tr>
       @endif
-      @if($contract->tax_amount > 0)
-        <tr>
-          <td colspan="3" class="text-right">Tax ({{ $contract->tax_rate }}%):</td>
-          <td class="text-right">
-            {{ $contract->currency->symbol }}
-            {{ number_format($contract->tax_amount, 2) }}
-          </td>
-        </tr>
-      @endif
+{{--      @if($contract->tax_amount > 0)--}}
+{{--        <tr>--}}
+{{--          <td colspan="2" class="text-right">Tax ({{ $contract->tax_rate }}%):</td>--}}
+{{--          <td class="text-right">--}}
+{{--            {{ $contract->currency->symbol }}--}}
+{{--            {{ number_format($contract->tax_amount, 2) }}--}}
+{{--          </td>--}}
+{{--        </tr>--}}
+{{--      @endif--}}
       <tr>
-        <td colspan="3" class="text-right"><strong>Total Monthly Amount:</strong></td>
+        <td colspan="2" class="text-right"><strong>Total Amount:</strong></td>
         <td class="text-right">
           <strong>
             {{ $contract->currency->symbol }}
@@ -284,15 +271,15 @@
   @include('contracts.templates.premium.sections.liability')
   @include('contracts.templates.premium.sections.termination')
   @include('contracts.templates.premium.sections.force-majeure')
-  @include('contracts.templates.premium.sections.governing-law')
+{{--  @include('contracts.templates.premium.sections.governing-law')--}}
 
   {{-- Special Terms if any --}}
-  @if($contract->special_terms)
-    <div class="section">
-      <h2 class="section-title">SPECIAL TERMS AND CONDITIONS</h2>
-      {!! $contract->special_terms !!}
-    </div>
-  @endif
+{{--  @if($contract->special_terms)--}}
+{{--    <div class="section">--}}
+{{--      <h2 class="section-title">SPECIAL TERMS AND CONDITIONS</h2>--}}
+{{--      {!! $contract->special_terms !!}--}}
+{{--    </div>--}}
+{{--  @endif--}}
 
   {{-- Signature Section with Professional Layout --}}
   <div class="signatures">
@@ -305,7 +292,9 @@
       {{-- Company Signature Box --}}
       <div class="signature-box">
         <div class="mb-2">For and on behalf of:</div>
-        <h4 class="font-bold mb-4">{{ $settings->getCompanyProfile()['name'] }}</h4>
+        <h4 class="font-bold mb-4">
+          {{ $settings->getCompanyProfile()['name'] }} <strong>("the Company")</strong>
+        </h4>
 
         @if(isset($contract->signatures['company']))
           <img src="{{ $contract->signatures['company'] }}"
@@ -351,7 +340,9 @@
       {{-- Client Signature Box --}}
       <div class="signature-box">
         <div class="mb-2">For and on behalf of:</div>
-        <h4 class="font-bold mb-4">{{ $contract->client->company ?: $contract->client->name }}</h4>
+        <h4 class="font-bold mb-4">
+          {{ $contract->client->company ?: $contract->client->name }} <strong>("the Client")</strong>
+        </h4>
 
         @if(isset($contract->signatures['client']))
           <img src="{{ $contract->signatures['client'] }}"

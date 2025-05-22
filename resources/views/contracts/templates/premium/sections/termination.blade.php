@@ -21,51 +21,51 @@
     </ol>
   </div>
 
-  <div class="subsection">
-    <h3>8.3 Consequences of Termination</h3>
-    <table class="termination-table">
-      <thead>
-      <tr>
-        <th>Timeline</th>
-        <th>Client Obligations</th>
-        <th>Company Obligations</th>
-      </tr>
-      </thead>
-      <tbody>
-      <tr>
-        <td>Immediate</td>
-        <td>
-          - Cease using the Advertising Space<br>
-          - Pay all outstanding amounts
-        </td>
-        <td>
-          - Remove Advertising Content<br>
-          - Secure the space
-        </td>
-      </tr>
-      <tr>
-        <td>Within 7 days</td>
-        <td>
-          - Return any Company property<br>
-          - Provide final artwork files
-        </td>
-        <td>
-          - Return any Client property<br>
-          - Provide final documentation
-        </td>
-      </tr>
-      <tr>
-        <td>Within 30 days</td>
-        <td>
-          - Settle any termination fees<br>
-          - Complete exit inspection
-        </td>
-        <td>
-          - Provide final invoices<br>
-          - Complete site restoration
-        </td>
-      </tr>
-      </tbody>
-    </table>
-  </div>
+{{--  <div class="subsection">--}}
+{{--    <h3>8.3 Consequences of Termination</h3>--}}
+{{--    <table class="termination-table">--}}
+{{--      <thead>--}}
+{{--      <tr>--}}
+{{--        <th>Timeline</th>--}}
+{{--        <th>Client Obligations</th>--}}
+{{--        <th>Company Obligations</th>--}}
+{{--      </tr>--}}
+{{--      </thead>--}}
+{{--      <tbody>--}}
+{{--      <tr>--}}
+{{--        <td>Immediate</td>--}}
+{{--        <td>--}}
+{{--          - Cease using the Advertising Space<br>--}}
+{{--          - Pay all outstanding amounts--}}
+{{--        </td>--}}
+{{--        <td>--}}
+{{--          - Remove Advertising Content<br>--}}
+{{--          - Secure the space--}}
+{{--        </td>--}}
+{{--      </tr>--}}
+{{--      <tr>--}}
+{{--        <td>Within 7 days</td>--}}
+{{--        <td>--}}
+{{--          - Return any Company property<br>--}}
+{{--          - Provide final artwork files--}}
+{{--        </td>--}}
+{{--        <td>--}}
+{{--          - Return any Client property<br>--}}
+{{--          - Provide final documentation--}}
+{{--        </td>--}}
+{{--      </tr>--}}
+{{--      <tr>--}}
+{{--        <td>Within 30 days</td>--}}
+{{--        <td>--}}
+{{--          - Settle any termination fees<br>--}}
+{{--          - Complete exit inspection--}}
+{{--        </td>--}}
+{{--        <td>--}}
+{{--          - Provide final invoices<br>--}}
+{{--          - Complete site restoration--}}
+{{--        </td>--}}
+{{--      </tr>--}}
+{{--      </tbody>--}}
+{{--    </table>--}}
+{{--  </div>--}}
 </div>

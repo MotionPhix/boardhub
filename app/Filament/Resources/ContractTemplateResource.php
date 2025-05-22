@@ -19,7 +19,11 @@ class ContractTemplateResource extends Resource
 
   protected static ?string $navigationIcon = 'heroicon-o-document-duplicate';
 
+  protected static ?string $navigationLabel = 'Templates';
+
   protected static ?string $navigationGroup = 'Management';
+
+  protected static ?int $navigationSort = 6;
 
   public static function form(Form $form): Form
   {
