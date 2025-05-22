@@ -7,7 +7,7 @@ use Illuminate\Support\Facades\Storage;
 
 class ContractTemplatePreview extends Widget
 {
-  protected static string $view = 'filament.resources.contract-template-resource.widgets.contract-template-preview';
+  protected static string $view = 'filament.widgets.contract-template-preview-widget';
 
   public $record;
 

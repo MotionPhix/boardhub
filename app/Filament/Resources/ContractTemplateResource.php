@@ -6,10 +6,12 @@ use App\Filament\Resources\ContractTemplateResource\Pages;
 use App\Models\ContractTemplate;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
 use App\Jobs\GenerateContractTemplatePreview;
+use Illuminate\Support\Str;
 
 class ContractTemplateResource extends Resource
 {

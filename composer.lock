@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "5a20f117e728956a62730ccb8e6f2aa5",
+    "content-hash": "3a810cadfcaf79040dc4596bfae5c1ad",
     "packages": [
         {
             "name": "althinect/filament-spatie-roles-permissions",
@@ -211,6 +211,58 @@
                 }
             ],
             "time": "2025-02-13T15:07:54+00:00"
+        },
+        {
+            "name": "beganovich/snappdf",
+            "version": "v5.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/beganovich/snappdf.git",
+                "reference": "340e877e63ef98db82766a8d8a853d7759cf79fa"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/beganovich/snappdf/zipball/340e877e63ef98db82766a8d8a853d7759cf79fa",
+                "reference": "340e877e63ef98db82766a8d8a853d7759cf79fa",
+                "shasum": ""
+            },
+            "require": {
+                "ext-zip": "*",
+                "php": ">=8.2",
+                "symfony/console": "^7.1",
+                "symfony/filesystem": "^7.1",
+                "symfony/process": "^7.1"
+            },
+            "require-dev": {
+                "ext-fileinfo": "*",
+                "friendsofphp/php-cs-fixer": "^3.6",
+                "phpunit/phpunit": "^11.4"
+            },
+            "bin": [
+                "snappdf"
+            ],
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Beganovich\\Snappdf\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Benjamin Beganović",
+                    "email": "k1pstabug@gmail.com"
+                }
+            ],
+            "description": "Convert webpages or HTML into the PDF file using Chromium or Google Chrome.",
+            "support": {
+                "issues": "https://github.com/beganovich/snappdf/issues",
+                "source": "https://github.com/beganovich/snappdf/tree/v5.0.1"
+            },
+            "time": "2024-11-20T17:31:20+00:00"
         },
         {
             "name": "bezhansalleh/filament-shield",
@@ -7967,6 +8019,72 @@
                 }
             ],
             "time": "2024-09-25T14:20:29+00:00"
+        },
+        {
+            "name": "symfony/filesystem",
+            "version": "v7.2.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/symfony/filesystem.git",
+                "reference": "b8dce482de9d7c9fe2891155035a7248ab5c7fdb"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/symfony/filesystem/zipball/b8dce482de9d7c9fe2891155035a7248ab5c7fdb",
+                "reference": "b8dce482de9d7c9fe2891155035a7248ab5c7fdb",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=8.2",
+                "symfony/polyfill-ctype": "~1.8",
+                "symfony/polyfill-mbstring": "~1.8"
+            },
+            "require-dev": {
+                "symfony/process": "^6.4|^7.0"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Symfony\\Component\\Filesystem\\": ""
+                },
+                "exclude-from-classmap": [
+                    "/Tests/"
+                ]
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Fabien Potencier",
+                    "email": "fabien@symfony.com"
+                },
+                {
+                    "name": "Symfony Community",
+                    "homepage": "https://symfony.com/contributors"
+                }
+            ],
+            "description": "Provides basic utilities for the filesystem",
+            "homepage": "https://symfony.com",
+            "support": {
+                "source": "https://github.com/symfony/filesystem/tree/v7.2.0"
+            },
+            "funding": [
+                {
+                    "url": "https://symfony.com/sponsor",
+                    "type": "custom"
+                },
+                {
+                    "url": "https://github.com/fabpot",
+                    "type": "github"
+                },
+                {
+                    "url": "https://tidelift.com/funding/github/packagist/symfony/symfony",
+                    "type": "tidelift"
+                }
+            ],
+            "time": "2024-10-25T15:15:23+00:00"
         },
         {
             "name": "symfony/finder",
