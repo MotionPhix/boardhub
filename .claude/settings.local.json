@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:developer.paychangu.com)",
+      "Bash(php artisan test:*)",
+      "Bash(where php)",
+      "Bash(C:Usersultrashots.configherdbinphp.bat artisan test --filter=PayChanguIntegrationTest)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "laravel-boost"
+  ]
+}

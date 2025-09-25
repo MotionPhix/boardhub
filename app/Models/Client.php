@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToTenant;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -13,9 +14,10 @@ use Spatie\MediaLibrary\InteractsWithMedia;
 
 class Client extends Model implements HasMedia
 {
-  use HasFactory, SoftDeletes, InteractsWithMedia, HasUuid;
+  use HasFactory, SoftDeletes, InteractsWithMedia, HasUuid, BelongsToTenant;
 
   protected $fillable = [
+    'tenant_id',
     'name',
     'email',
     'phone',
@@ -29,6 +31,11 @@ class Client extends Model implements HasMedia
   public function contracts(): HasMany
   {
     return $this->hasMany(Contract::class);
+  }
+
+  public function bookings(): HasMany
+  {
+    return $this->hasMany(Booking::class);
   }
 
   public function registerMediaCollections(): void

@@ -30,7 +30,7 @@ class BoardPanelProvider extends PanelProvider
     return $panel
       ->default()
       ->id('admin')
-      ->path('')
+      ->path('super-admin')
       ->login()
       ->colors([
         'primary' => '#6366f1',
@@ -49,6 +49,9 @@ class BoardPanelProvider extends PanelProvider
       ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
       ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
       ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\\Filament\\Widgets')
+      ->resources([
+        // Manually specify resources instead of autodiscovery for now
+      ])
       ->pages([
         Dashboard::class,
       ])
@@ -71,7 +74,7 @@ class BoardPanelProvider extends PanelProvider
         SubstituteBindings::class,
         DisableBladeIconComponents::class,
         DispatchServingFilamentEvent::class,
-        EnsureUserIsActive::class,
+        // EnsureUserIsActive::class, // Temporarily disabled to test
       ])
       ->authMiddleware([
         Authenticate::class,

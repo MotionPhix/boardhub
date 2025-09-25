@@ -1,0 +1,46 @@
+PROJECT BRIEF: AdPro
+===================================
+
+## App Concept
+
+**Pitch:** A centralized platform for Malawian ad agencies to instantly find, price, and book available billboard advertising space in real-time.
+
+**Description:** AdPro is a web application designed to streamline the fragmented billboard advertising process in Malawi. It connects both clients and the advertising agencies' teams with billboard owners, providing a dynamic marketplace to search inventory, get transparent, real-time pricing, and manage bookings efficiently. This eliminates the current pain points of manual inquiries, slow negotiations, and lack of visibility into ad space availability.
+
+## 12-Month Development Roadmap
+
+### Q1: Foundation & Prototyping
+**Focus:** Deeply understand the Malawian ad market and design the core user experience.
+**Milestones:**
+- Conduct comprehensive market research: Interview 10+ Malawian ad agencies and billboard owners to identify pain points and ideal features.
+- Define the Minimum Viable Product (MVP) feature set, focusing on instant pricing and real-time availability for a specific billboard type.
+- Create detailed wireframes and high-fidelity UI/UX mockups for the MVP, leveraging your graphic design skills to envision a user-friendly platform.
+- Design the core database schema for billboard inventory, locations, and pricing models, laying a solid technical foundation.
+
+### Q2: Building the Engine & Gathering Data
+**Focus:** Bring the MVP to life and populate it with initial, crucial inventory data.
+**Milestones:**
+- Develop the core web application (front-end and back-end) for the MVP, focusing on robust functionality and a clean user interface.
+- Secure agreements with 5-7 early-adopter billboard owners/agencies to integrate their inventory data into 'AdPro'.
+- Implement the dynamic search and instant pricing calculation functionalities, making the platform truly useful.
+- Launch a simple, professional landing page to attract early interest and collect email sign-ups for beta access.
+
+### Q3: User Validation & Pilot Program
+**Focus:** Get 'AdPro' into the hands of real users for invaluable feedback and a controlled pilot.
+**Milestones:**
+- Conduct intensive internal testing and gather feedback from 3-5 friendly ad agencies, refining the user experience and squashing initial bugs.
+- Implement critical feature improvements and UI/UX adjustments based on early user feedback, ensuring the app is intuitive and efficient.
+- Launch a structured private beta program with 2-3 key Malawian ad agencies, closely monitoring their usage and collecting detailed input.
+- Develop simple, clear onboarding guides and a basic FAQ section to support your early pilot users effectively.
+
+### Q4: Market Launch & First Wins
+**Focus:** Officially introduce 'AdPro' to the market and secure your foundational paying clients.
+**Milestones:**
+- Perform a final quality assurance check, addressing any remaining bugs and optimizing performance for a smooth public launch.
+- Develop a focused go-to-market plan, including outreach strategies to Malawian ad agencies and compelling communication materials.
+- Officially launch 'AdPro' to the broader Malawian advertising market, showcasing its benefits and unique value.
+- Secure your first 1-2 paying ad agency clients, gathering testimonials and success stories to fuel future growth.
+
+===================================
+INSTRUCTIONS FOR LLM MCP SERVER:
+Based on the project brief above, generate the code structure for a new web application.
