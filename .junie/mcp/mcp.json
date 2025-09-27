@@ -6,6 +6,15 @@
                 "E:\\Sites\\adpro\\artisan",
                 "boost:mcp"
             ]
+        },
+        "herd": {
+            "command": "C:\\Users\\ultrashots\\.config\\herd\\bin\\php84\\php.exe",
+            "args": [
+                "C:/Users/ultrashots/.config/herd/bin/herd-mcp.phar"
+            ],
+            "env": {
+                "SITE_PATH": "E:\\Sites\\adpro"
+            }
         }
     }
 }

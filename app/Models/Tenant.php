@@ -82,6 +82,29 @@ class Tenant extends Model
         return $this->hasMany(User::class);
     }
 
+    public function memberships(): HasMany
+    {
+        return $this->hasMany(Membership::class);
+    }
+
+    public function activeMembers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'memberships')
+            ->withPivot(['role', 'status', 'permissions', 'joined_at', 'last_accessed_at'])
+            ->wherePivot('status', Membership::STATUS_ACTIVE)
+            ->withTimestamps();
+    }
+
+    public function owners(): BelongsToMany
+    {
+        return $this->activeMembers()->wherePivot('role', Membership::ROLE_OWNER);
+    }
+
+    public function admins(): BelongsToMany
+    {
+        return $this->activeMembers()->wherePivotIn('role', [Membership::ROLE_OWNER, Membership::ROLE_ADMIN]);
+    }
+
     public function billboards(): HasMany
     {
         return $this->hasMany(Billboard::class);

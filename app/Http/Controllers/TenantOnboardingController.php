@@ -13,7 +13,7 @@ class TenantOnboardingController extends Controller
     {
         $tenant = app('tenant');
 
-        return Inertia::render('Onboarding/Index', [
+        return Inertia::render('onboarding/Index', [
             'tenant' => [
                 'id' => $tenant->id,
                 'uuid' => $tenant->uuid,

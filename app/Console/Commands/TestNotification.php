@@ -42,7 +42,7 @@ class TestNotification extends Command
     }
 
     $this->info("\nCheck these places:");
-    $this->line('1. The notifications page in Filament');
+    $this->line('1. The custom admin notifications panel');
     $this->line('2. The database notifications table');
 
     return 0;

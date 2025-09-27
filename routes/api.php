@@ -1,16 +1,92 @@
 <?php
 
+use App\Http\Controllers\Api\WebhookController;
+use App\Http\Controllers\Api\HealthCheckController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\TenantApiController;
 use App\Http\Controllers\Api\SearchController;
 use App\Http\Controllers\Api\BillboardDiscoveryController;
 use App\Http\Controllers\BookingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+|
+| Secure API routes with rate limiting and authentication.
+| Includes webhooks, health checks, and external integrations.
+|
+*/
 
-Route::get('/search', SearchController::class)->name('api.search');
+// Public API Routes (with rate limiting)
+Route::middleware(['api', 'throttle:60,1'])->group(function () {
+
+    // Health Check Endpoints
+    Route::prefix('health')->name('api.health.')->group(function () {
+        Route::get('/', [HealthCheckController::class, 'basic'])->name('basic');
+        Route::get('/detailed', [HealthCheckController::class, 'detailed'])->name('detailed');
+        Route::get('/database', [HealthCheckController::class, 'database'])->name('database');
+        Route::get('/cache', [HealthCheckController::class, 'cache'])->name('cache');
+        Route::get('/storage', [HealthCheckController::class, 'storage'])->name('storage');
+    });
+
+    // System Status (Public)
+    Route::get('/status', [HealthCheckController::class, 'systemStatus'])->name('api.status');
+
+    // Legacy search endpoint
+    Route::get('/search', SearchController::class)->name('api.search');
+
+    // Webhook Endpoints (with signature verification)
+    Route::prefix('webhooks')->name('api.webhooks.')->group(function () {
+
+        // PayChangu Payment Webhooks
+        Route::post('/payments/paychangu', [WebhookController::class, 'paychanguPayment'])
+            ->name('payments.paychangu');
+
+        // Generic payment webhook handler
+        Route::post('/payments/{provider}', [WebhookController::class, 'paymentWebhook'])
+            ->name('payments.provider')
+            ->where('provider', 'paychangu|airtel|tnm');
+
+        // System webhooks (for monitoring services)
+        Route::post('/system/alerts', [WebhookController::class, 'systemAlert'])
+            ->name('system.alerts');
+    });
+});
+
+// Authentication API Routes
+Route::prefix('auth')->name('api.auth.')->middleware(['api', 'throttle:10,1'])->group(function () {
+
+    // API Token Authentication
+    Route::post('/login', [AuthController::class, 'login'])->name('login');
+    Route::post('/register', [AuthController::class, 'register'])->name('register');
+    Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
+
+    // Authenticated API routes
+    Route::middleware('auth:sanctum')->group(function () {
+        Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+        Route::get('/user', [AuthController::class, 'user'])->name('user');
+        Route::post('/revoke-tokens', [AuthController::class, 'revokeTokens'])->name('revoke-tokens');
+    });
+});
+
+// Authenticated API Routes
+Route::middleware(['auth:sanctum', 'throttle:100,1'])->group(function () {
+
+    // User API
+    Route::prefix('user')->name('api.user.')->group(function () {
+        Route::get('/profile', [AuthController::class, 'profile'])->name('profile');
+        Route::put('/profile', [AuthController::class, 'updateProfile'])->name('profile.update');
+        Route::get('/tenants', [TenantApiController::class, 'userTenants'])->name('tenants');
+        Route::get('/permissions', [AuthController::class, 'permissions'])->name('permissions');
+    });
+
+    // Customer-facing API routes
+    Route::post('/bookings', [BookingController::class, 'store'])->name('api.bookings.store');
+    Route::post('/bookings/quick', [BookingController::class, 'quickBook'])->name('api.bookings.quick');
+});
 
 // Tenant-scoped API routes
 Route::prefix('t/{tenant:uuid}')->middleware(['resolve.tenant'])->group(function () {
@@ -79,20 +155,4 @@ Route::prefix('t/{tenant:uuid}')->middleware(['resolve.tenant'])->group(function
         Route::put('/{paymentUuid}/cancel', [App\Http\Controllers\Api\PaymentController::class, 'cancelPayment'])
             ->name('api.tenant.payments.cancel');
     });
-});
-
-// Payment webhooks (outside tenant scope)
-Route::prefix('webhooks/payments')->group(function () {
-    Route::post('/{provider}', [App\Http\Controllers\Api\PaymentController::class, 'handleWebhook'])
-        ->name('api.payments.webhook');
-
-    // PayChangu specific webhook endpoint
-    Route::post('/paychangu', [App\Http\Controllers\Api\PaymentController::class, 'handleWebhook'])
-        ->name('api.payments.webhook.paychangu');
-});
-
-// Customer-facing API routes
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/bookings', [BookingController::class, 'store'])->name('api.bookings.store');
-    Route::post('/bookings/quick', [BookingController::class, 'quickBook'])->name('api.bookings.quick');
 });

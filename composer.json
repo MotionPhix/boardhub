@@ -11,26 +11,24 @@
   "require": {
     "php": "^8.2",
     "barryvdh/laravel-dompdf": "^3.1",
-    "bezhansalleh/filament-shield": "^3.3",
     "calebporzio/sushi": "^2.0",
     "creagia/laravel-sign-pad": "^2.1",
-    "filament/filament": "^3.3",
-    "filament/notifications": "^3.3",
-    "filament/spatie-laravel-media-library-plugin": "^3.2",
     "hirethunk/verbs": "^0.7",
-    "inertiajs/inertia-laravel": "^2.0",
+    "inertiajs/inertia-laravel": "*",
+    "laravel/fortify": "^1.24",
     "laravel/framework": "^12.0",
     "laravel/sanctum": "^4.0",
     "laravel/tinker": "^2.10.1",
-    "leandrocfe/filament-apex-charts": "^3.1",
     "protonemedia/laravel-cross-eloquent-search": "^3.0",
     "pusher/pusher-php-server": "^7.2",
+    "spatie/laravel-activitylog": "^4.8",
     "spatie/laravel-medialibrary": "^11.0",
+    "spatie/laravel-permission": "^6.10",
     "tightenco/ziggy": "^2.6"
   },
   "require-dev": {
     "fakerphp/faker": "^1.23",
-    "laravel/boost": "^1.1",
+    "laravel/boost": "^1.2",
     "laravel/pail": "^1.2.2",
     "laravel/pint": "^1.13",
     "laravel/sail": "^1.41",
@@ -54,8 +52,7 @@
   "scripts": {
     "post-autoload-dump": [
       "Illuminate\\Foundation\\ComposerScripts::postAutoloadDump",
-      "@php artisan package:discover --ansi",
-      "@php artisan filament:upgrade"
+      "@php artisan package:discover --ansi"
     ],
     "post-update-cmd": [
       "@php artisan vendor:publish --tag=laravel-assets --ansi --force"

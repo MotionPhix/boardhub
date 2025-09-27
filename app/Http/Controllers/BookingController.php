@@ -22,7 +22,7 @@ class BookingController extends Controller
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return Inertia::render('Bookings/Index', [
+        return Inertia::render('bookings/Index', [
             'bookings' => $bookings,
         ]);
     }
@@ -63,7 +63,7 @@ class BookingController extends Controller
         // Load booking state for real-time information
         $bookingState = $booking->getBookingState();
 
-        return Inertia::render('Bookings/Show', [
+        return Inertia::render('bookings/Show', [
             'booking' => $booking,
             'bookingState' => [
                 'price_negotiations' => $bookingState->price_negotiations,
@@ -82,7 +82,7 @@ class BookingController extends Controller
 
         $billboard = Billboard::findOrFail($request->billboard_id);
 
-        return Inertia::render('Bookings/QuickBook', [
+        return Inertia::render('bookings/QuickBook', [
             'billboard' => $billboard,
             'suggestedDates' => [
                 'start_date' => now()->addWeek()->format('Y-m-d'),

@@ -4,7 +4,13 @@
       "WebFetch(domain:developer.paychangu.com)",
       "Bash(php artisan test:*)",
       "Bash(where php)",
-      "Bash(C:Usersultrashots.configherdbinphp.bat artisan test --filter=PayChanguIntegrationTest)"
+      "Bash(C:Usersultrashots.configherdbinphp.bat artisan test --filter=PayChanguIntegrationTest)",
+      "WebFetch(domain:www.flightcontrol.dev)",
+      "Bash(php artisan migrate:*)",
+      "Bash(a migrate:status)",
+      "Bash(\"C:\\Users\\ultrashots\\.config\\herd\\bin\\php.bat\" -r \"echo ''Removing Filament packages...'';\")",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
