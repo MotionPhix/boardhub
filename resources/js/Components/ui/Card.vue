@@ -32,13 +32,13 @@ const props = withDefaults(defineProps<Props>(), {
   shadow: 'md'
 })
 
-const baseClasses = 'bg-white overflow-hidden'
+const baseClasses = 'bg-white dark:bg-gray-800 overflow-hidden'
 
 const variantClasses = {
-  default: 'border border-gray-200',
-  outlined: 'border-2 border-gray-200',
+  default: 'border border-gray-200 dark:border-gray-700',
+  outlined: 'border-2 border-gray-200 dark:border-gray-600',
   elevated: 'border-0',
-  filled: 'bg-gray-50 border border-gray-200'
+  filled: 'bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600'
 }
 
 const roundedClasses = {
@@ -72,7 +72,7 @@ const cardClasses = computed(() => [
 ].filter(Boolean).join(' '))
 
 const headerClasses = computed(() => [
-  'border-b border-gray-200 bg-gray-50',
+  'border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700',
   paddingClasses[props.padding]
 ].filter(Boolean).join(' '))
 
@@ -81,7 +81,7 @@ const contentClasses = computed(() => [
 ].filter(Boolean).join(' '))
 
 const footerClasses = computed(() => [
-  'border-t border-gray-200 bg-gray-50',
+  'border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700',
   paddingClasses[props.padding]
 ].filter(Boolean).join(' '))
 </script>

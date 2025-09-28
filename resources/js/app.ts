@@ -7,29 +7,38 @@ import {resolvePageComponent} from 'laravel-vite-plugin/inertia-helpers';
 import {ZiggyVue} from 'ziggy-js';
 import {createPinia} from 'pinia';
 import {renderApp, putConfig} from '@inertiaui/modal-vue';
+import VueApexCharts from 'vue3-apexcharts';
 
-// Real-time features
+// Real-time features with Laravel Echo
+import { configureEcho } from '@laravel/echo-vue';
 import './realtime';
+
+configureEcho({
+    broadcaster: 'pusher',
+    key: import.meta.env.VITE_PUSHER_APP_KEY,
+    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
+    forceTLS: true,
+});
 
 const appName = import.meta.env.VITE_APP_NAME || 'AdPro';
 const pinia = createPinia();
 
-// Configure InertiaUI Modal defaults
+// Configure InertiaUI Modal defaults with dark mode support
 putConfig({
   modal: {
-    closeButton: true,
+    closeButton: false,
     closeExplicitly: false,
     maxWidth: '2xl',
-    paddingClasses: 'p-6',
-    panelClasses: 'bg-white rounded-lg shadow-2xl',
+    paddingClasses: 'p-0',
+    panelClasses: 'bg-white dark:bg-gray-800 rounded-xl shadow-2xl ring-1 ring-gray-900/10 dark:ring-gray-700 overflow-hidden',
     position: 'center',
   },
   slideover: {
-    closeButton: true,
+    closeButton: false,
     closeExplicitly: false,
     maxWidth: 'md',
-    paddingClasses: 'p-6',
-    panelClasses: 'bg-white min-h-screen shadow-2xl',
+    paddingClasses: 'p-0',
+    panelClasses: 'bg-white dark:bg-gray-800 min-h-screen shadow-2xl ring-1 ring-gray-900/10 dark:ring-gray-700',
     position: 'right',
   },
 });
@@ -41,10 +50,8 @@ createInertiaApp({
     const app = createApp({render: renderApp(App, props)})
       .use(plugin)
       .use(ZiggyVue)
-      .use(pinia);
-
-    // Make Echo available globally
-    app.config.globalProperties.$echo = window.Echo;
+      .use(pinia)
+      .use(VueApexCharts);
 
     return app.mount(el);
   },

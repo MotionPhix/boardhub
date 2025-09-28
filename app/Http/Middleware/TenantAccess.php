@@ -21,7 +21,7 @@ class TenantAccess
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $tenant = $request->route('tenant');
+        $tenant = app('tenant'); // Get resolved tenant from container
         $user = $request->user();
 
         // Allow public access to certain tenant routes

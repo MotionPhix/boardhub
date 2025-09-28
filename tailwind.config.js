@@ -1,8 +1,13 @@
 import defaultTheme from 'tailwindcss/defaultTheme';
 import colors from 'tailwindcss/colors';
+import scrollbar from 'tailwind-scrollbar';
+import forms from '@tailwindcss/forms';
+import typography from '@tailwindcss/typography';
+import animate from 'tailwindcss-animate';
 
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: [
     './resources/**/*.blade.php',
     './resources/**/*.js',
@@ -22,6 +27,11 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    forms,
+    typography,
+    scrollbar,
+    animate
+  ],
 }
 

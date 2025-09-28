@@ -4,11 +4,11 @@
       :is="as"
       :href="href"
       :class="[
-        active ? 'bg-gray-100 text-gray-900' : 'text-gray-700',
+        active ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100' : 'text-gray-700 dark:text-gray-300',
         'group flex items-center px-4 py-2 text-sm transition-colors',
         disabled && 'opacity-50 cursor-not-allowed',
-        destructive && !disabled && 'text-red-700',
-        destructive && active && !disabled && 'bg-red-50 text-red-900'
+        destructive && !disabled && 'text-red-700 dark:text-red-400',
+        destructive && active && !disabled && 'bg-red-50 dark:bg-red-900/20 text-red-900 dark:text-red-100'
       ]"
       :disabled="disabled"
       @click="handleClick(close, $event)"
@@ -18,9 +18,9 @@
         :is="icon"
         :class="[
           'mr-3 h-4 w-4 flex-shrink-0',
-          active && !destructive ? 'text-gray-500' : 'text-gray-400',
-          destructive && !disabled && 'text-red-500',
-          destructive && active && !disabled && 'text-red-600'
+          active && !destructive ? 'text-gray-500 dark:text-gray-400' : 'text-gray-400 dark:text-gray-500',
+          destructive && !disabled && 'text-red-500 dark:text-red-400',
+          destructive && active && !disabled && 'text-red-600 dark:text-red-300'
         ]"
       />
 

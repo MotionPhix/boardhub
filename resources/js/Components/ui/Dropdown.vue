@@ -22,7 +22,7 @@
     >
       <MenuItems
         :class="[
-          'absolute z-10 mt-2 origin-top-right rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none',
+          'absolute z-10 mt-2 origin-top-right rounded-md bg-white dark:bg-gray-800 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 focus:outline-none border border-gray-200 dark:border-gray-700',
           positionClasses,
           widthClasses
         ]"
@@ -60,9 +60,9 @@ const props = withDefaults(defineProps<Props>(), {
 const baseButtonClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500'
 
 const variantClasses = {
-  default: 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50',
-  outline: 'bg-transparent text-gray-700 border border-gray-300 hover:bg-gray-50',
-  ghost: 'bg-transparent text-gray-700 hover:bg-gray-100'
+  default: 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700',
+  outline: 'bg-transparent text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700',
+  ghost: 'bg-transparent text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
 }
 
 const sizeClasses = {

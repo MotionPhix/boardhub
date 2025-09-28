@@ -2,7 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\TwoFactorAuthController;
-use App\Http\Controllers\Auth\SocialAuthController;
+// use App\Http\Controllers\Auth\SocialAuthController; // Disabled - requires Laravel Socialite
 use App\Http\Controllers\TenantSwitchController;
 use Illuminate\Support\Facades\Route;
 
@@ -19,16 +19,16 @@ use Illuminate\Support\Facades\Route;
 // Enhanced Authentication Routes
 Route::middleware('guest')->group(function () {
 
-    // Social Authentication (if enabled)
-    Route::prefix('auth')->name('auth.')->group(function () {
-        Route::get('/{provider}', [SocialAuthController::class, 'redirect'])
-            ->name('social.redirect')
-            ->where('provider', 'google|github|linkedin');
+    // Social Authentication (disabled - requires Laravel Socialite package)
+    // Route::prefix('auth')->name('auth.')->group(function () {
+    //     Route::get('/{provider}', [SocialAuthController::class, 'redirect'])
+    //         ->name('social.redirect')
+    //         ->where('provider', 'google|github|linkedin');
 
-        Route::get('/{provider}/callback', [SocialAuthController::class, 'callback'])
-            ->name('social.callback')
-            ->where('provider', 'google|github|linkedin');
-    });
+    //     Route::get('/{provider}/callback', [SocialAuthController::class, 'callback'])
+    //         ->name('social.callback')
+    //         ->where('provider', 'google|github|linkedin');
+    // });
 
     // Custom login enhancements
     Route::post('/login/security-check', [AuthenticatedSessionController::class, 'securityCheck'])
@@ -38,8 +38,8 @@ Route::middleware('guest')->group(function () {
 // Authenticated Routes
 Route::middleware('auth')->group(function () {
 
-    // Two-Factor Authentication Management
-    Route::prefix('two-factor')->name('two-factor.')->group(function () {
+    // Two-Factor Authentication Management (Custom)
+    Route::prefix('two-factor')->name('two-factor.custom.')->group(function () {
         Route::get('/setup', [TwoFactorAuthController::class, 'setup'])->name('setup');
         Route::post('/enable', [TwoFactorAuthController::class, 'enable'])->name('enable');
         Route::post('/confirm', [TwoFactorAuthController::class, 'confirm'])->name('confirm');
@@ -104,14 +104,9 @@ Route::prefix('security')->name('security.')->group(function () {
         ->name('status');
 });
 
-// Legacy redirects for backward compatibility
-Route::get('/login', function() {
-    return redirect('/login');
-})->name('login');
-
-Route::get('/register', function() {
-    return redirect('/register');
-})->name('register');
+// Note: Login and register routes are handled by Laravel Fortify
+// Fortify automatically registers these routes:
+// GET/POST /login, GET/POST /register, POST /logout, etc.
 
 Route::get('/select-tenant', function() {
     return redirect()->route('tenants.select');

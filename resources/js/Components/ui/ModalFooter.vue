@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center justify-between px-6 py-4 bg-gray-50 border-t border-gray-200 gap-4">
+  <div class="flex items-center justify-between px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 gap-4">
     <div class="flex-1">
       <slot name="left" />
     </div>

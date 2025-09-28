@@ -8,11 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, BelongsToTenant, HasRoles;
+    use HasFactory, Notifiable, BelongsToTenant, HasRoles, HasApiTokens;
 
     protected $fillable = [
         'tenant_id',
@@ -71,7 +72,8 @@ class User extends Authenticatable
 
     public function isSuperAdmin(): bool
     {
-        return $this->hasRole('super-admin') || $this->tenant_id === null;
+        // Super admins must have no tenant_id (system-wide access only)
+        return $this->tenant_id === null;
     }
 
     // Multi-tenant helper methods

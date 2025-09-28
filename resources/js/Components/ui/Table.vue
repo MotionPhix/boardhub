@@ -1,14 +1,14 @@
 <template>
-  <div class="overflow-hidden bg-white shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+  <div class="overflow-hidden bg-white dark:bg-gray-800 shadow ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 md:rounded-lg border border-gray-200 dark:border-gray-700">
     <!-- Table Header -->
-    <div v-if="title || description || $slots.header" class="px-4 py-5 sm:px-6 border-b border-gray-200">
+    <div v-if="title || description || $slots.header" class="px-4 py-5 sm:px-6 border-b border-gray-200 dark:border-gray-700">
       <slot name="header">
         <div class="flex items-center justify-between">
           <div>
-            <h3 v-if="title" class="text-lg font-medium leading-6 text-gray-900">
+            <h3 v-if="title" class="text-lg font-medium leading-6 text-gray-900 dark:text-gray-100">
               {{ title }}
             </h3>
-            <p v-if="description" class="mt-1 text-sm text-gray-500">
+            <p v-if="description" class="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {{ description }}
             </p>
           </div>
@@ -21,8 +21,8 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="p-8 text-center">
-      <Loader2 class="h-8 w-8 animate-spin text-gray-400 mx-auto" />
-      <p class="mt-2 text-sm text-gray-500">Loading...</p>
+      <Loader2 class="h-8 w-8 animate-spin text-gray-400 dark:text-gray-500 mx-auto" />
+      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">Loading...</p>
     </div>
 
     <!-- Empty State -->
@@ -38,8 +38,8 @@
 
     <!-- Table -->
     <div v-else class="overflow-x-auto">
-      <table class="min-w-full divide-y divide-gray-300">
-        <thead class="bg-gray-50">
+      <table class="min-w-full divide-y divide-gray-300 dark:divide-gray-600">
+        <thead class="bg-gray-50 dark:bg-gray-700">
           <tr>
             <th
               v-for="column in columns"
@@ -52,7 +52,7 @@
                 <button
                   v-if="column.sortable"
                   @click="handleSort(column.key)"
-                  class="text-gray-400 hover:text-gray-600"
+                  class="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-400"
                 >
                   <ArrowUpDown class="h-4 w-4" />
                 </button>
@@ -60,7 +60,7 @@
             </th>
           </tr>
         </thead>
-        <tbody class="divide-y divide-gray-200 bg-white">
+        <tbody class="divide-y divide-gray-200 dark:divide-gray-600 bg-white dark:bg-gray-800">
           <tr
             v-for="(row, rowIndex) in data"
             :key="getRowKey(row, rowIndex)"
@@ -86,7 +86,7 @@
     </div>
 
     <!-- Table Footer -->
-    <div v-if="$slots.footer" class="px-4 py-3 bg-gray-50 border-t border-gray-200">
+    <div v-if="$slots.footer" class="px-4 py-3 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-700">
       <slot name="footer" />
     </div>
   </div>
@@ -133,7 +133,7 @@ const emit = defineEmits<{
 }>()
 
 const getHeaderClasses = (column: Column) => {
-  const base = 'px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider'
+  const base = 'px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider'
   const align = {
     left: 'text-left',
     center: 'text-center',
@@ -156,11 +156,11 @@ const getRowClasses = (row: any, index: number) => {
   const classes = []
 
   if (props.hoverable) {
-    classes.push('hover:bg-gray-50')
+    classes.push('hover:bg-gray-50 dark:hover:bg-gray-700')
   }
 
   if (props.striped && index % 2 === 1) {
-    classes.push('bg-gray-50')
+    classes.push('bg-gray-50 dark:bg-gray-700')
   }
 
   return classes.join(' ')

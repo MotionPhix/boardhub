@@ -3,12 +3,12 @@
     <div v-if="label" class="mb-2">
       <label
         :for="id"
-        class="block text-sm font-medium text-gray-700"
+        class="block text-sm font-medium text-gray-700 dark:text-gray-300"
       >
         {{ label }}
         <span v-if="required" class="text-red-500 ml-1">*</span>
       </label>
-      <p v-if="description" class="text-sm text-gray-500 mt-1">{{ description }}</p>
+      <p v-if="description" class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ description }}</p>
     </div>
 
     <Listbox
@@ -29,22 +29,22 @@
             <component
               v-else-if="selectedOption?.icon"
               :is="selectedOption.icon"
-              class="h-5 w-5 text-gray-400 mr-3 flex-shrink-0"
+              class="h-5 w-5 text-gray-400 dark:text-gray-500 mr-3 flex-shrink-0"
             />
             <div class="flex-1 text-left">
               <span v-if="selectedOption" class="block truncate">
                 {{ selectedOption.label }}
               </span>
-              <span v-else class="block truncate text-gray-500">
+              <span v-else class="block truncate text-gray-500 dark:text-gray-400">
                 {{ placeholder }}
               </span>
-              <span v-if="selectedOption?.description" class="block text-sm text-gray-500 truncate">
+              <span v-if="selectedOption?.description" class="block text-sm text-gray-500 dark:text-gray-400 truncate">
                 {{ selectedOption.description }}
               </span>
             </div>
           </span>
           <span class="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
-            <ChevronDown class="h-5 w-5 text-gray-400" />
+            <ChevronDown class="h-5 w-5 text-gray-400 dark:text-gray-500" />
           </span>
         </ListboxButton>
 
@@ -54,7 +54,7 @@
           leave-to-class="opacity-0"
         >
           <ListboxOptions
-            class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
+            class="absolute z-10 mt-1 max-h-60 w-full overflow-auto rounded-md bg-white dark:bg-gray-800 py-1 text-base shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-white dark:ring-opacity-10 focus:outline-none sm:text-sm border border-gray-200 dark:border-gray-700"
           >
             <ListboxOption
               v-for="option in options"
@@ -64,7 +64,7 @@
             >
               <li
                 :class="[
-                  active ? 'bg-indigo-600 text-white' : 'text-gray-900',
+                  active ? 'bg-indigo-600 text-white' : 'text-gray-900 dark:text-gray-100',
                   'relative cursor-default select-none py-2 pl-3 pr-9'
                 ]"
               >
@@ -76,7 +76,7 @@
                     v-else-if="option.icon"
                     :is="option.icon"
                     :class="[
-                      active ? 'text-white' : 'text-gray-400',
+                      active ? 'text-white' : 'text-gray-400 dark:text-gray-500',
                       'h-5 w-5 mr-3 flex-shrink-0'
                     ]"
                   />
@@ -84,7 +84,7 @@
                     <span :class="[selected ? 'font-semibold' : 'font-normal', 'block truncate']">
                       {{ option.label }}
                     </span>
-                    <span v-if="option.description" :class="[active ? 'text-indigo-200' : 'text-gray-500', 'block text-sm truncate']">
+                    <span v-if="option.description" :class="[active ? 'text-indigo-200' : 'text-gray-500 dark:text-gray-400', 'block text-sm truncate']">
                       {{ option.description }}
                     </span>
                   </div>
@@ -93,7 +93,7 @@
                 <span
                   v-if="selected"
                   :class="[
-                    active ? 'text-white' : 'text-indigo-600',
+                    active ? 'text-white' : 'text-indigo-600 dark:text-indigo-400',
                     'absolute inset-y-0 right-0 flex items-center pr-4'
                   ]"
                 >
@@ -107,7 +107,7 @@
     </Listbox>
 
     <InputError v-if="error" :message="error" class="mt-2" />
-    <p v-else-if="hint" class="mt-2 text-sm text-gray-500">{{ hint }}</p>
+    <p v-else-if="hint" class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ hint }}</p>
   </div>
 </template>
 
@@ -165,7 +165,7 @@ const selectedOption = computed(() => {
   return props.options.find(option => option.value === props.modelValue)
 })
 
-const baseClasses = 'relative w-full cursor-default rounded-md bg-white py-1.5 pl-3 pr-10 text-left text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-600 transition-colors'
+const baseClasses = 'relative w-full cursor-default rounded-md bg-white dark:bg-gray-800 py-1.5 pl-3 pr-10 text-left text-gray-900 dark:text-gray-100 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 focus:outline-none focus:ring-2 focus:ring-indigo-600 dark:focus:ring-indigo-400 transition-colors'
 
 const sizeClasses = {
   sm: 'py-1 text-sm',
@@ -175,10 +175,10 @@ const sizeClasses = {
 
 const stateClasses = computed(() => {
   if (props.error) {
-    return 'ring-red-300 focus:ring-red-600'
+    return 'ring-red-300 dark:ring-red-500 focus:ring-red-600 dark:focus:ring-red-400'
   }
   if (props.disabled) {
-    return 'bg-gray-50 text-gray-500 ring-gray-200 cursor-not-allowed'
+    return 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 ring-gray-200 dark:ring-gray-600 cursor-not-allowed'
   }
   return ''
 })

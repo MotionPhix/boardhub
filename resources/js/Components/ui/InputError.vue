@@ -1,7 +1,7 @@
 <template>
   <div v-if="message" class="flex items-center space-x-2">
-    <AlertCircle class="h-4 w-4 text-red-500 flex-shrink-0" />
-    <p class="text-sm text-red-600">{{ message }}</p>
+    <AlertCircle class="h-4 w-4 text-red-500 dark:text-red-400 flex-shrink-0" />
+    <p class="text-sm text-red-600 dark:text-red-400">{{ message }}</p>
   </div>
 </template>
 

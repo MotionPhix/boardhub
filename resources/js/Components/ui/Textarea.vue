@@ -3,12 +3,12 @@
     <div v-if="label" class="mb-2">
       <label
         :for="id"
-        class="block text-sm font-medium text-gray-700"
+        class="block text-sm font-medium text-gray-700 dark:text-gray-300"
       >
         {{ label }}
         <span v-if="required" class="text-red-500 ml-1">*</span>
       </label>
-      <p v-if="description" class="text-sm text-gray-500 mt-1">{{ description }}</p>
+      <p v-if="description" class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ description }}</p>
     </div>
 
     <div class="relative">
@@ -30,14 +30,14 @@
 
       <div
         v-if="showCharCount && maxLength"
-        class="absolute bottom-2 right-2 text-xs text-gray-500 bg-white px-1 rounded"
+        class="absolute bottom-2 right-2 text-xs text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 px-1 rounded"
       >
         {{ currentLength }}/{{ maxLength }}
       </div>
     </div>
 
     <InputError v-if="error" :message="error" class="mt-2" />
-    <p v-else-if="hint" class="mt-2 text-sm text-gray-500">{{ hint }}</p>
+    <p v-else-if="hint" class="mt-2 text-sm text-gray-500 dark:text-gray-400">{{ hint }}</p>
   </div>
 </template>
 
@@ -89,7 +89,7 @@ const id = props.id || useId()
 
 const currentLength = computed(() => props.modelValue?.length || 0)
 
-const baseClasses = 'block w-full rounded-md border-0 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 transition-colors resize-none'
+const baseClasses = 'block w-full rounded-md border-0 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500 focus:ring-2 focus:ring-inset focus:ring-indigo-600 dark:focus:ring-indigo-400 transition-colors resize-none'
 
 const sizeClasses = {
   sm: 'px-2.5 py-1.5 text-sm',
@@ -99,12 +99,12 @@ const sizeClasses = {
 
 const stateClasses = computed(() => {
   if (props.error) {
-    return 'ring-red-300 focus:ring-red-600'
+    return 'ring-red-300 dark:ring-red-500 focus:ring-red-600 dark:focus:ring-red-400'
   }
   if (props.disabled) {
-    return 'bg-gray-50 text-gray-500 ring-gray-200'
+    return 'bg-gray-50 dark:bg-gray-700 text-gray-500 dark:text-gray-400 ring-gray-200 dark:ring-gray-600'
   }
-  return 'bg-white'
+  return 'bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100'
 })
 
 const textareaClasses = computed(() => [

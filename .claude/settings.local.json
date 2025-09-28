@@ -10,7 +10,9 @@
       "Bash(a migrate:status)",
       "Bash(\"C:\\Users\\ultrashots\\.config\\herd\\bin\\php.bat\" -r \"echo ''Removing Filament packages...'';\")",
       "Bash(npm run build:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(composer show:*)",
+      "Read(//e/Sites/workhub/**)"
     ]
   },
   "enableAllProjectMcpServers": true,

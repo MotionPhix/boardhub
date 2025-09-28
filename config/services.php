@@ -28,6 +28,13 @@ return [
         'key' => env('RESEND_KEY'),
     ],
 
+    'paychangu' => [
+        'base_url' => env('PAYCHANGU_BASE_URL', 'https://api.paychangu.com'),
+        'public_key' => env('PAYCHANGU_PUBLIC_KEY'),
+        'secret_key' => env('PAYCHANGU_SECRET_KEY'),
+        'webhook_secret' => env('PAYCHANGU_WEBHOOK_SECRET'),
+    ],
+
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),

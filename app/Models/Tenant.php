@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Support\Str;
 
 class Tenant extends Model
@@ -118,6 +119,39 @@ class Tenant extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(TenantSubscription::class);
+    }
+
+    public function currentSubscription(): ?TenantSubscription
+    {
+        return $this->subscriptions()
+            ->where(function($query) {
+                $query->where('status', 'active')
+                      ->orWhere('status', 'trial')
+                      ->orWhere('status', 'past_due');
+            })
+            ->orderBy('created_at', 'desc')
+            ->first();
+    }
+
+    public function activeSubscription(): ?TenantSubscription
+    {
+        return $this->subscriptions()
+            ->where('status', 'active')
+            ->orderBy('created_at', 'desc')
+            ->first();
+    }
+
+    public function trialSubscription(): ?TenantSubscription
+    {
+        return $this->subscriptions()
+            ->where('status', 'trial')
+            ->orderBy('created_at', 'desc')
+            ->first();
     }
 
     public function scopeActive($query)

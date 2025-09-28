@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\TenantController;
+use App\Http\Controllers\Tenant\DashboardController;
 use App\Http\Controllers\BillboardController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\HomeController;
@@ -69,15 +70,26 @@ Route::prefix('t/{tenant:uuid}')
         // Authenticated customer routes within tenant
         Route::middleware('auth')->group(function () {
 
-            // Customer Dashboard
-            Route::get('/dashboard', [BookingController::class, 'index'])->name('dashboard');
+            // Tenant Dashboard (OOH advertising management)
+            Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+            Route::get('/dashboard/chart-data', [DashboardController::class, 'chartData'])->name('dashboard.chart-data');
+
+            // Customer Bookings Dashboard (separate from main tenant dashboard)
+            Route::get('/bookings/dashboard', [BookingController::class, 'index'])->name('bookings.dashboard');
 
             // Booking Management
             Route::prefix('bookings')->name('bookings.')->group(function () {
                 Route::get('/', [BookingController::class, 'index'])->name('index');
                 Route::get('/{booking:uuid}', [BookingController::class, 'show'])->name('show');
+
+                // Basic booking creation (available to all plans)
                 Route::post('/', [BookingController::class, 'store'])->name('store');
-                Route::post('/quick', [BookingController::class, 'quickBook'])->name('quick');
+
+                // Premium features require subscription checks
+                Route::post('/quick', [BookingController::class, 'quickBook'])
+                    ->middleware('subscription.feature:quick_booking')
+                    ->name('quick');
+
                 Route::put('/{booking}', [BookingController::class, 'update'])->name('update');
                 Route::delete('/{booking}', [BookingController::class, 'cancel'])->name('cancel');
             });

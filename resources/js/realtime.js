@@ -1,22 +1,4 @@
-import Echo from 'laravel-echo';
-import Pusher from 'pusher-js';
 import { toast } from './utils/notifications';
-
-// Configure Pusher
-window.Pusher = Pusher;
-
-// Initialize Laravel Echo
-window.Echo = new Echo({
-    broadcaster: 'pusher',
-    key: import.meta.env.VITE_PUSHER_APP_KEY,
-    cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER,
-    forceTLS: true,
-    auth: {
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-        },
-    },
-});
 
 // Real-time event handlers
 class RealTimeManager {
@@ -73,16 +55,10 @@ class RealTimeManager {
     }
 
     subscribeToChannel(channelName, events) {
-        const channel = window.Echo.private(channelName);
-
-        Object.entries(events).forEach(([eventName, handler]) => {
-            channel.listen(`.${eventName}`, (data) => {
-                console.log(`Real-time event: ${eventName}`, data);
-                handler.call(this, data);
-            });
-        });
-
-        this.channels.set(channelName, channel);
+        // For Laravel 12, we'll use a simpler approach that works with @laravel/echo-vue
+        // The actual subscription will be handled by Vue components using useEcho hooks
+        this.channels.set(channelName, { events, subscribed: false });
+        console.log(`Prepared to subscribe to channel: ${channelName}`);
     }
 
     handleMetricsUpdate(data) {
@@ -243,10 +219,13 @@ class RealTimeManager {
     // Clean up channels when leaving pages
     unsubscribeFromChannel(channelName) {
         const channel = this.channels.get(channelName);
-        if (channel) {
-            channel.stopListening();
-            window.Echo.leave(channelName);
-            this.channels.delete(channelName);
+        if (channel && channelName) {
+            try {
+                window.Echo.leave(channelName);
+                this.channels.delete(channelName);
+            } catch (error) {
+                console.warn('Error unsubscribing from channel:', channelName, error);
+            }
         }
     }
 

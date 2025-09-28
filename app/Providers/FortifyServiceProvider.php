@@ -6,11 +6,13 @@ use App\Actions\Fortify\CreateNewUser;
 use App\Actions\Fortify\ResetUserPassword;
 use App\Actions\Fortify\UpdateUserPassword;
 use App\Actions\Fortify\UpdateUserProfileInformation;
+use App\Http\Controllers\Auth\PostLoginRedirectController;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Inertia\Inertia;
 use Laravel\Fortify\Fortify;
 
 class FortifyServiceProvider extends ServiceProvider
@@ -45,33 +47,42 @@ class FortifyServiceProvider extends ServiceProvider
             return Limit::perMinute(5)->by($request->session()->get('login.id'));
         });
 
-        // Custom views for authentication
+        // Custom Inertia views for authentication (lowercase paths)
         Fortify::loginView(function () {
-            return view('auth.login');
+            return Inertia::render('auth/Login');
         });
 
         Fortify::registerView(function () {
-            return view('auth.register');
+            return Inertia::render('auth/Register');
         });
 
         Fortify::requestPasswordResetLinkView(function () {
-            return view('auth.forgot-password');
+            return Inertia::render('auth/ForgotPassword');
         });
 
         Fortify::resetPasswordView(function (Request $request) {
-            return view('auth.reset-password', ['request' => $request]);
+            return Inertia::render('auth/ResetPassword', [
+                'token' => $request->route('token'),
+                'email' => $request->email,
+            ]);
         });
 
         Fortify::verifyEmailView(function () {
-            return view('auth.verify-email');
+            return Inertia::render('auth/VerifyEmail');
         });
 
         Fortify::twoFactorChallengeView(function () {
-            return view('auth.two-factor-challenge');
+            return Inertia::render('auth/TwoFactorChallenge');
         });
 
         Fortify::confirmPasswordView(function () {
-            return view('auth.confirm-password');
+            return Inertia::render('auth/ConfirmPassword');
+        });
+
+        // Override the default redirect response after login
+        Fortify::redirects('login', function (Request $request) {
+            $controller = app(PostLoginRedirectController::class);
+            return $controller->handlePostLoginRedirect($request->user());
         });
     }
 }
