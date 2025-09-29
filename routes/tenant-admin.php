@@ -19,9 +19,9 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::prefix('tenant/{tenant}/admin')
-    ->name('tenant.')
-    ->middleware(['web', 'auth', 'resolve.tenant', 'tenant.admin'])
+Route::prefix('t/{tenant:uuid}/admin')
+    ->name('tenant.admin.')
+    ->middleware(['web', 'auth', ResolveTenant::class, 'tenant.admin'])
     ->group(function () {
 
         // Tenant Dashboard

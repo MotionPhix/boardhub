@@ -18,7 +18,7 @@ require __DIR__.'/tenant.php'; // Enabled - now has proper tenant dashboard rout
 
 // Include new role-based route files
 require __DIR__.'/system.php';
-// require __DIR__.'/tenant-admin.php'; // Temporarily disabled - missing controllers
+require __DIR__.'/tenant-admin.php';
 // require __DIR__.'/member.php'; // Temporarily disabled
 
 // Post-login redirection handling

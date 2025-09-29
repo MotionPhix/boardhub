@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\TenantInvitation;
-use App\Models\TenantMembership;
+use App\Models\Membership;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
@@ -302,11 +302,11 @@ class TeamController extends Controller
         }
 
         // Create membership
-        TenantMembership::create([
+        Membership::create([
             'tenant_id' => $invitation->tenant_id,
             'user_id' => $user->id,
             'role' => $invitation->role,
-            'status' => 'active'
+            'status' => Membership::STATUS_ACTIVE
         ]);
 
         $invitation->update(['status' => 'accepted']);

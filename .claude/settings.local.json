@@ -8,7 +8,9 @@
       "Bash(\"/c/Users/Amelia/.config/herd/bin/php.bat\" artisan test tests/Feature/PayChanguIntegrationTest.php --filter=\"test_can_process_mobile_money_payment\")",
       "WebFetch(domain:developer.paychangu.com)",
       "Bash(where php)",
-      "Bash(\"C:\\Users\\Amelia\\.config\\herd\\bin\\php.bat\" artisan test tests/Feature/PayChanguIntegrationTest.php --filter=\"test_can_process_mobile_money_payment\")"
+      "Bash(\"C:\\Users\\Amelia\\.config\\herd\\bin\\php.bat\" artisan test tests/Feature/PayChanguIntegrationTest.php --filter=\"test_can_process_mobile_money_payment\")",
+      "Bash(\"C:\\Users\\Amelia\\.config\\herd\\bin\\php.bat\" artisan migrate)",
+      "mcp__laravel-boost__last-error"
     ],
     "deny": [],
     "ask": []
