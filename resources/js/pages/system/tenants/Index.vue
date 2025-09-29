@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3'
-import SystemLayout from '../../../layouts/SystemLayout.vue'
-import Dropdown from '../../../components/ui/Dropdown.vue'
-import DropdownItem from '../../../components/ui/DropdownItem.vue'
+import SystemLayout from '@/layouts/SystemLayout.vue'
+import Dropdown from '@/components/ui/Dropdown.vue'
+import DropdownItem from '@/components/ui/DropdownItem.vue'
 import {
   MoreHorizontal,
   Eye,

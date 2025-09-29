@@ -2,8 +2,8 @@
 
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\TwoFactorAuthController;
-// use App\Http\Controllers\Auth\SocialAuthController; // Disabled - requires Laravel Socialite
-use App\Http\Controllers\TenantSwitchController;
+use App\Http\Controllers\Auth\SocialAuthController;
+use App\Http\Controllers\OrganizationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -19,16 +19,16 @@ use Illuminate\Support\Facades\Route;
 // Enhanced Authentication Routes
 Route::middleware('guest')->group(function () {
 
-    // Social Authentication (disabled - requires Laravel Socialite package)
-    // Route::prefix('auth')->name('auth.')->group(function () {
-    //     Route::get('/{provider}', [SocialAuthController::class, 'redirect'])
-    //         ->name('social.redirect')
-    //         ->where('provider', 'google|github|linkedin');
+    // Social Authentication
+    Route::prefix('auth')->name('auth.')->group(function () {
+        Route::get('/{provider}', [SocialAuthController::class, 'redirect'])
+            ->name('social.redirect')
+            ->where('provider', 'google|github|linkedin');
 
-    //     Route::get('/{provider}/callback', [SocialAuthController::class, 'callback'])
-    //         ->name('social.callback')
-    //         ->where('provider', 'google|github|linkedin');
-    // });
+        Route::get('/{provider}/callback', [SocialAuthController::class, 'callback'])
+            ->name('social.callback')
+            ->where('provider', 'google|github|linkedin');
+    });
 
     // Custom login enhancements
     Route::post('/login/security-check', [AuthenticatedSessionController::class, 'securityCheck'])
@@ -56,21 +56,33 @@ Route::middleware('auth')->group(function () {
         Route::post('/revoke-all', [AuthenticatedSessionController::class, 'revokeAllSessions'])->name('revoke-all');
     });
 
-    // Tenant Switching and Management
-    Route::prefix('tenants')->name('tenants.')->group(function () {
-        Route::get('/', [TenantSwitchController::class, 'index'])->name('select');
-        Route::post('/switch', [TenantSwitchController::class, 'switch'])->name('switch');
-        Route::post('/logout/{tenant_id}', [TenantSwitchController::class, 'logoutFromTenant'])->name('logout');
-        Route::post('/invitations/accept', [TenantSwitchController::class, 'acceptInvitation'])->name('invitations.accept');
-        Route::post('/refresh', [TenantSwitchController::class, 'refreshAccessibleTenants'])->name('refresh');
+    // Organization Switching and Management
+    Route::prefix('organizations')->name('organizations.')->group(function () {
+        Route::get('/', [OrganizationController::class, 'index'])->name('index');
+        Route::get('/create', [OrganizationController::class, 'create'])->name('create');
+        Route::post('/', [OrganizationController::class, 'store'])->name('store');
+        Route::post('/switch', [OrganizationController::class, 'switch'])->name('switch');
+        Route::post('/logout/{tenant_id}', [OrganizationController::class, 'logoutFromOrganization'])->name('logout');
+        Route::post('/invitations/accept', [OrganizationController::class, 'acceptInvitation'])->name('invitations.accept');
+        Route::post('/refresh', [OrganizationController::class, 'refreshAccessibleOrganizations'])->name('refresh');
 
-        // API endpoints for tenant switching
+        // API endpoints for organization switching
         Route::prefix('api')->name('api.')->group(function () {
-            Route::get('/accessible', [TenantSwitchController::class, 'getAccessibleTenants'])->name('accessible');
-            Route::get('/context', [TenantSwitchController::class, 'getTenantContext'])->name('context');
-            Route::get('/breadcrumbs', [TenantSwitchController::class, 'getBreadcrumbs'])->name('breadcrumbs');
-            Route::post('/validate-session', [TenantSwitchController::class, 'validateSession'])->name('validate-session');
+            Route::get('/accessible', [OrganizationController::class, 'getAccessibleOrganizationsApi'])->name('accessible');
+            Route::get('/context', [OrganizationController::class, 'getOrganizationContext'])->name('context');
+            Route::get('/breadcrumbs', [OrganizationController::class, 'getBreadcrumbs'])->name('breadcrumbs');
+            Route::post('/validate-session', [OrganizationController::class, 'validateSession'])->name('validate-session');
         });
+    });
+
+    // Legacy tenant routes (redirect to organizations)
+    Route::prefix('tenants')->name('tenants.')->group(function () {
+        Route::get('/', function () {
+            return redirect()->route('organizations.index');
+        })->name('select');
+        Route::post('/switch', function () {
+            return redirect()->route('organizations.switch');
+        })->name('switch');
     });
 
     // Account Security Settings
@@ -109,5 +121,5 @@ Route::prefix('security')->name('security.')->group(function () {
 // GET/POST /login, GET/POST /register, POST /logout, etc.
 
 Route::get('/select-tenant', function() {
-    return redirect()->route('tenants.select');
+    return redirect()->route('organizations.index');
 })->name('select-tenant');

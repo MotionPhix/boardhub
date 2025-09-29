@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import { Toaster } from 'vue-sonner'
-import DarkModeToggle from '../components/DarkModeToggle.vue'
+import DarkModeToggle from '@/components/DarkModeToggle.vue'
 
 interface Tenant {
   id: number
@@ -25,8 +25,8 @@ const user = computed(() => page.props.auth?.user)
 
 const navigation = [
   { name: 'Dashboard', href: 'tenant.dashboard', icon: 'home' },
-  { name: 'Billboards', href: 'tenant.billboards.index', icon: 'building-office' },
-  { name: 'Bookings', href: 'tenant.bookings.index', icon: 'calendar' },
+  { name: 'Billboards', href: 'tenant.manage.billboards.index', icon: 'building-office' },
+  { name: 'Bookings', href: 'tenant.manage.bookings.index', icon: 'calendar' },
   { name: 'Team', href: 'tenant.manage.team.index', icon: 'users' },
   { name: 'Analytics', href: 'tenant.manage.analytics.index', icon: 'chart-bar' },
   { name: 'Settings', href: 'tenant.manage.settings.index', icon: 'cog' },
@@ -37,7 +37,7 @@ const logout = () => {
 }
 
 const switchTenant = () => {
-  router.get('/tenants')
+  router.get('/organizations')
 }
 </script>
 
@@ -46,18 +46,17 @@ const switchTenant = () => {
     <Head :title="`${props.title} - ${tenant.name}`" />
 
     <!-- Navigation -->
-    <nav class="bg-white dark:bg-gray-800 shadow">
+    <nav class="fixed inset-x-0 z-40 bg-white dark:bg-gray-800 shadow">
       <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div class="flex justify-between h-16">
           <div class="flex">
             <!-- Logo / Tenant Name -->
             <div class="flex-shrink-0 flex items-center">
-              <Link
-                :href="route('tenant.dashboard', { tenant: tenant.uuid })"
-                class="text-xl font-bold text-gray-900 dark:text-white"
-              >
+              <button
+                @click="switchTenant"
+                class="text-xl font-bold text-gray-900 dark:text-white">
                 {{ tenant.name }}
-              </Link>
+              </button>
               <span class="ml-2 px-2 py-1 text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-800 dark:text-indigo-200 rounded-full">
                 Admin
               </span>
@@ -84,24 +83,16 @@ const switchTenant = () => {
           <div class="flex items-center space-x-4">
             <DarkModeToggle />
 
-            <!-- Quick Actions -->
-            <button
-              @click="switchTenant"
-              class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-            >
-              Switch Organization
-            </button>
-
             <!-- User Menu -->
             <div class="relative">
               <div class="flex items-center space-x-3">
                 <span class="text-sm text-gray-700 dark:text-gray-300">
                   {{ user?.name }}
                 </span>
+
                 <button
                   @click="logout"
-                  class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                >
+                  class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
                   Logout
                 </button>
               </div>
@@ -112,7 +103,7 @@ const switchTenant = () => {
     </nav>
 
     <!-- Main Content -->
-    <main>
+    <main class="fixed inset-0 overflow-y-auto top-16 scroll-smooth scrollbar-thin">
       <slot />
     </main>
 

@@ -65,6 +65,6 @@
 
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
-import AppLayout from '../../layouts/AppLayout.vue'
+import AppLayout from '@/layouts/AppLayout.vue'
 import { XCircle, ArrowLeft, Mail, Phone } from 'lucide-vue-next'
 </script>

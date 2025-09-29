@@ -19,30 +19,19 @@ return new class extends Migration
             }
 
             // Check if all columns exist
-            $allColumnsExist = true;
             foreach ($columns as $column) {
                 if (!Schema::hasColumn($table, $column)) {
-                    $allColumnsExist = false;
-                    break;
+                    return;
                 }
             }
 
-            if (!$allColumnsExist) {
-                return;
-            }
-
-            // Check if index already exists
-            $database = DB::connection()->getDatabaseName();
-            $indexExists = DB::select("
-                SELECT COUNT(*) as count
-                FROM information_schema.statistics
-                WHERE table_schema = ? AND table_name = ? AND index_name = ?
-            ", [$database, $table, $indexName]);
-
-            if ($indexExists[0]->count == 0) {
+            // Attempt to create the index and ignore failures (idempotent across DBs)
+            try {
                 Schema::table($table, function (Blueprint $tableSchema) use ($columns, $indexName) {
                     $tableSchema->index($columns, $indexName);
                 });
+            } catch (\Exception $e) {
+                // Ignore exceptions (index may already exist or driver may not support compound indexes)
             }
         };
 

@@ -119,11 +119,11 @@
 <script setup lang="ts">
 import { useForm, Link } from '@inertiajs/vue3'
 import { Building2, LockKeyhole, Loader2 } from 'lucide-vue-next'
-import DarkModeToggle from '../../components/DarkModeToggle.vue'
-import Input from '../../components/ui/Input.vue'
-import Label from '../../components/ui/Label.vue'
-import Checkbox from '../../components/ui/Checkbox.vue'
-import SocialLoginButton from '../../components/ui/SocialLoginButton.vue'
+import DarkModeToggle from '@/components/DarkModeToggle.vue'
+import Input from '@/components/ui/Input.vue'
+import Label from '@/components/ui/Label.vue'
+import Checkbox from '@/components/ui/Checkbox.vue'
+import SocialLoginButton from '@/components/ui/SocialLoginButton.vue'
 
 const form = useForm({
   email: '',

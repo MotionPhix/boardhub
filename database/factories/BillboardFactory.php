@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Billboard;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /**
  * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Billboard>
@@ -15,6 +16,7 @@ class BillboardFactory extends Factory
     public function definition(): array
     {
         return [
+            'tenant_id' => \App\Models\Tenant::factory(),
             'name' => $this->faker->streetName().' Billboard',
             'location' => $this->faker->streetAddress().', '.$this->faker->city(),
             'size' => $this->faker->randomElement(['4x6m', '8x12m', '10x15m', '6x9m']),

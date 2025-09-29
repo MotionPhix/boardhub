@@ -1,0 +1,269 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="E:\Sites\adpro\phpunit.xml" tests="5" assertions="0" errors="5" failures="0" skipped="0" time="0.000000">
+    <testsuite name="Feature" tests="5" assertions="0" errors="5" failures="0" skipped="0" time="0.000000">
+      <testsuite name="Tests\Feature\SearchTest" file="tests\Feature\SearchTest.php" tests="5" assertions="0" errors="5" failures="0" skipped="0" time="0.000000">
+        <testcase name="it can search across multiple models" file="tests\Feature\SearchTest.php::it can search across multiple models" class="Tests\Feature\SearchTest" classname="Tests.Feature.SearchTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">it can search across multiple modelsIlluminate\Database\QueryException: SQLSTATE[HY000]: General error: 1 no such table: settings (Connection: sqlite, SQL: select * from "settings" limit 1)&#13;
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:406
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:811
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:778
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:397
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3188
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3173
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3763
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3172
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:902
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:884
+at vendor\laravel\framework\src\Illuminate\Database\Concerns\BuildsQueries.php:366
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:708
+at vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:23
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2540
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2556
+at app\Models\Settings.php:14
+at routes\console.php:5
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:502
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:482
+at tests\TestCase.php:21
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:54
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:92
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:44
+Caused by
+PDOException: SQLSTATE[HY000]: General error: 1 no such table: settings
+
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:406
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:811
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:778
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:397
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3188
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3173
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3763
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3172
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:902
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:884
+at vendor\laravel\framework\src\Illuminate\Database\Concerns\BuildsQueries.php:366
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:708
+at vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:23
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2540
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2556
+at app\Models\Settings.php:14
+at routes\console.php:5
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:502
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:482
+at tests\TestCase.php:21
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:54
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:92
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:44</error>
+        </testcase>
+        <testcase name="it validates search query requirements" file="tests\Feature\SearchTest.php::it validates search query requirements" class="Tests\Feature\SearchTest" classname="Tests.Feature.SearchTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">it validates search query requirementsIlluminate\Database\QueryException: SQLSTATE[HY000]: General error: 1 no such table: settings (Connection: sqlite, SQL: select * from "settings" limit 1)&#13;
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:406
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:811
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:778
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:397
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3188
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3173
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3763
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3172
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:902
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:884
+at vendor\laravel\framework\src\Illuminate\Database\Concerns\BuildsQueries.php:366
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:708
+at vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:23
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2540
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2556
+at app\Models\Settings.php:14
+at routes\console.php:5
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:502
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:482
+at tests\TestCase.php:21
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:54
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:92
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:44
+Caused by
+PDOException: SQLSTATE[HY000]: General error: 1 no such table: settings
+
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:406
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:811
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:778
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:397
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3188
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3173
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3763
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3172
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:902
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:884
+at vendor\laravel\framework\src\Illuminate\Database\Concerns\BuildsQueries.php:366
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:708
+at vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:23
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2540
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2556
+at app\Models\Settings.php:14
+at routes\console.php:5
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:502
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:482
+at tests\TestCase.php:21
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:54
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:92
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:44</error>
+        </testcase>
+        <testcase name="it returns empty results for no matches" file="tests\Feature\SearchTest.php::it returns empty results for no matches" class="Tests\Feature\SearchTest" classname="Tests.Feature.SearchTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">it returns empty results for no matchesIlluminate\Database\QueryException: SQLSTATE[HY000]: General error: 1 no such table: settings (Connection: sqlite, SQL: select * from "settings" limit 1)&#13;
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:406
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:811
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:778
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:397
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3188
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3173
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3763
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3172
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:902
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:884
+at vendor\laravel\framework\src\Illuminate\Database\Concerns\BuildsQueries.php:366
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:708
+at vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:23
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2540
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2556
+at app\Models\Settings.php:14
+at routes\console.php:5
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:502
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:482
+at tests\TestCase.php:21
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:54
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:92
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:44
+Caused by
+PDOException: SQLSTATE[HY000]: General error: 1 no such table: settings
+
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:406
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:811
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:778
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:397
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3188
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3173
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3763
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3172
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:902
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:884
+at vendor\laravel\framework\src\Illuminate\Database\Concerns\BuildsQueries.php:366
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:708
+at vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:23
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2540
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2556
+at app\Models\Settings.php:14
+at routes\console.php:5
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:502
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:482
+at tests\TestCase.php:21
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:54
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:92
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:44</error>
+        </testcase>
+        <testcase name="it handles wildcard searches correctly" file="tests\Feature\SearchTest.php::it handles wildcard searches correctly" class="Tests\Feature\SearchTest" classname="Tests.Feature.SearchTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">it handles wildcard searches correctlyIlluminate\Database\QueryException: SQLSTATE[HY000]: General error: 1 no such table: settings (Connection: sqlite, SQL: select * from "settings" limit 1)&#13;
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:406
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:811
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:778
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:397
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3188
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3173
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3763
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3172
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:902
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:884
+at vendor\laravel\framework\src\Illuminate\Database\Concerns\BuildsQueries.php:366
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:708
+at vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:23
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2540
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2556
+at app\Models\Settings.php:14
+at routes\console.php:5
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:502
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:482
+at tests\TestCase.php:21
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:54
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:92
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:44
+Caused by
+PDOException: SQLSTATE[HY000]: General error: 1 no such table: settings
+
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:406
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:811
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:778
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:397
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3188
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3173
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3763
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3172
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:902
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:884
+at vendor\laravel\framework\src\Illuminate\Database\Concerns\BuildsQueries.php:366
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:708
+at vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:23
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2540
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2556
+at app\Models\Settings.php:14
+at routes\console.php:5
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:502
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:482
+at tests\TestCase.php:21
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:54
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:92
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:44</error>
+        </testcase>
+        <testcase name="it returns search results for clients" file="tests\Feature\SearchTest.php::it returns search results for clients" class="Tests\Feature\SearchTest" classname="Tests.Feature.SearchTest" assertions="0" time="0.000000">
+          <error type="Illuminate\Database\QueryException">it returns search results for clientsIlluminate\Database\QueryException: SQLSTATE[HY000]: General error: 1 no such table: settings (Connection: sqlite, SQL: select * from "settings" limit 1)&#13;
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:406
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:811
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:778
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:397
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3188
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3173
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3763
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3172
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:902
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:884
+at vendor\laravel\framework\src\Illuminate\Database\Concerns\BuildsQueries.php:366
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:708
+at vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:23
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2540
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2556
+at app\Models\Settings.php:14
+at routes\console.php:5
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:502
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:482
+at tests\TestCase.php:21
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:54
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:92
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:44
+Caused by
+PDOException: SQLSTATE[HY000]: General error: 1 no such table: settings
+
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:406
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:811
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:778
+at vendor\laravel\framework\src\Illuminate\Database\Connection.php:397
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3188
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3173
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3763
+at vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:3172
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:902
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:884
+at vendor\laravel\framework\src\Illuminate\Database\Concerns\BuildsQueries.php:366
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:708
+at vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:23
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2540
+at vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:2556
+at app\Models\Settings.php:14
+at routes\console.php:5
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:502
+at vendor\laravel\framework\src\Illuminate\Foundation\Console\Kernel.php:482
+at tests\TestCase.php:21
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:54
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\InteractsWithTestCaseLifecycle.php:92
+at vendor\laravel\framework\src\Illuminate\Foundation\Testing\TestCase.php:44</error>
+        </testcase>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>

@@ -6,7 +6,6 @@ use App\Models\Billboard;
 use App\Models\Client;
 use App\Models\Contract;
 use Illuminate\Support\Collection;
-use ProtoneMedia\LaravelCrossEloquentSearch\Search;
 
 class SearchService
 {
@@ -21,21 +20,41 @@ class SearchService
             return collect();
         }
 
-        $results = Search::add(Client::class, ['name', 'email', 'company'])
-            ->add(Contract::class, ['contract_number', 'notes'])
-            ->add(Billboard::class, ['name', 'description', 'location'])
-            ->beginWithWildcard()
-            ->endWithWildcard()
-            ->search($query);
+        $searchTerm = '%' . trim($query) . '%';
 
-        return $results->map(function ($model) {
-            return [
-                'type' => class_basename($model),
-                'title' => $this->titleFor($model),
-                'url' => method_exists($model, 'url') ? $model->url() : null,
-                'model' => $model,
-            ];
-        });
+        // Search clients
+        $clients = Client::query()
+            ->where('name', 'like', $searchTerm)
+            ->orWhere('email', 'like', $searchTerm)
+            ->orWhere('company', 'like', $searchTerm)
+            ->get();
+
+        // Search contracts
+        $contracts = Contract::query()
+            ->where('contract_number', 'like', $searchTerm)
+            ->orWhere('notes', 'like', $searchTerm)
+            ->get();
+
+        // Search billboards
+        $billboards = Billboard::query()
+            ->where('name', 'like', $searchTerm)
+            ->orWhere('description', 'like', $searchTerm)
+            ->orWhere('location', 'like', $searchTerm)
+            ->get();
+
+        // Merge and map results
+        return $clients->concat($contracts)
+            ->concat($billboards)
+            ->sortByDesc('updated_at')
+            ->values()
+            ->map(function ($model) {
+                return [
+                    'type' => class_basename($model),
+                    'title' => $this->titleFor($model),
+                    'url' => method_exists($model, 'url') ? $model->url() : null,
+                    'model' => $model,
+                ];
+            });
     }
 
     /**

@@ -2,7 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3'
 import { ref, computed, onMounted } from 'vue'
 import VueApexCharts from 'vue3-apexcharts'
-import TenantLayout from '../../layouts/TenantLayout.vue'
+import TenantLayout from '@/layouts/TenantLayout.vue'
 import { Building2, TrendingUp, Users, Calendar, AlertTriangle, DollarSign, BarChart3, Activity } from 'lucide-vue-next'
 
 interface Props {
@@ -223,14 +223,14 @@ const locationDonutSeries = computed(() => props.billboardMetrics.by_location.ma
           </div>
           <div class="mt-4 flex space-x-3 md:mt-0 md:ml-4">
             <Link
-              href="#"
+              :href="route('tenant.manage.billboards.index', { tenant: tenant.uuid })"
               class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <Building2 class="w-4 h-4 mr-2" />
-              Add Billboard
+              Manage Billboards
             </Link>
             <Link
-              href="#"
+              :href="route('tenant.manage.team.index', { tenant: tenant.uuid })"
               class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm bg-white dark:bg-gray-800 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <Users class="w-4 h-4 mr-2" />

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3'
-import SystemLayout from '../../layouts/SystemLayout.vue'
-import LineChart from '../../components/charts/LineChart.vue'
-import DonutChart from '../../components/charts/DonutChart.vue'
-import AreaChart from '../../components/charts/AreaChart.vue'
+import SystemLayout from '@/layouts/SystemLayout.vue'
+import LineChart from '@/components/charts/LineChart.vue'
+import DonutChart from '@/components/charts/DonutChart.vue'
+import AreaChart from '@/components/charts/AreaChart.vue'
 
 interface Props {
   stats: {

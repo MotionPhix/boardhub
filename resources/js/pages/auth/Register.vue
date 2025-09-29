@@ -142,11 +142,11 @@
 <script setup lang="ts">
 import { useForm, Link } from '@inertiajs/vue3'
 import { UserPlusIcon } from 'lucide-vue-next'
-import DarkModeToggle from '../../components/DarkModeToggle.vue'
-import Input from '../../components/ui/Input.vue'
-import Label from '../../components/ui/Label.vue'
-import Checkbox from '../../components/ui/Checkbox.vue'
-import SocialLoginButton from '../../components/ui/SocialLoginButton.vue'
+import DarkModeToggle from '@/components/DarkModeToggle.vue'
+import Input from '@/components/ui/Input.vue'
+import Label from '@/components/ui/Label.vue'
+import Checkbox from '@/components/ui/Checkbox.vue'
+import SocialLoginButton from '@/components/ui/SocialLoginButton.vue'
 
 // Define props if needed
 interface Props {

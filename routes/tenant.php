@@ -33,6 +33,9 @@ Route::prefix('t/{tenant:uuid}')
         Route::get('/browse', [BillboardController::class, 'index'])->name('billboards.index');
         Route::get('/billboards/{billboard}', [BillboardController::class, 'show'])->name('billboards.show');
 
+        // Team invitation acceptance (public route)
+        Route::get('/team/accept/{token}', [App\Http\Controllers\Tenant\TeamController::class, 'acceptInvitation'])->name('team.accept-invitation');
+
         // Public API endpoints for billboard discovery
         Route::prefix('api')->name('api.')->group(function () {
             Route::get('/billboards/search-location', [BillboardDiscoveryController::class, 'searchLocation'])
@@ -101,6 +104,18 @@ Route::prefix('t/{tenant:uuid}')
                 Route::get('/preferences', [TenantController::class, 'preferences'])->name('preferences');
                 Route::put('/preferences', [TenantController::class, 'updatePreferences'])->name('preferences.update');
             });
+
+            // Organization Onboarding
+            Route::prefix('onboarding')->name('onboarding.')->group(function () {
+                Route::get('/', [App\Http\Controllers\Tenant\OnboardingController::class, 'index'])->name('index');
+                Route::get('/business-info', [App\Http\Controllers\Tenant\OnboardingController::class, 'businessInfo'])->name('business-info');
+                Route::post('/business-info', [App\Http\Controllers\Tenant\OnboardingController::class, 'updateBusinessInfo'])->name('business-info.update');
+                Route::get('/team-setup', [App\Http\Controllers\Tenant\OnboardingController::class, 'teamSetup'])->name('team-setup');
+                Route::get('/branding', [App\Http\Controllers\Tenant\OnboardingController::class, 'branding'])->name('branding');
+                Route::post('/branding', [App\Http\Controllers\Tenant\OnboardingController::class, 'updateBranding'])->name('branding.update');
+                Route::get('/complete', [App\Http\Controllers\Tenant\OnboardingController::class, 'complete'])->name('complete');
+                Route::post('/skip', [App\Http\Controllers\Tenant\OnboardingController::class, 'skip'])->name('skip');
+            });
         });
 
         // Authenticated API routes (for AJAX/SPA interactions)
@@ -140,34 +155,60 @@ Route::prefix('t/{tenant:uuid}')
             ->middleware(['auth', 'can:tenant-admin'])
             ->group(function () {
 
-                Route::get('/', [TenantController::class, 'dashboard'])->name('dashboard');
+                // Billboard Management
+                Route::prefix('billboards')->name('billboards.')->group(function () {
+                    Route::get('/', [App\Http\Controllers\Tenant\BillboardController::class, 'index'])->name('index');
+                    Route::get('/create', [App\Http\Controllers\Tenant\BillboardController::class, 'create'])->name('create');
+                    Route::post('/', [App\Http\Controllers\Tenant\BillboardController::class, 'store'])->name('store');
+                    Route::get('/{billboard}', [App\Http\Controllers\Tenant\BillboardController::class, 'show'])->name('show');
+                    Route::get('/{billboard}/edit', [App\Http\Controllers\Tenant\BillboardController::class, 'edit'])->name('edit');
+                    Route::put('/{billboard}', [App\Http\Controllers\Tenant\BillboardController::class, 'update'])->name('update');
+                    Route::delete('/{billboard}', [App\Http\Controllers\Tenant\BillboardController::class, 'destroy'])->name('destroy');
+                });
 
-                // Tenant Settings
-                Route::prefix('settings')->name('settings.')->group(function () {
-                    Route::get('/', [TenantController::class, 'settings'])->name('index');
-                    Route::put('/', [TenantController::class, 'updateSettings'])->name('update');
-                    Route::get('/branding', [TenantController::class, 'branding'])->name('branding');
-                    Route::put('/branding', [TenantController::class, 'updateBranding'])->name('branding.update');
-                    Route::get('/integrations', [TenantController::class, 'integrations'])->name('integrations');
-                    Route::put('/integrations', [TenantController::class, 'updateIntegrations'])->name('integrations.update');
+                // Booking Management
+                Route::prefix('bookings')->name('bookings.')->group(function () {
+                    Route::get('/', [App\Http\Controllers\Tenant\BookingController::class, 'index'])->name('index');
+                    Route::get('/{booking}', [App\Http\Controllers\Tenant\BookingController::class, 'show'])->name('show');
+                    Route::post('/{booking}/approve', [App\Http\Controllers\Tenant\BookingController::class, 'approve'])->name('approve');
+                    Route::post('/{booking}/reject', [App\Http\Controllers\Tenant\BookingController::class, 'reject'])->name('reject');
+                    Route::post('/{booking}/cancel', [App\Http\Controllers\Tenant\BookingController::class, 'cancel'])->name('cancel');
+                    Route::post('/bulk-action', [App\Http\Controllers\Tenant\BookingController::class, 'bulkAction'])->name('bulk-action');
+                    Route::get('/analytics/overview', [App\Http\Controllers\Tenant\BookingController::class, 'analytics'])->name('analytics');
                 });
 
                 // Team Management
                 Route::prefix('team')->name('team.')->group(function () {
-                    Route::get('/', [TenantController::class, 'team'])->name('index');
-                    Route::post('/invite', [TenantController::class, 'inviteTeamMember'])->name('invite');
-                    Route::put('/member/{user}', [TenantController::class, 'updateTeamMember'])->name('update');
-                    Route::delete('/member/{user}', [TenantController::class, 'removeTeamMember'])->name('remove');
-                    Route::post('/resend-invitation/{invitation}', [TenantController::class, 'resendInvitation'])->name('resend-invitation');
+                    Route::get('/', [App\Http\Controllers\Tenant\TeamController::class, 'index'])->name('index');
+                    Route::get('/{user}', [App\Http\Controllers\Tenant\TeamController::class, 'show'])->name('show');
+                    Route::post('/invite', [App\Http\Controllers\Tenant\TeamController::class, 'invite'])->name('invite');
+                    Route::put('/{user}/role', [App\Http\Controllers\Tenant\TeamController::class, 'updateRole'])->name('update-role');
+                    Route::put('/{user}/status', [App\Http\Controllers\Tenant\TeamController::class, 'updateStatus'])->name('update-status');
+                    Route::delete('/{user}', [App\Http\Controllers\Tenant\TeamController::class, 'removeMember'])->name('remove');
+                    Route::post('/invitations/{invitation}/resend', [App\Http\Controllers\Tenant\TeamController::class, 'resendInvitation'])->name('resend-invitation');
+                    Route::delete('/invitations/{invitation}', [App\Http\Controllers\Tenant\TeamController::class, 'cancelInvitation'])->name('cancel-invitation');
+                    Route::get('/permissions/overview', [App\Http\Controllers\Tenant\TeamController::class, 'permissions'])->name('permissions');
                 });
 
                 // Analytics & Reports
                 Route::prefix('analytics')->name('analytics.')->group(function () {
-                    Route::get('/', [TenantController::class, 'analytics'])->name('index');
-                    Route::get('/bookings', [TenantController::class, 'bookingAnalytics'])->name('bookings');
-                    Route::get('/revenue', [TenantController::class, 'revenueAnalytics'])->name('revenue');
-                    Route::get('/performance', [TenantController::class, 'performanceAnalytics'])->name('performance');
-                    Route::post('/export', [TenantController::class, 'exportAnalytics'])->name('export');
+                    Route::get('/', [App\Http\Controllers\Tenant\AnalyticsController::class, 'index'])->name('index');
+                    Route::get('/revenue', [App\Http\Controllers\Tenant\AnalyticsController::class, 'revenue'])->name('revenue');
+                    Route::get('/billboards', [App\Http\Controllers\Tenant\AnalyticsController::class, 'billboards'])->name('billboards');
+                    Route::get('/bookings', [App\Http\Controllers\Tenant\AnalyticsController::class, 'bookings'])->name('bookings');
+                    Route::get('/customers', [App\Http\Controllers\Tenant\AnalyticsController::class, 'customers'])->name('customers');
+                    Route::post('/export', [App\Http\Controllers\Tenant\AnalyticsController::class, 'export'])->name('export');
+                });
+
+                // Settings Management
+                Route::prefix('settings')->name('settings.')->group(function () {
+                    Route::get('/', [App\Http\Controllers\Tenant\SettingsController::class, 'index'])->name('index');
+                    Route::match(['get', 'post'], '/general', [App\Http\Controllers\Tenant\SettingsController::class, 'general'])->name('general');
+                    Route::match(['get', 'post'], '/branding', [App\Http\Controllers\Tenant\SettingsController::class, 'branding'])->name('branding');
+                    Route::get('/billing', [App\Http\Controllers\Tenant\SettingsController::class, 'billing'])->name('billing');
+                    Route::match(['get', 'post'], '/integrations', [App\Http\Controllers\Tenant\SettingsController::class, 'integrations'])->name('integrations');
+                    Route::match(['get', 'post'], '/notifications', [App\Http\Controllers\Tenant\SettingsController::class, 'notifications'])->name('notifications');
+                    Route::match(['get', 'post'], '/security', [App\Http\Controllers\Tenant\SettingsController::class, 'security'])->name('security');
                 });
             });
     });

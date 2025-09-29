@@ -60,7 +60,7 @@ class BillboardController extends Controller
             'max' => Billboard::max('price'),
         ];
 
-        return Inertia::render('billboards/Index', [
+        return Inertia::render('tenant/billboards/Index', [
             'billboards' => $billboards,
             'filters' => [
                 'search' => $request->search,
@@ -76,7 +76,7 @@ class BillboardController extends Controller
 
     public function show(Billboard $billboard)
     {
-        return Inertia::render('billboards/Show', [
+        return Inertia::render('tenant/billboards/Show', [
             'billboard' => $billboard,
             'availabilityCalendar' => $this->getAvailabilityCalendar($billboard),
             'suggestedDates' => [

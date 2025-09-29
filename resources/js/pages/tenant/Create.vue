@@ -194,7 +194,7 @@ const getPlanIcon = (planName: string) => {
 
               <div>
                 <Label for="slug" required>Slug</Label>
-                <div class="flex">
+                <div>
                   <Input
                     id="slug"
                     v-model="form.slug"

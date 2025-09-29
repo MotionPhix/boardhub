@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -43,16 +44,19 @@ class SocialAuthController extends Controller
                 'email' => $socialUser->getEmail(),
                 'password' => Hash::make(Str::random(24)),
                 'email_verified_at' => now(),
-                'status' => 'active',
+                'is_active' => true,
                 'provider' => $provider,
                 'provider_id' => $socialUser->getId(),
                 'avatar' => $socialUser->getAvatar(),
             ]);
 
+            event(new Registered($user));
             Auth::login($user);
         }
 
-        return redirect()->intended(route('dashboard'));
+        // Use the post-login redirect controller to determine where to send the user
+        return app(\App\Http\Controllers\Auth\PostLoginRedirectController::class)
+            ->handlePostLoginRedirect($user);
     }
 
     private function validateProvider(string $provider): void

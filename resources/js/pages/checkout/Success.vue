@@ -48,6 +48,6 @@
 
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
-import AppLayout from '../../layouts/AppLayout.vue'
+import AppLayout from '@/layouts/AppLayout.vue'
 import { CheckCircle } from 'lucide-vue-next'
 </script>

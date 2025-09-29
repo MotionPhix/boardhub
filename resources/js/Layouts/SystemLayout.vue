@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import { Toaster } from 'vue-sonner'
-import DarkModeToggle from '../components/DarkModeToggle.vue'
+import DarkModeToggle from '@/components/DarkModeToggle.vue'
 
 interface Props {
   title?: string

@@ -191,7 +191,7 @@ import { ref } from 'vue'
 import { Link } from '@inertiajs/vue3'
 import { Toaster } from 'vue-sonner'
 import { ChevronDown, Menu, X } from 'lucide-vue-next'
-import DarkModeToggle from '../components/DarkModeToggle.vue'
+import DarkModeToggle from '@/components/DarkModeToggle.vue'
 import { useDarkMode } from '../composables/useDarkMode'
 
 // Dark mode

@@ -107,11 +107,7 @@ Route::get('/test-system-access', function () {
     ];
 })->middleware(['auth', 'super.admin']);
 
-// Organization Management for Users (not tenant-specific)
-Route::middleware(['auth'])->prefix('organizations')->name('organizations.')->group(function () {
-    Route::get('/create', [\App\Http\Controllers\OrganizationController::class, 'create'])->name('create');
-    Route::post('/', [\App\Http\Controllers\OrganizationController::class, 'store'])->name('store');
-});
+// Organization routes have been moved to auth.php for better consolidation
 
 // Checkout Routes for Paid Plans
 Route::middleware(['auth'])->prefix('checkout')->name('checkout.')->group(function () {

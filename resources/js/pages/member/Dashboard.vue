@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3'
-import MemberLayout from '../../layouts/MemberLayout.vue'
+import MemberLayout from '@/layouts/MemberLayout.vue'
 
 interface Props {
   tenant: {

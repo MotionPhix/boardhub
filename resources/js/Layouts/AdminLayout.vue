@@ -115,14 +115,14 @@
             <div class="flex">
               <CheckCircle class="h-5 w-5 text-green-400" />
               <div class="ml-3">
-                <p class="text-sm font-medium text-green-800">{{ $page.props.flash.success }}</p>
+                <p class="text-sm font-med.error" class="mb-4 rounded-md bg-red-50 p-4">
+                  <div class="flex">
+                    <XCircle class="h-5 w-ium text-green-800">{{ $page.props.flash.success }}</p>
               </div>
             </div>
           </div>
 
-          <div v-if="$page.props.flash.error" class="mb-4 rounded-md bg-red-50 p-4">
-            <div class="flex">
-              <XCircle class="h-5 w-5 text-red-400" />
+          <div v-if="$page.props.flash5 text-red-400" />
               <div class="ml-3">
                 <p class="text-sm font-medium text-red-800">{{ $page.props.flash.error }}</p>
               </div>

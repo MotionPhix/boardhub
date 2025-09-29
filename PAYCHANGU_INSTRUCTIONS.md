@@ -1,7 +1,36 @@
 # PayChangu Gateway Instructions
 
+# USEFUL LINKS
+CHECK THE FOLLOWING LINKS BEFORE ATTEMPTING ANYTHING
+
+## TESTING
+https://developer.paychangu.com/docs/test
+
+## PAYCHANGU ERRORS
+https://developer.paychangu.com/docs/paychangu-errors
+
+## WEBHOOKS
+https://developer.paychangu.com/docs/webhooks
+
+## TRANSATION VERIFICATION
+https://developer.paychangu.com/docs/transaction-verification
+
+## BALANCES
+https://developer.paychangu.com/docs/balance
+
+## INTEGRATION OPTIONS
+https://developer.paychangu.com/docs/introduction
+
+### INLINE CHEKOUT
+https://developer.paychangu.com/docs/inline-popup
+
+### STANDARD CHECKOUT
+https://developer.paychangu.com/docs/standard-checkout
+
+### HTML CHECKOUT
+https://developer.paychangu.com/docs/html-checkout
+
 ## Overview
-Welcome
 Welcome to PayChangu Documentation
 
 Welcome to the PayChangu Developer Documentation! Here, you’ll discover how to create seamless and innovative payment solutions using the powerful PayChangu API.
@@ -759,3 +788,10 @@ On your server, you should handle the redirect and always verify the final state
 If the payment attempt fails (for instance, due to insufficient funds), you don’t need to take any action. The payment page will remain open, allowing the customer to try again until the payment succeeds or they choose to cancel. Once the customer cancels or after multiple failed attempts, we will redirect to the return_url with the query parameters tx_ref and status of failed.
 
 If you have webhooks enabled, we’ll send you a notification for each failed payment attempt. This can be useful if you want to reach out to customers who experienced issues with their payment.
+
+
+HOSTED STANDARD CHECKOUT API LINKS
+
+https://developer.paychangu.com/reference/initiate-transaction
+https://developer.paychangu.com/reference/verify-transaction-status
+

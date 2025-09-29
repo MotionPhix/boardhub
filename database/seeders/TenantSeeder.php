@@ -49,11 +49,14 @@ class TenantSeeder extends Seeder
         ];
 
         foreach ($tenants as $tenantData) {
-            Tenant::create($tenantData);
+            // Use updateOrCreate so running seeds multiple times won't break on unique constraints
+            Tenant::updateOrCreate([
+                'slug' => $tenantData['slug'],
+            ], $tenantData);
         }
 
         // Output tenant UUIDs for reference
-        $this->command->info('Created tenants with UUIDs:');
+        $this->command->info('Created or updated tenants with UUIDs:');
         Tenant::all()->each(function ($tenant) {
             $this->command->info("- {$tenant->name}: {$tenant->uuid}");
         });

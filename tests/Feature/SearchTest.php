@@ -3,25 +3,35 @@
 use App\Models\Billboard;
 use App\Models\Client;
 use App\Models\Contract;
+use App\Models\Tenant;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses(RefreshDatabase::class);
 
+beforeEach(function () {
+    // Create a tenant for tests and bind it to the application
+    $this->tenant = Tenant::factory()->create();
+    app()->instance('tenant', $this->tenant);
+});
+
 it('can search across multiple models', function () {
     // Create test data
     $client = Client::factory()->create([
+        'tenant_id' => $this->tenant->id,
         'name' => 'Acme Marketing Agency',
         'company' => 'Acme Corp',
         'email' => 'contact@acme.com',
     ]);
 
     $contract = Contract::factory()->create([
+        'tenant_id' => $this->tenant->id,
         'client_id' => $client->id,
         'contract_number' => 'CNT-2025-12345',
         'notes' => 'Premium billboard package for Acme',
     ]);
 
     $billboard = Billboard::factory()->create([
+        'tenant_id' => $this->tenant->id,
         'name' => 'City Center Premium',
         'location' => 'Lilongwe City Center',
         'description' => 'High-traffic location near shopping mall',
@@ -87,9 +97,18 @@ it('returns empty results for no matches', function () {
 });
 
 it('handles wildcard searches correctly', function () {
-    Billboard::factory()->create(['name' => 'Downtown Billboard']);
-    Billboard::factory()->create(['name' => 'Uptown Billboard']);
-    Client::factory()->create(['name' => 'Billboard Experts Ltd']);
+    Billboard::factory()->create([
+        'tenant_id' => $this->tenant->id,
+        'name' => 'Downtown Billboard'
+    ]);
+    Billboard::factory()->create([
+        'tenant_id' => $this->tenant->id,
+        'name' => 'Uptown Billboard'
+    ]);
+    Client::factory()->create([
+        'tenant_id' => $this->tenant->id,
+        'name' => 'Billboard Experts Ltd'
+    ]);
 
     $response = $this->getJson('/api/search?q=Billboard');
 
@@ -97,4 +116,23 @@ it('handles wildcard searches correctly', function () {
 
     expect($response->json('count'))->toBeGreaterThanOrEqual(3);
     expect($response->json('data'))->toHaveCount($response->json('count'));
+});
+
+it('returns search results for clients', function () {
+    // Create a client that should match the search
+    Client::factory()->create([
+        'tenant_id' => $this->tenant->id,
+        'name' => 'Acme SearchCo',
+        'company' => 'SearchCo',
+        'email' => 'search@example.test',
+    ]);
+
+    $response = $this->get('/api/search?q=Acme');
+
+    $response->assertSuccessful();
+
+    $data = $response->json('data');
+
+    expect(is_array($data))->toBeTrue();
+    expect(count($data))->toBeGreaterThan(0);
 });

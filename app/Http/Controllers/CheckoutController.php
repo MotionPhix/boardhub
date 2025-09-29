@@ -13,7 +13,7 @@ use Inertia\Response;
 
 class CheckoutController extends Controller
 {
-    public function index(Request $request, string $plan): Response
+    public function index(Request $request, string $plan)
     {
         // Get the billing plan
         $billingPlan = BillingPlan::where('name', $plan)->firstOrFail();
@@ -33,7 +33,7 @@ class CheckoutController extends Controller
         }
 
         return Inertia::render('checkout/Index', [
-            'billingPlan' => $billingPlan,
+            'billingPlan' => $billingPlan->load('features'),
             'pendingOrganization' => $pendingOrganization,
             'paychanguPublicKey' => config('services.paychangu.public_key'),
         ]);
@@ -95,12 +95,12 @@ class CheckoutController extends Controller
     public function handleCallback(Request $request)
     {
         $validated = $request->validate([
-            'reference' => 'required|string',
+            'tx_ref' => 'required|string',
             'status' => 'required|string',
         ]);
 
-        // Verify payment with PayChangu
-        $paymentStatus = $this->verifyPayChanguPayment($validated['reference']);
+        // Verify payment with PayChangu using tx_ref
+        $paymentStatus = $this->verifyPayChanguPayment($validated['tx_ref']);
 
         if (!$paymentStatus['success']) {
             return redirect()->route('checkout.failure')
@@ -109,8 +109,8 @@ class CheckoutController extends Controller
 
         $paymentData = $paymentStatus['data'];
 
-        // Check if payment was successful
-        if ($paymentData['status'] !== 'successful') {
+        // Check if payment was successful (PayChangu uses 'success' status)
+        if ($paymentData['status'] !== 'success') {
             return redirect()->route('checkout.failure')
                 ->with('error', 'Payment was not successful.');
         }
@@ -123,7 +123,7 @@ class CheckoutController extends Controller
                 ->with('success', 'Payment successful! Your organization has been created.');
         } catch (\Exception $e) {
             \Log::error('Organization creation failed after payment', [
-                'reference' => $validated['reference'],
+                'tx_ref' => $validated['tx_ref'],
                 'error' => $e->getMessage(),
             ]);
 
@@ -145,6 +145,8 @@ class CheckoutController extends Controller
     private function createPayChanguPayment(array $data): array
     {
         try {
+            $txRef = 'adpro_' . Str::uuid();
+
             $payload = [
                 'amount' => $data['amount'],
                 'currency' => $data['currency'],
@@ -152,8 +154,8 @@ class CheckoutController extends Controller
                 'first_name' => explode(' ', $data['customer_name'])[0],
                 'last_name' => explode(' ', $data['customer_name'], 2)[1] ?? '',
                 'callback_url' => route('checkout.callback'),
-                'return_url' => route('checkout.success'),
-                'tx_ref' => 'adpro_' . Str::uuid(),
+                'return_url' => route('checkout.failure'), // Failed payments redirect here
+                'tx_ref' => $txRef,
                 'customization' => [
                     'title' => 'AdPro Subscription',
                     'description' => "Subscription to {$data['plan_name']} for {$data['organization_name']}",
@@ -165,14 +167,15 @@ class CheckoutController extends Controller
             $response = \Http::withHeaders([
                 'Authorization' => 'Bearer ' . config('services.paychangu.secret_key'),
                 'Content-Type' => 'application/json',
-            ])->post(config('services.paychangu.base_url') . '/payments', $payload);
+                'Accept' => 'application/json',
+            ])->post('https://api.paychangu.com/payment', $payload);
 
             if ($response->successful()) {
                 $responseData = $response->json();
                 return [
                     'success' => true,
-                    'payment_url' => $responseData['data']['link'],
-                    'reference' => $payload['tx_ref'],
+                    'payment_url' => $responseData['data']['checkout_url'],
+                    'reference' => $txRef,
                 ];
             }
 
@@ -199,13 +202,18 @@ class CheckoutController extends Controller
         try {
             $response = \Http::withHeaders([
                 'Authorization' => 'Bearer ' . config('services.paychangu.secret_key'),
-            ])->get(config('services.paychangu.base_url') . "/payments/{$reference}/verify");
+                'Accept' => 'application/json',
+            ])->get("https://api.paychangu.com/verify-payment/{$reference}");
 
             if ($response->successful()) {
-                return [
-                    'success' => true,
-                    'data' => $response->json()['data'],
-                ];
+                $responseData = $response->json();
+
+                if ($responseData['status'] === 'success') {
+                    return [
+                        'success' => true,
+                        'data' => $responseData['data'],
+                    ];
+                }
             }
 
             return [
@@ -228,15 +236,28 @@ class CheckoutController extends Controller
 
     private function createOrganizationAfterPayment(array $paymentData): Tenant
     {
-        $metadata = $paymentData['meta'];
-        $pendingOrganization = $metadata['pending_organization'];
-        $billingPlanId = $metadata['billing_plan_id'];
-        $billingCycle = $metadata['billing_cycle'];
-        $userId = $metadata['user_id'];
+        // PayChangu sends meta data in the response
+        $metadata = $paymentData['meta'] ?? [];
+
+        // If meta is empty, try to get from session as fallback
+        $pendingOrganization = $metadata['pending_organization'] ?? session('pending_organization');
+        $billingPlanId = $metadata['billing_plan_id'] ?? null;
+        $billingCycle = $metadata['billing_cycle'] ?? 'monthly';
+        $userId = $metadata['user_id'] ?? auth()->id();
+
+        if (!$pendingOrganization) {
+            throw new \Exception('No pending organization data found');
+        }
 
         // Get user and billing plan
         $user = \App\Models\User::findOrFail($userId);
-        $billingPlan = BillingPlan::findOrFail($billingPlanId);
+
+        if ($billingPlanId) {
+            $billingPlan = BillingPlan::findOrFail($billingPlanId);
+        } else {
+            // Fallback: get plan by name from pending organization
+            $billingPlan = BillingPlan::where('name', $pendingOrganization['plan'])->firstOrFail();
+        }
 
         // Create organization
         $tenant = Tenant::create([
@@ -246,7 +267,7 @@ class CheckoutController extends Controller
             'slug' => $pendingOrganization['slug'],
             'subdomain' => $pendingOrganization['subdomain'],
             'plan' => $pendingOrganization['plan'],
-            'settings' => $pendingOrganization['settings'],
+            'settings' => $pendingOrganization['settings'] ?? [],
             'status' => 'active',
         ]);
 
@@ -262,8 +283,8 @@ class CheckoutController extends Controller
             'billing_plan_id' => $billingPlan->id,
             'status' => 'active',
             'payment_status' => 'paid',
-            'paychangu_subscription_id' => $paymentData['id'],
-            'paychangu_customer_id' => $paymentData['customer']['id'] ?? null,
+            'paychangu_subscription_id' => $paymentData['tx_ref'],
+            'paychangu_customer_id' => $paymentData['customer']['email'] ?? $user->email,
             'amount' => $paymentData['amount'],
             'currency' => $paymentData['currency'],
             'interval' => $billingCycle === 'annually' ? 'yearly' : 'monthly',

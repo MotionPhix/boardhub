@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Enums\OrganizationStatus;
+use App\Models\Membership;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -119,6 +121,83 @@ class Tenant extends Model
     public function bookings(): HasMany
     {
         return $this->hasMany(Booking::class);
+    }
+
+    /**
+     * Define the criteria required for setup completion
+     */
+    public function getSetupCompletionCriteria(): array
+    {
+        return [
+            'has_name' => !empty($this->name),
+            'has_slug' => !empty($this->slug),
+            'has_owner' => Membership::where('tenant_id', $this->id)
+                ->where('role', Membership::ROLE_OWNER)
+                ->where('status', Membership::STATUS_ACTIVE)
+                ->exists(),
+            'has_business_info' => !empty($this->business_type) && !empty($this->industry),
+            'has_contact_info' => !empty($this->contact_info),
+            'has_subscription' => $this->subscriptions()->exists() || $this->subscription_tier === 'trial',
+        ];
+    }
+
+    /**
+     * Check if all setup criteria are met
+     */
+    public function isSetupComplete(): bool
+    {
+        $criteria = $this->getSetupCompletionCriteria();
+        return collect($criteria)->every(fn($met) => $met === true);
+    }
+
+    /**
+     * Automatically update setup_completed status based on criteria
+     */
+    public function updateSetupCompletionStatus(): bool
+    {
+        $isComplete = $this->isSetupComplete();
+
+        if ($this->setup_completed !== $isComplete) {
+            $this->update(['setup_completed' => $isComplete]);
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Get the derived organization status based on current tenant state
+     */
+    public function getStatusAttribute(): OrganizationStatus
+    {
+        // If setup is not completed, return setup_incomplete
+        if (!$this->setup_completed) {
+            return OrganizationStatus::SetupIncomplete;
+        }
+
+        // If tenant is not active, return inactive
+        if (!$this->is_active) {
+            return OrganizationStatus::Inactive;
+        }
+
+        // Check trial status
+        if ($this->subscription_tier === 'trial' || $this->trial_ends_at) {
+            // If trial has expired, return suspended
+            if ($this->trial_ends_at && $this->trial_ends_at->isPast()) {
+                return OrganizationStatus::Suspended;
+            }
+
+            // If trial is still active
+            return OrganizationStatus::Trial;
+        }
+
+        // Check if subscription has ended
+        if ($this->subscription_ends_at && $this->subscription_ends_at->isPast()) {
+            return OrganizationStatus::Suspended;
+        }
+
+        // Default to active if all checks pass
+        return OrganizationStatus::Active;
     }
 
     public function subscriptions(): HasMany
