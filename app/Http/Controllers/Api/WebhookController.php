@@ -3,20 +3,26 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Services\PayChanguService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class WebhookController extends Controller
 {
+    public function __construct(
+        private PayChanguService $payChanguService
+    ) {}
+
     public function paychangu(Request $request): JsonResponse
     {
         try {
             // Verify webhook signature
-            if (!$this->verifyPayChanguSignature($request)) {
+            if (! $this->verifyPayChanguSignature($request)) {
                 Log::warning('PayChangu webhook signature verification failed', [
                     'headers' => $request->headers->all(),
                 ]);
+
                 return response()->json(['error' => 'Invalid signature'], 401);
             }
 
@@ -36,8 +42,9 @@ class WebhookController extends Controller
                 default:
                     Log::info('PayChangu webhook event type not handled', [
                         'event_type' => $eventType,
-                        'payload' => $payload
+                        'payload' => $payload,
                     ]);
+
                     return response()->json(['status' => 'received']);
             }
 
@@ -93,15 +100,30 @@ class WebhookController extends Controller
     {
         $payload = $request->getContent();
         $signature = $request->header('Signature');
-        $webhookSecret = config('services.paychangu.webhook_secret');
+        $webhookSecret = config('paychangu.webhook_secret', 'test-secret');
 
-        if (!$signature || !$webhookSecret) {
+        if (! $signature || ! $webhookSecret) {
+            Log::warning('PayChangu webhook signature verification failed - missing signature or secret', [
+                'has_signature' => ! empty($signature),
+                'has_secret' => ! empty($webhookSecret),
+            ]);
+
             return false;
         }
 
         $computedSignature = hash_hmac('sha256', $payload, $webhookSecret);
 
-        return hash_equals($computedSignature, $signature);
+        $isValid = hash_equals($computedSignature, $signature);
+
+        if (! $isValid) {
+            Log::warning('PayChangu webhook signature mismatch', [
+                'expected' => $computedSignature,
+                'received' => $signature,
+                'payload_length' => strlen($payload),
+            ]);
+        }
+
+        return $isValid;
     }
 
     private function handlePaymentWebhook(array $payload): JsonResponse
@@ -110,8 +132,9 @@ class WebhookController extends Controller
             $txRef = $payload['tx_ref'] ?? $payload['reference'] ?? null;
             $status = $payload['status'] ?? null;
 
-            if (!$txRef) {
+            if (! $txRef) {
                 Log::warning('PayChangu webhook missing transaction reference', $payload);
+
                 return response()->json(['error' => 'Missing transaction reference'], 400);
             }
 
@@ -185,5 +208,28 @@ class WebhookController extends Controller
     {
         // TODO: Implement TNM Mpamba webhook logic
         return response()->json(['status' => 'processed']);
+    }
+
+    /**
+     * Handle PayChangu payment webhook (alias for paychangu method)
+     */
+    public function paychanguPayment(Request $request): JsonResponse
+    {
+        try {
+            $result = $this->payChanguService->handlePaymentCallback($request->all(), 'paychangu');
+
+            if ($result['success']) {
+                return response()->json(['status' => 'success']);
+            } else {
+                return response()->json(['status' => 'error', 'message' => $result['message']], 400);
+            }
+        } catch (\Exception $e) {
+            Log::error('PayChangu webhook handling failed', [
+                'error' => $e->getMessage(),
+                'payload' => $request->all(),
+            ]);
+
+            return response()->json(['status' => 'error'], 500);
+        }
     }
 }

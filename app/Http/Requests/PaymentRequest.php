@@ -22,8 +22,13 @@ class PaymentRequest extends FormRequest
         return [
             'provider' => 'required|string|in:airtel_money,tnm_mpamba,card,bank_transfer',
             'amount' => 'required|numeric|min:100|max:1000000',
-            'phone_number' => 'nullable|string|regex:/^(\+265|265|0)?(77|88|99)\d{7}$/|required_if:provider,airtel_money,tnm_mpamba',
-            'booking_id' => 'nullable|integer|exists:bookings,id',
+            'phone_number' => [
+                'nullable',
+                'string',
+                'regex:#^(\+265|265|0)?(77|88|99)\d{7}$#',
+                'required_if:provider,airtel_money,tnm_mpamba',
+            ],
+            'booking_id' => 'nullable|string|exists:bookings,id',
             'client_id' => 'nullable|integer|exists:clients,id',
             'reference' => 'nullable|string|max:100|unique:payments,reference',
             'description' => 'nullable|string|max:255',
@@ -101,22 +106,39 @@ class PaymentRequest extends FormRequest
     {
         // Normalize phone number
         if ($this->phone_number) {
-            $phone = preg_replace('/[\s\-\+]/', '', $this->phone_number);
-
-            // Add country code if missing
-            if (str_starts_with($phone, '0')) {
-                $phone = '265' . substr($phone, 1);
-            } elseif (!str_starts_with($phone, '265')) {
-                $phone = '265' . $phone;
-            }
-
-            $this->merge(['phone_number' => $phone]);
+            $this->merge(['phone_number' => $this->normalizePhoneNumber($this->phone_number)]);
         }
 
         // Generate reference if not provided
-        if (!$this->reference) {
-            $this->merge(['reference' => 'ADPRO_' . strtoupper(uniqid())]);
+        if (! $this->reference) {
+            $this->merge(['reference' => 'ADPRO_'.strtoupper(uniqid())]);
         }
+    }
+
+    /**
+     * Normalize phone number to international format
+     */
+    private function normalizePhoneNumber(string $phoneNumber): string
+    {
+        // Remove all non-digit characters except +
+        $phone = preg_replace('/[^\d+]/', '', $phoneNumber);
+
+        // Remove + prefix if present
+        $phone = ltrim($phone, '+');
+
+        // Handle different formats
+        if (str_starts_with($phone, '0')) {
+            // Local format (e.g., 0991234567) -> add country code
+            $phone = '265'.substr($phone, 1);
+        } elseif (str_starts_with($phone, '265')) {
+            // Already in international format
+            $phone = $phone;
+        } elseif (str_starts_with($phone, '77') || str_starts_with($phone, '88') || str_starts_with($phone, '99')) {
+            // Missing both 0 and 265 prefix (e.g., 991234567)
+            $phone = '265'.$phone;
+        }
+
+        return $phone;
     }
 
     private function validateProviderPhoneNumber($validator)
@@ -139,7 +161,7 @@ class PaymentRequest extends FormRequest
             }
         }
 
-        if (!$isValid) {
+        if (! $isValid) {
             $providerName = $provider === 'airtel_money' ? 'Airtel Money' : 'TNM Mpamba';
             $expectedPrefixes = $provider === 'airtel_money' ? '099 or 088' : '077';
 
@@ -152,28 +174,40 @@ class PaymentRequest extends FormRequest
 
     private function validateBookingTenant($validator)
     {
-        if (!app()->bound('tenant')) {
+        if (! app()->bound('tenant')) {
+            // In testing environment, tenant might not be bound
+            // We'll skip this validation and let the controller handle it
             return;
         }
 
         $tenant = app('tenant');
+        if (! $tenant) {
+            return;
+        }
+
         $booking = $tenant->bookings()->find($this->booking_id);
 
-        if (!$booking) {
+        if (! $booking) {
             $validator->errors()->add('booking_id', 'The selected booking does not exist or does not belong to your account.');
         }
     }
 
     private function validateClientTenant($validator)
     {
-        if (!app()->bound('tenant')) {
+        if (! app()->bound('tenant')) {
+            // In testing environment, tenant might not be bound
+            // We'll skip this validation and let the controller handle it
             return;
         }
 
         $tenant = app('tenant');
+        if (! $tenant) {
+            return;
+        }
+
         $client = $tenant->clients()->find($this->client_id);
 
-        if (!$client) {
+        if (! $client) {
             $validator->errors()->add('client_id', 'The selected client does not exist or does not belong to your account.');
         }
     }

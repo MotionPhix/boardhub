@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Events\PaymentCompleted;
-use App\Events\PaymentFailed;
 use App\Events\PaymentInitiated;
+use App\Events\RegularPaymentFailed;
 use App\Models\Booking;
 use App\Models\Client;
 use App\Models\Payment;
@@ -23,8 +23,11 @@ class PayChanguIntegrationTest extends TestCase
     use RefreshDatabase, WithFaker;
 
     protected Tenant $tenant;
+
     protected User $user;
+
     protected Client $client;
+
     protected Booking $booking;
 
     protected function setUp(): void
@@ -110,7 +113,7 @@ class PayChanguIntegrationTest extends TestCase
         $paymentData = [
             'provider' => 'airtel_money',
             'amount' => 5000,
-            'phone_number' => '0991234567',
+            'phone_number' => '0990000000',  // PayChangu test number for SUCCESS
             'booking_id' => $this->booking->id,
             'client_id' => $this->client->id,
         ];
@@ -135,7 +138,7 @@ class PayChanguIntegrationTest extends TestCase
             'client_id' => $this->client->id,
             'provider' => 'airtel_money',
             'amount' => 5000,
-            'phone_number' => '265991234567', // Should be normalized
+            'phone_number' => '265990000000', // Should be normalized to PayChangu test number
             'status' => Payment::STATUS_PENDING,
         ]);
 
@@ -144,7 +147,7 @@ class PayChanguIntegrationTest extends TestCase
             return $request->url() === 'https://api.paychangu.com/mobile-money/charge' &&
                    $request['provider'] === 'airtel' &&
                    $request['amount'] === 5000 &&
-                   $request['phone_number'] === '265991234567';
+                   $request['phone_number'] === '265990000000';
         });
 
         Event::assertDispatched(PaymentInitiated::class);
@@ -225,7 +228,7 @@ class PayChanguIntegrationTest extends TestCase
                     'currency' => 'MWK',
                     'authorization' => [
                         'channel' => 'Mobile Money',
-                        'mobile_number' => '265991234567',
+                        'mobile_number' => '265990000000',
                     ],
                     'logs' => [
                         [
@@ -277,7 +280,7 @@ class PayChanguIntegrationTest extends TestCase
             'currency' => 'MWK',
             'authorization' => [
                 'channel' => 'Mobile Money',
-                'mobile_number' => '265991234567',
+                'mobile_number' => '265990000000',
             ],
         ];
 
@@ -304,7 +307,7 @@ class PayChanguIntegrationTest extends TestCase
 
     public function test_can_handle_failed_payment_webhook(): void
     {
-        Event::fake([PaymentFailed::class]);
+        Event::fake([RegularPaymentFailed::class]);
 
         $payment = Payment::factory()->create([
             'tenant_id' => $this->tenant->id,
@@ -339,7 +342,7 @@ class PayChanguIntegrationTest extends TestCase
         $this->assertEquals('Insufficient funds', $payment->failure_reason);
         $this->assertNotNull($payment->failed_at);
 
-        Event::assertDispatched(PaymentFailed::class, function ($event) use ($payment) {
+        Event::assertDispatched(RegularPaymentFailed::class, function ($event) use ($payment) {
             return $event->payment_id === $payment->id;
         });
     }
@@ -434,7 +437,7 @@ class PayChanguIntegrationTest extends TestCase
 
     public function test_paychangu_service_configuration(): void
     {
-        $service = new PayChanguService();
+        $service = new PayChanguService;
 
         // Test that service can get supported providers
         $providers = $service->getSupportedProviders($this->tenant);
@@ -462,7 +465,7 @@ class PayChanguIntegrationTest extends TestCase
         $paymentData = [
             'provider' => 'airtel_money',
             'amount' => 5000,
-            'phone_number' => '0991234567',
+            'phone_number' => '0990000001',  // PayChangu test number for FAILED
         ];
 
         $response = $this->postJson("/api/t/{$this->tenant->uuid}/payments/process", $paymentData);
@@ -489,25 +492,34 @@ class PayChanguIntegrationTest extends TestCase
         ]);
 
         $testCases = [
-            '0991234567' => '265991234567',
-            '+265991234567' => '265991234567',
-            '265991234567' => '265991234567',
-            '991234567' => '265991234567',
+            '0990000000' => '265990000000',  // Using PayChangu test number
+            '+265990000000' => '265990000000',
+            '265990000000' => '265990000000',
+            '990000000' => '265990000000',
         ];
 
         foreach ($testCases as $input => $expected) {
-            $this->postJson("/api/t/{$this->tenant->uuid}/payments/process", [
+            $response = $this->postJson("/api/t/{$this->tenant->uuid}/payments/process", [
                 'provider' => 'airtel_money',
                 'amount' => 1000,
                 'phone_number' => $input,
             ]);
 
+            if (! $response->isSuccessful()) {
+                dump("Test input: {$input}");
+                dump('Response status: '.$response->getStatusCode());
+                dump('Response body: '.$response->getContent());
+            }
+
+            $response->assertSuccessful();
+
             $this->assertDatabaseHas('payments', [
                 'phone_number' => $expected,
+                'tenant_id' => $this->tenant->id,
             ]);
 
-            // Clean up for next iteration
-            Payment::query()->delete();
+            // Clean up for next iteration - only delete this tenant's payments
+            $this->tenant->payments()->delete();
         }
     }
 }

@@ -2,13 +2,20 @@
   "permissions": {
     "allow": [
       "Bash(find:*)",
-      "Bash(\"C:\\Users\\ultrashots\\.config\\herd\\bin\\php.bat\" artisan tinker --execute=\"echo ''Billboard table structure:''; Schema::getColumnListing(''billboards'');\")"
+      "Bash(\"C:\\Users\\ultrashots\\.config\\herd\\bin\\php.bat\" artisan tinker --execute=\"echo ''Billboard table structure:''; Schema::getColumnListing(''billboards'');\")",
+      "Bash(php artisan:*)",
+      "Bash(\"/c/Users/Amelia/.config/herd/bin/php.bat\" artisan test --filter=\"test_normalizes_phone_numbers\")",
+      "Bash(\"/c/Users/Amelia/.config/herd/bin/php.bat\" artisan test tests/Feature/PayChanguIntegrationTest.php --filter=\"test_can_process_mobile_money_payment\")",
+      "WebFetch(domain:developer.paychangu.com)",
+      "Bash(where php)",
+      "Bash(\"C:\\Users\\Amelia\\.config\\herd\\bin\\php.bat\" artisan test tests/Feature/PayChanguIntegrationTest.php --filter=\"test_can_process_mobile_money_payment\")"
     ],
     "deny": [],
     "ask": []
   },
   "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
-    "laravel-boost"
+    "laravel-boost",
+    "herd"
   ]
 }

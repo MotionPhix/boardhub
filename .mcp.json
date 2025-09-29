@@ -10,10 +10,10 @@
         "herd": {
             "command": "php",
             "args": [
-                "C:/Users/ultrashots/.config/herd/bin/herd-mcp.phar"
+                "C:/Users/Amelia/.config/herd/bin/herd-mcp.phar"
             ],
             "env": {
-                "SITE_PATH": "E:\\Sites\\adpro"
+                "SITE_PATH": "G:\\Herd\\adpro"
             }
         }
     }

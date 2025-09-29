@@ -1,19 +1,19 @@
 {
     "mcpServers": {
         "laravel-boost": {
-            "command": "C:\\Users\\ultrashots\\.config\\herd\\bin\\php84\\php.exe",
+            "command": "C:\\Users\\Amelia\\.config\\herd\\bin\\php84\\php.exe",
             "args": [
-                "E:\\Sites\\adpro\\artisan",
+                "G:\\Herd\\adpro\\artisan",
                 "boost:mcp"
             ]
         },
         "herd": {
-            "command": "C:\\Users\\ultrashots\\.config\\herd\\bin\\php84\\php.exe",
+            "command": "C:\\Users\\Amelia\\.config\\herd\\bin\\php84\\php.exe",
             "args": [
-                "C:/Users/ultrashots/.config/herd/bin/herd-mcp.phar"
+                "C:/Users/Amelia/.config/herd/bin/herd-mcp.phar"
             ],
             "env": {
-                "SITE_PATH": "E:\\Sites\\adpro"
+                "SITE_PATH": "G:\\Herd\\adpro"
             }
         }
     }

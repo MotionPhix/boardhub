@@ -4,8 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\PaymentRequest;
-use App\Models\Booking;
 use App\Models\Payment;
+use App\Models\Tenant;
 use App\Services\PayChanguService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -21,7 +21,7 @@ class PaymentController extends Controller
      */
     public function getProviders(string $tenantUuid)
     {
-        $tenant = app('tenant');
+        $tenant = app()->bound('tenant') ? app('tenant') : Tenant::where('uuid', $tenantUuid)->firstOrFail();
         $providers = $this->payChanguService->getSupportedProviders($tenant);
 
         return response()->json([
@@ -39,7 +39,7 @@ class PaymentController extends Controller
      */
     public function processPayment(PaymentRequest $request, string $tenantUuid)
     {
-        $tenant = app('tenant');
+        $tenant = app()->bound('tenant') ? app('tenant') : Tenant::where('uuid', $tenantUuid)->firstOrFail();
         $validated = $request->validated();
 
         try {
@@ -69,7 +69,7 @@ class PaymentController extends Controller
      */
     public function checkStatus(string $tenantUuid, string $paymentUuid)
     {
-        $tenant = app('tenant');
+        $tenant = app()->bound('tenant') ? app('tenant') : Tenant::where('uuid', $tenantUuid)->firstOrFail();
         $payment = $tenant->payments()->where('uuid', $paymentUuid)->firstOrFail();
 
         try {
@@ -105,12 +105,12 @@ class PaymentController extends Controller
      */
     public function getHistory(Request $request, string $tenantUuid)
     {
-        $tenant = app('tenant');
+        $tenant = app()->bound('tenant') ? app('tenant') : Tenant::where('uuid', $tenantUuid)->firstOrFail();
 
         $validator = Validator::make($request->all(), [
             'status' => 'nullable|in:pending,processing,completed,failed,cancelled',
             'provider' => 'nullable|in:airtel_money,tnm_mpamba,bank_transfer,card,paychangu',
-            'booking_id' => 'nullable|integer|exists:bookings,id',
+            'booking_id' => 'nullable|string|exists:bookings,id',
             'client_id' => 'nullable|integer|exists:clients,id',
             'date_from' => 'nullable|date',
             'date_to' => 'nullable|date|after_or_equal:date_from',
@@ -177,7 +177,7 @@ class PaymentController extends Controller
      */
     public function getAnalytics(Request $request, string $tenantUuid)
     {
-        $tenant = app('tenant');
+        $tenant = app()->bound('tenant') ? app('tenant') : Tenant::where('uuid', $tenantUuid)->firstOrFail();
 
         $validator = Validator::make($request->all(), [
             'period' => 'nullable|in:today,week,month,quarter,year',
@@ -236,10 +236,10 @@ class PaymentController extends Controller
      */
     public function retryPayment(string $tenantUuid, string $paymentUuid)
     {
-        $tenant = app('tenant');
+        $tenant = app()->bound('tenant') ? app('tenant') : Tenant::where('uuid', $tenantUuid)->firstOrFail();
         $payment = $tenant->payments()->where('uuid', $paymentUuid)->firstOrFail();
 
-        if (!$payment->isFailed()) {
+        if (! $payment->isFailed()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Only failed payments can be retried',
@@ -255,7 +255,7 @@ class PaymentController extends Controller
                 'provider' => $payment->provider,
                 'amount' => $payment->amount,
                 'phone_number' => $payment->phone_number,
-                'reference' => $payment->reference . '_RETRY_' . time(),
+                'reference' => $payment->reference.'_RETRY_'.time(),
             ];
 
             $result = $this->payChanguService->processPayment($paymentData);
@@ -280,10 +280,10 @@ class PaymentController extends Controller
      */
     public function cancelPayment(string $tenantUuid, string $paymentUuid)
     {
-        $tenant = app('tenant');
+        $tenant = app()->bound('tenant') ? app('tenant') : Tenant::where('uuid', $tenantUuid)->firstOrFail();
         $payment = $tenant->payments()->where('uuid', $paymentUuid)->firstOrFail();
 
-        if (!$payment->isPending()) {
+        if (! $payment->isPending()) {
             return response()->json([
                 'success' => false,
                 'message' => 'Only pending payments can be cancelled',
@@ -331,9 +331,12 @@ class PaymentController extends Controller
     private function calculateSuccessRate($query): float
     {
         $total = $query->count();
-        if ($total === 0) return 0;
+        if ($total === 0) {
+            return 0;
+        }
 
         $completed = $query->clone()->completed()->count();
+
         return round(($completed / $total) * 100, 2);
     }
 

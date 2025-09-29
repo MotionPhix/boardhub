@@ -3,21 +3,17 @@
 namespace App\Events;
 
 use App\Models\Payment;
-use App\States\PaymentState;
-use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use Thunk\Verbs\Attributes\StateId;
-use Thunk\Verbs\Event;
+use Illuminate\Support\Facades\Log;
 
-class PaymentCompleted extends Event implements ShouldBroadcast
+class PaymentCompleted implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
-    #[StateId(PaymentState::class)]
     public int $payment_id;
 
     public function __construct(
@@ -29,30 +25,12 @@ class PaymentCompleted extends Event implements ShouldBroadcast
         $this->payment_id = $payment_id;
     }
 
-    public function apply(PaymentState $state): void
-    {
-        $state->status = Payment::STATUS_COMPLETED;
-        $state->completed_at = now()->toISOString();
-        $state->external_id = $this->external_id;
-
-        // Update payment history
-        $state->payment_history[] = [
-            'status' => Payment::STATUS_COMPLETED,
-            'timestamp' => now()->toISOString(),
-            'external_id' => $this->external_id,
-        ];
-
-        // Calculate processing duration
-        if ($state->initiated_at) {
-            $initiated = \Carbon\Carbon::parse($state->initiated_at);
-            $state->processing_duration_seconds = $initiated->diffInSeconds(now());
-        }
-    }
-
     public function handle(): void
     {
         $payment = Payment::find($this->payment_id);
-        if (!$payment) return;
+        if (! $payment) {
+            return;
+        }
 
         // Log successful payment
         activity()
@@ -157,7 +135,7 @@ class PaymentCompleted extends Event implements ShouldBroadcast
                 'external_id' => $this->external_id,
             ],
             priority: 'normal',
-            action_url' => $payment->booking ?
+            action_url: $payment->booking ?
                 route('tenant.bookings.show', ['tenant' => $payment->tenant->uuid, 'booking' => $payment->booking->uuid]) :
                 null
         );

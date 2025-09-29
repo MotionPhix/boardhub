@@ -24,10 +24,11 @@ require __DIR__.'/system.php';
 // Post-login redirection handling
 use App\Http\Controllers\Auth\PostLoginRedirectController;
 
-Route::get('/', function() {
+Route::get('/', function () {
     if (auth()->check()) {
         return app(PostLoginRedirectController::class)->handlePostLoginRedirect(auth()->user());
     }
+
     return redirect('/login');
 })->name('home');
 
@@ -37,7 +38,7 @@ Route::get('/test', function () {
 
 // Test redirect logic
 Route::get('/test-redirect', function () {
-    if (!auth()->check()) {
+    if (! auth()->check()) {
         return 'User not logged in';
     }
 
@@ -46,6 +47,7 @@ Route::get('/test-redirect', function () {
 
     try {
         $redirect = $controller->handlePostLoginRedirect($user);
+
         return [
             'user_id' => $user->id,
             'is_super_admin' => $user->isSuperAdmin(),
@@ -62,11 +64,12 @@ Route::get('/test-redirect', function () {
 
 // Debug current user
 Route::get('/debug-user', function () {
-    if (!auth()->check()) {
+    if (! auth()->check()) {
         return 'User not logged in';
     }
 
     $user = auth()->user();
+
     return [
         'user_id' => $user->id,
         'name' => $user->name,
@@ -75,22 +78,22 @@ Route::get('/debug-user', function () {
         'is_super_admin' => $user->isSuperAdmin(),
         'raw_tenant_id' => $user->getAttributes()['tenant_id'] ?? 'NOT_SET',
         'roles' => $user->roles->pluck('name'),
-        'memberships' => $user->memberships->map(function($m) {
+        'memberships' => $user->memberships->map(function ($m) {
             return [
                 'tenant_id' => $m->tenant_id,
                 'role' => $m->role,
                 'status' => $m->status,
-                'tenant_name' => $m->tenant->name ?? 'Unknown'
+                'tenant_name' => $m->tenant->name ?? 'Unknown',
             ];
         }),
         'should_access_system' => $user->isSuperAdmin(),
-        'middleware_test' => 'If you see this, auth middleware passed'
+        'middleware_test' => 'If you see this, auth middleware passed',
     ];
 })->middleware('auth');
 
 // Test system access specifically
 Route::get('/test-system-access', function () {
-    if (!auth()->check()) {
+    if (! auth()->check()) {
         return 'User not logged in';
     }
 
@@ -103,7 +106,7 @@ Route::get('/test-system-access', function () {
         'tenant_id' => $user->tenant_id,
         'is_super_admin' => $canAccess,
         'middleware_result' => $canAccess ? 'SHOULD_PASS' : 'SHOULD_FAIL',
-        'test_timestamp' => now()->toISOString()
+        'test_timestamp' => now()->toISOString(),
     ];
 })->middleware(['auth', 'super.admin']);
 
@@ -120,7 +123,7 @@ Route::middleware(['auth'])->prefix('checkout')->name('checkout.')->group(functi
 
 // Webhook Routes (no auth required)
 Route::prefix('webhooks')->name('webhooks.')->group(function () {
-    Route::post('/paychangu', [\App\Http\Controllers\WebhookController::class, 'paychangu'])->name('paychangu');
+    Route::get('/paychangu', [\App\Http\Controllers\WebhookController::class, 'paychangu'])->name('paychangu');
 });
 
 // Health check endpoint

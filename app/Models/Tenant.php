@@ -3,12 +3,11 @@
 namespace App\Models;
 
 use App\Enums\OrganizationStatus;
-use App\Models\Membership;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
 class Tenant extends Model
@@ -123,20 +122,25 @@ class Tenant extends Model
         return $this->hasMany(Booking::class);
     }
 
+    public function payments(): HasMany
+    {
+        return $this->hasMany(Payment::class);
+    }
+
     /**
      * Define the criteria required for setup completion
      */
     public function getSetupCompletionCriteria(): array
     {
         return [
-            'has_name' => !empty($this->name),
-            'has_slug' => !empty($this->slug),
+            'has_name' => ! empty($this->name),
+            'has_slug' => ! empty($this->slug),
             'has_owner' => Membership::where('tenant_id', $this->id)
                 ->where('role', Membership::ROLE_OWNER)
                 ->where('status', Membership::STATUS_ACTIVE)
                 ->exists(),
-            'has_business_info' => !empty($this->business_type) && !empty($this->industry),
-            'has_contact_info' => !empty($this->contact_info),
+            'has_business_info' => ! empty($this->business_type) && ! empty($this->industry),
+            'has_contact_info' => ! empty($this->contact_info),
             'has_subscription' => $this->subscriptions()->exists() || $this->subscription_tier === 'trial',
         ];
     }
@@ -147,7 +151,8 @@ class Tenant extends Model
     public function isSetupComplete(): bool
     {
         $criteria = $this->getSetupCompletionCriteria();
-        return collect($criteria)->every(fn($met) => $met === true);
+
+        return collect($criteria)->every(fn ($met) => $met === true);
     }
 
     /**
@@ -159,6 +164,7 @@ class Tenant extends Model
 
         if ($this->setup_completed !== $isComplete) {
             $this->update(['setup_completed' => $isComplete]);
+
             return true;
         }
 
@@ -171,12 +177,12 @@ class Tenant extends Model
     public function getStatusAttribute(): OrganizationStatus
     {
         // If setup is not completed, return setup_incomplete
-        if (!$this->setup_completed) {
+        if (! $this->setup_completed) {
             return OrganizationStatus::SetupIncomplete;
         }
 
         // If tenant is not active, return inactive
-        if (!$this->is_active) {
+        if (! $this->is_active) {
             return OrganizationStatus::Inactive;
         }
 
@@ -208,10 +214,10 @@ class Tenant extends Model
     public function currentSubscription(): ?TenantSubscription
     {
         return $this->subscriptions()
-            ->where(function($query) {
+            ->where(function ($query) {
                 $query->where('status', 'active')
-                      ->orWhere('status', 'trial')
-                      ->orWhere('status', 'past_due');
+                    ->orWhere('status', 'trial')
+                    ->orWhere('status', 'past_due');
             })
             ->orderBy('created_at', 'desc')
             ->first();
@@ -248,7 +254,7 @@ class Tenant extends Model
         parent::boot();
 
         static::creating(function ($tenant) {
-            if (!$tenant->slug) {
+            if (! $tenant->slug) {
                 $tenant->slug = Str::slug($tenant->name);
             }
 
@@ -266,13 +272,18 @@ class Tenant extends Model
 
     // Subscription tiers
     public const TIER_TRIAL = 'trial';
+
     public const TIER_STARTER = 'starter';
+
     public const TIER_PROFESSIONAL = 'professional';
+
     public const TIER_ENTERPRISE = 'enterprise';
 
     // Business types
     public const BUSINESS_AGENCY = 'advertising_agency';
+
     public const BUSINESS_BILLBOARD_OWNER = 'billboard_owner';
+
     public const BUSINESS_HYBRID = 'hybrid';
 
     /**
@@ -366,7 +377,7 @@ class Tenant extends Model
         $this->update(['onboarding_progress' => $progress]);
 
         // Check if setup is completed
-        if ($this->getOnboardingProgress() >= 80 && !$this->setup_completed) {
+        if ($this->getOnboardingProgress() >= 80 && ! $this->setup_completed) {
             $this->update([
                 'setup_completed' => true,
                 'activated_at' => now(),
