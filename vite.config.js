@@ -25,6 +25,9 @@ export default defineConfig({
   resolve: {
     alias: {
       vue: 'vue/dist/vue.esm-bundler.js',
+      '@/components': '/resources/js/Components',
+      '@/layouts': '/resources/js/Layouts',
+      '@': '/resources/js',
     },
   },
 
@@ -34,5 +37,23 @@ export default defineConfig({
         tailwindcss()
       ],
     },
-  }
+  },
+
+  server: {
+    proxy: {
+      '/': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: false,
+        xfwd: true,
+        bypass(req) {
+          // Let Vite serve its own dev-module requests; proxy everything else
+          // (pages, built assets, images) to the Laravel backend.
+          if (req.url?.startsWith('/@') || req.url?.startsWith('/node_modules/') || req.url?.startsWith('/resources/')) {
+            return req.url;
+          }
+          return null;
+        },
+      },
+    },
+  },
 });
