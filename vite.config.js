@@ -37,5 +37,22 @@ export default defineConfig({
         tailwindcss()
       ],
     },
-  }
+  },
+
+  server: {
+    proxy: {
+      '/': {
+        target: 'http://127.0.0.1:8000',
+        changeOrigin: true,
+        bypass(req) {
+          // Let Vite serve its own dev-module requests; proxy everything else
+          // (pages, built assets, images) to the Laravel backend.
+          if (req.url?.startsWith('/@') || req.url?.startsWith('/node_modules/') || req.url?.startsWith('/resources/')) {
+            return req.url;
+          }
+          return null;
+        },
+      },
+    },
+  },
 });
