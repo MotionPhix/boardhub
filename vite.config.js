@@ -43,7 +43,8 @@ export default defineConfig({
     proxy: {
       '/': {
         target: 'http://127.0.0.1:8000',
-        changeOrigin: true,
+        changeOrigin: false,
+        xfwd: true,
         bypass(req) {
           // Let Vite serve its own dev-module requests; proxy everything else
           // (pages, built assets, images) to the Laravel backend.
