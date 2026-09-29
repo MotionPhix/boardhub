@@ -8,9 +8,18 @@
     "skipLibCheck": true,
     "allowJs": true,
     "esModuleInterop": true,
-    "baseUrl": ".",
-    "paths": { "@/*": ["resources/js/*"] }
+    "paths": {
+      "@/*": [
+        "resources/js/*"
+      ]
+    }
   },
-  "include": ["resources/js/**/*.ts"],
-  "exclude": ["node_modules", "public", "vendor"]
+  "include": [
+    "resources/js/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "public",
+    "vendor"
+  ]
 }
