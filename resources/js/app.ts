@@ -53,7 +53,7 @@ createInertiaApp({
       .use(pinia)
       .use(VueApexCharts);
 
-    return app.mount(el);
+    app.mount(el);
   },
   progress: {
     color: '#4f46e5',
