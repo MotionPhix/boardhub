@@ -1,7 +1,7 @@
 import './bootstrap';
 import '../css/app.css';
 
-import {createApp, h} from 'vue';
+import {createApp, h, type DefineComponent} from 'vue';
 import {createInertiaApp} from '@inertiajs/vue3';
 import {resolvePageComponent} from 'laravel-vite-plugin/inertia-helpers';
 import {ZiggyVue} from 'ziggy-js';
@@ -45,7 +45,7 @@ putConfig({
 
 createInertiaApp({
   title: (title) => `${title} - ${appName}`,
-  resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob('./pages/**/*.vue')),
+  resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob<DefineComponent>('./pages/**/*.vue')),
   setup({el, App, props, plugin}) {
     const app = createApp({render: renderApp(App, props)})
       .use(plugin)
@@ -53,7 +53,7 @@ createInertiaApp({
       .use(pinia)
       .use(VueApexCharts);
 
-    return app.mount(el);
+    app.mount(el);
   },
   progress: {
     color: '#4f46e5',
