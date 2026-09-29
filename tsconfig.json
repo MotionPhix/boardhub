@@ -10,7 +10,7 @@
     "esModuleInterop": true,
     "paths": {
       "@/*": [
-        "resources/js/*"
+        "./resources/js/*"
       ]
     }
   },
